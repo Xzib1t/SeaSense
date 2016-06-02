@@ -13,4 +13,5 @@
         extern int AccelX,AccelY,AccelZ;
         extern int GyroX,GyroY,GyroZ;
         #define MAX_INPUT_SIZE 100
+        #define MAX_CLI_ARGV 20
 #endif
