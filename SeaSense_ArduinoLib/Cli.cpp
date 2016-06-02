@@ -8,7 +8,7 @@
 
 // input text and number of args from a new command line entry
 static int cli_argc;
-static char* cli_argv[4];
+static char* cli_argv[MAX_CLI_ARGV]; //see globals.h
 
     
 /* Create a type for each CLI command. */
@@ -31,6 +31,8 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("sd_ls", "List all files on the SD card", cli_sd_ls) \
         CLI_CMD("sd_cat", "Dump a file", cli_sd_cat) \
         CLI_CMD("sd_append", "Append to a file", cli_sd_append) \
+        CLI_CMD("sd_create", "Create a file", cli_sd_create) \
+        CLI_CMD("sd_del", "Delete a file", cli_sd_del) \
 
 // Generate the list of function prototypes
 #undef CLI_CMD
@@ -202,7 +204,7 @@ void cli_sd_cat(int argc, char *argv[])
     File currentFile;
     currentFile = SD.open(argv[1]);
     if (currentFile){
-        Serial1.println(argv[1]);
+        Serial1.print ("Reading contents of: "); Serial1.println(argv[1]);
         // read from the file until there's nothing else in it:
         while (currentFile.available()) {
           Serial1.write(currentFile.read());
@@ -215,10 +217,10 @@ void cli_sd_cat(int argc, char *argv[])
 }
  
 // append to a file
-// argv[1] = filename, argv[2] = text to be written to file
+// argv[1] = filename, argv[2]-argv[MAX_CLI_ARGV] = text to be written to file
 void cli_sd_append(int argc, char *argv[])
 {
-    if(argc<2 | argc>2)
+    if(argc<2)
     {
         Serial1.println("Error: incorrect number of args");
         return;
@@ -228,12 +230,49 @@ void cli_sd_append(int argc, char *argv[])
     currentFile = SD.open(argv[1],FILE_WRITE);
     if(currentFile){
         Serial1.print("Writing to file "); Serial1.println(argv[1]);
-        currentFile.println(argv[2]);
+        int i;
+        for(i=1;i<argc;i++)
+        {
+            currentFile.print(argv[i+1]);
+            currentFile.print(" ");//argv parsing removes spaces
+        }
+        currentFile.print("\n\r"); // add a new line after appending text
         currentFile.close();
         Serial1.println("Write Complete");
     } else {
         Serial1.print("Error opening "); Serial1.println(argv[1]);
     }
+}
+
+void cli_sd_create(int argc, char *argv[]) {
+    if(argc<1 | argc>1)
+    {
+        Serial1.println("Error: incorrect number of args");
+        return;
+    }
+    
+    File currentFile;
+    currentFile = SD.open(argv[1],FILE_WRITE);
+    if(currentFile) {
+        Serial1.print("Created file "); Serial1.println(argv[1]);
+    } else
+        Serial1.println("Error creating file");
+    currentFile.close();
+    return;
+}
+
+void cli_sd_del(int argc, char *argv[]) {
+    if(argc<1 | argc>1)
+    {
+        Serial1.println("Error: incorrect number of args");
+        return;
+    }
+    if(SD.exists(argv[1])){
+        SD.remove(argv[1]);
+        Serial1.print("Removed file "); Serial1.println(argv[1]);
+    } else
+        Serial1.println("Error: given file doesn't exist");
+    return;
 }
 
 void printDirectory(File dir, int numTabs) {
