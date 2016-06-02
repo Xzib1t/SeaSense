@@ -76,7 +76,22 @@ public class MainActivity  extends BlunoLibrary {
 	private int serialCount = 0;
 	private String placeHolder = "Empty";
 	private String lastFlag = "Empty";
-	
+
+	private int dataTypeIndex = 0;
+	private int dataCounter = 0;
+	private float[] temperature = {0};
+	private float[] depth = {0};
+	private float[] conductivity = {0};
+	private float[] light = {0};
+	private float[] heading = {0};
+	private float[] accelX = {0};
+	private float[] accelY = {0};
+	private float[] accelZ = {0};
+	private float[] gyroX = {0};
+	private float[] gyroY = {0};
+	private float[] gyroZ = {0};
+
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -301,10 +316,12 @@ public class MainActivity  extends BlunoLibrary {
 		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
 	}
 
-	/*private void print2BTfloat(float value){
-		serialReceivedText.append(Float.toString(value));		//append the text into the EditText
-		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
-	}*/
+	/**
+	 * Read csv data sent by Arduino
+	 */
+	private void downloadData(){
+
+	}
 
 	@Override
 	public void onSerialReceived(String theString) {							//Once connection data received, this function will be called
@@ -312,12 +329,67 @@ public class MainActivity  extends BlunoLibrary {
 		String flag = theString;
 		//The Serial data from the BLUNO may be sub-packaged, so using a buffer to hold the String is a good choice.
 
-		if(lastFlag.equals("Gyro")){
+		int dataSize = 44; //let's pretend we are sent the length of the file
+
+		//When we call this by sending a control flag from the Android, the data should
+		//stay in the same order, but right now it won't because it is constantly printing
+		if(!flag.equals(",")){ //when actual data is sent
+			switch(dataTypeIndex){
+				case 0:
+					temperature[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 1:
+					depth[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 2:
+					conductivity[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 3:
+					light[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 4:
+					heading[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 5:
+					accelX[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 6:
+					accelY[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 7:
+					accelZ[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 8:
+					gyroX[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 9:
+					gyroY[dataCounter] = Float.parseFloat(flag);
+					break;
+				case 10:
+					gyroZ[dataCounter] = Float.parseFloat(flag);
+					break;
+				default:
+
+					break;
+			}
+			dataTypeIndex++;
+			if(dataTypeIndex>=11) dataTypeIndex = 0;
+			dataCounter++;
+			if(dataCounter>=(dataSize-1)) {
+				dataCounter = 0;
+
+				ArrayList<Entry> temps = loadArray(temperature);
+				graphTest(chartTemp,)
+			}
+		}
+
+		//uncomment below code to run regular program
+/*		if(lastFlag.equals("Gyro")){
 			//print2BT(theString);
 			if(!theString.equals("Gyro")){ //double check that this is the data we want
-				/*Float[] gyroXdata = {24f, 89f, 108f, 68f, 128f, 90f};
-				ArrayList<Entry> entries1 = loadArray(gyroXdata);
-				graphTest(chartGyroX, entries1, "Gyro X", Color.GREEN);*/
+				Float[] temp = {20f, 21f, 22f, 23f};
+				ArrayList<Entry> temps = loadArray(temp);
+				graphTest(chartTemp, temps, "Temp", Color.RED);
 				if(theString.equals("X")){
 					
 				}
@@ -357,7 +429,7 @@ public class MainActivity  extends BlunoLibrary {
 			default:
 				//spinCompass(compass, 0);
 				break;
-		}
+		}*/
 	}
 }
 

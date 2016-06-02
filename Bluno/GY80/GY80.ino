@@ -49,6 +49,11 @@ int newFunction = 0;
 
 Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
+float data[] = {50.3,-8,885,90.45,0,100,150,10,100,15,32,50.2,2,880,180.26,160,150,8,5,140,23,32,50.1,2,883,240.78,164,100,2,20,12,324,43,50.0,3,877,300.76,164,50,40,2,23,454,5};
+
+int arrSize = sizeof(data)/sizeof(float);
+int testCounter = 0;
+
 void setup(){
   display.begin(SSD1306_SWITCHCAPVCC);
   display.display();
@@ -76,8 +81,17 @@ void setup(){
 
 void loop(){
   attachInterrupt(digitalPinToInterrupt(button), changeFunc, HIGH);
-    
-   switch(function){
+
+  if(testCounter<1){ //run once
+    //Serial.println(arrSize);
+    for(int i=0; i<arrSize; i++){
+      Serial.print(data[i]);
+      Serial.print(",");
+    }*/
+  }
+
+
+   /*switch(function){ //uncomment to run regular program
       case 1:
         doL3G4200D();
         break;
@@ -90,7 +104,7 @@ void loop(){
       default:
        //Serial.println("Defaulted to this case");
       break;
-    }
+    }*/
 }
 
 void changeFunc(){
