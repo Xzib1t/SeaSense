@@ -1,3 +1,7 @@
+/**
+ * Code from https://github.com/DFRobot/BlunoBasicDemo/blob/master/Android/BlunoBasicDemo/app/src/main/java/com/dfrobot/angelo/blunobasicdemo/BlunoLibrary.java
+ */
+
 package utap.navsea.sensorpack;
 
 import java.util.ArrayList;

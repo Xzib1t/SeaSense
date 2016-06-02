@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+/**
+ * Several of the methods in this file were copied directly from
+ * https://github.com/DFRobot/BlunoBasicDemo/blob/master/Android/BlunoBasicDemo/app/src/main/java/com/dfrobot/angelo/blunobasicdemo/MainActivity.java
+ */
+
 package utap.navsea.sensorpack;
 
 import android.content.Context;
@@ -55,7 +60,13 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 public class MainActivity  extends BlunoLibrary {
@@ -78,18 +89,19 @@ public class MainActivity  extends BlunoLibrary {
 	private String lastFlag = "Empty";
 
 	private int dataTypeIndex = 0;
-	private int dataCounter = 0;
-	private float[] temperature = {0};
-	private float[] depth = {0};
-	private float[] conductivity = {0};
-	private float[] light = {0};
-	private float[] heading = {0};
-	private float[] accelX = {0};
-	private float[] accelY = {0};
-	private float[] accelZ = {0};
-	private float[] gyroX = {0};
-	private float[] gyroY = {0};
-	private float[] gyroZ = {0};
+	private int dataCounter = 0; //determines if disp, temp, cond...etc
+	private int dataCount = 0; //individual data counters
+	private Float[] temperature = {0f};
+	private Float[] depth = {0f};
+	private Float[] conductivity = {0f};
+	private Float[] light = {0f};
+	private Float[] heading = {0f};
+	private Float[] accelX = {0f};
+	private Float[] accelY = {0f};
+	private Float[] accelZ = {0f};
+	private Float[] gyroX = {0f};
+	private Float[] gyroY = {0f};
+	private Float[] gyroZ = {0f};
 
 
 	@Override
@@ -317,11 +329,18 @@ public class MainActivity  extends BlunoLibrary {
 	}
 
 	/**
-	 * Read csv data sent by Arduino
+	 * Parse csv data sent by Arduino
 	 */
-	private void downloadData(){
+	private ArrayList<String> parseData(String input){
+		//TODO change this to deal with an array of strings so that all data can be processed once downloaded
+		ArrayList<String> parsedData = new ArrayList<String>();
+		for(String splitVal : input.split(",")){
+			parsedData.add(splitVal);
+		}
 
+		return parsedData;
 	}
+
 
 	@Override
 	public void onSerialReceived(String theString) {							//Once connection data received, this function will be called
@@ -333,40 +352,48 @@ public class MainActivity  extends BlunoLibrary {
 
 		//When we call this by sending a control flag from the Android, the data should
 		//stay in the same order, but right now it won't because it is constantly printing
-		if(!flag.equals(",")){ //when actual data is sent
+
+		ArrayList<String[]> data = parseData(theString);
+		for(int i=0; i<20; i++){
+			for (String value : data) {
+				print2BT("Value: " + value);
+			}
+		}
+
+	/*	if(!flag.equals(",")){ //when actual data is sent
 			switch(dataTypeIndex){
 				case 0:
-					temperature[dataCounter] = Float.parseFloat(flag);
+					temperature[dataCount] = Float.parseFloat(flag);
 					break;
 				case 1:
-					depth[dataCounter] = Float.parseFloat(flag);
+					depth[dataCount] = Float.parseFloat(flag);
 					break;
 				case 2:
-					conductivity[dataCounter] = Float.parseFloat(flag);
+					conductivity[dataCount] = Float.parseFloat(flag);
 					break;
 				case 3:
-					light[dataCounter] = Float.parseFloat(flag);
+					light[dataCount] = Float.parseFloat(flag);
 					break;
 				case 4:
-					heading[dataCounter] = Float.parseFloat(flag);
+					heading[dataCount] = Float.parseFloat(flag);
 					break;
 				case 5:
-					accelX[dataCounter] = Float.parseFloat(flag);
+					accelX[dataCount] = Float.parseFloat(flag);
 					break;
 				case 6:
-					accelY[dataCounter] = Float.parseFloat(flag);
+					accelY[dataCount] = Float.parseFloat(flag);
 					break;
 				case 7:
-					accelZ[dataCounter] = Float.parseFloat(flag);
+					accelZ[dataCount] = Float.parseFloat(flag);
 					break;
 				case 8:
-					gyroX[dataCounter] = Float.parseFloat(flag);
+					gyroX[dataCount] = Float.parseFloat(flag);
 					break;
 				case 9:
-					gyroY[dataCounter] = Float.parseFloat(flag);
+					gyroY[dataCount] = Float.parseFloat(flag);
 					break;
 				case 10:
-					gyroZ[dataCounter] = Float.parseFloat(flag);
+					gyroZ[dataCount] = Float.parseFloat(flag);
 					break;
 				default:
 
@@ -379,9 +406,9 @@ public class MainActivity  extends BlunoLibrary {
 				dataCounter = 0;
 
 				ArrayList<Entry> temps = loadArray(temperature);
-				graphTest(chartTemp,)
+				graphTest(chartTemp, temps, "Temperature", Color.RED);
 			}
-		}
+		}*/
 
 		//uncomment below code to run regular program
 /*		if(lastFlag.equals("Gyro")){

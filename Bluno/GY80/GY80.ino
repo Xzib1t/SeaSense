@@ -1,5 +1,5 @@
 /* 
- * Author: 
+ * Author:
  * Purpose: GY-80 integration
  * Year: 2016
  * Modified several independent files to use the GY-80 
@@ -86,8 +86,9 @@ void loop(){
     //Serial.println(arrSize);
     for(int i=0; i<arrSize; i++){
       Serial.print(data[i]);
-      Serial.print(",");
-    }*/
+      Serial.println(",");
+    }
+    testCounter++;
   }
 
 

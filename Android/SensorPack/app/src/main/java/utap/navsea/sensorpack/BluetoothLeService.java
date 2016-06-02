@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/**
+ * Code from https://github.com/DFRobot/BlunoBasicDemo/blob/master/Android/BlunoBasicDemo/app/src/main/java/com/dfrobot/angelo/blunobasicdemo/BluetoothLeService.java
+ */
+
 package utap.navsea.sensorpack;
 
 import android.app.Service;
