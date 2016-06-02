@@ -1,0 +1,4 @@
+SeaSense	KEYWORD1
+Initialize	KEYWORD2
+BluetoothClient	KEYWORD2
+RTC_AUTOSET	KEYWORD3

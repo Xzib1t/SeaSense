@@ -1,0 +1,260 @@
+// Created by Georges Gauthier - glgauthier@wpi.edu
+// ported from the original seasense PIC code
+
+#include "Arduino.h"
+#include "Cli.h"
+#include "SeaSense.h"
+#include <string.h>
+
+// input text and number of args from a new command line entry
+static int cli_argc;
+static char* cli_argv[4];
+
+    
+/* Create a type for each CLI command. */
+struct CLI_CMD
+{
+  char *name;
+  char *description;
+  void (*cli_function)(int argc, char *argv[]);
+};
+typedef struct CLI_CMD cli_cmd_t;
+
+
+// generate all available commands and their associated content
+#define CLI_CORE_CMD_LIST	\
+        CLI_CMD("help", "Show a list of commands", cli_help) \
+        CLI_CMD("#", "Comment", cli_comment) \
+		CLI_CMD("test", "A test command", cli_test) \
+        CLI_CMD("rtc_get", "Get the RTC time", cli_rtc_get) \
+        CLI_CMD("rtc_set", "Set the RTC time", cli_rtc_set) \
+        CLI_CMD("sd_ls", "List all files on the SD card", cli_sd_ls) \
+        CLI_CMD("sd_cat", "Dump a file", cli_sd_cat) \
+        CLI_CMD("sd_append", "Append to a file", cli_sd_append) \
+
+// Generate the list of function prototypes
+#undef CLI_CMD
+#define CLI_CMD(cmd, desc, func) void func(int argc, char *argv[]);		
+CLI_CORE_CMD_LIST
+
+// misc. function prototypes
+void printDirectory(File dir, int numTabs);
+
+
+
+// Generate the list of CLI commands. 
+//      note that converting "text like this" to a char* is a
+//      depreciated method and will throw warnings. Proper syntax
+//      would be to use strcpy() or something similar
+cli_cmd_t cli_cmds[] = {
+#undef CLI_CMD
+#define CLI_CMD(cmd, desc, func) {cmd, desc, func},
+	CLI_CORE_CMD_LIST
+};
+
+/* Calculate the number of CLI commands based upon the sizes. */
+int num_cli_cmds = sizeof(cli_cmds)/sizeof(cli_cmds[0]);
+
+// processCMD:
+//  consumes a pointer to an entry from the bluetooth serial port and the 
+//  length of said command, searches said entry for a one of the given input
+//  commands and excecutes the command if possible
+void processCMD(char *command, int size)
+{
+    int j;
+    int argc = 0;
+    
+    // print out recieved command to the serial monitor
+    Serial.println("Recieved new entry: ");
+    cli_argv[argc] = &command[0];
+    command[size+1] = '\0';
+    for(j=0;j<size;j++){ 
+        Serial.print(command[j]); 
+        if (command[j]==' ')
+        {
+            argc++;
+            cli_argv[argc] = &command[j+1]; 
+            command[j] = '\0';// strcmp will stop looking after this position (i.e. only search 1st arg for command)
+        }
+    }
+    Serial.print('\n'); // new line after printing cmd
+   
+    // search through commands list for given input
+    for(j=0;j<num_cli_cmds;j++){
+        if(argc == 1){ // if only one arg is given...
+            if(strcmp(cli_cmds[j].name,command) == 0){ // search for a corresponding command
+                // call the command, passing in the command line input
+                return cli_cmds[j].cli_function(argc,&cli_argv[0]);
+            } 
+        }
+        else { // if multiple args are given...
+            if(strcmp(cli_cmds[j].name,command) == 0){ // search for a corresponding command
+                // call the command, passing in a string starting with the second input argument
+                return cli_cmds[j].cli_function(argc,cli_argv);
+            } 
+        }
+    }
+    // if the input doesn't match any valid commands, indicate so
+    Serial1.println("Error: Invalid Command\n\r");
+    return;
+}
+
+//cli_help command - prints out all available commands and their descriptions
+void cli_help(int argc, char *argv[])
+{
+    int count;
+    
+    Serial1.println("Help:\n");
+    
+    for(count=0;count<num_cli_cmds;count++)
+    {
+        Serial1.print("\t");
+        Serial1.print(cli_cmds[count].name);
+        Serial1.print(": ");
+        Serial1.println(cli_cmds[count].description);
+    }
+    return;
+}
+
+// cli_comment command - ignore all command line entry after a '#' char
+void cli_comment(int argc, char *argv[]) 
+{
+    Serial1.println(" ");
+    return;
+}
+
+// cli_test command - print a string to illustrate the use of the command line client
+void cli_test(int argc, char *argv[]) 
+{
+    Serial1.println("It's alive! This is only a test\n\rTry adding additional arguments\n\r");
+    int i;
+    for (i=0;i<argc;i++)
+    {
+        Serial1.print("argv[");
+        Serial1.print(i);
+        Serial1.print("] = ");
+        Serial1.println(argv[i+1]);
+    }
+    return;
+}
+
+// cli_rtc_get - print the current time
+void cli_rtc_get(int argc, char *argv[])
+{
+    char temp[25];
+    DateTime now = rtc.now();
+    sprintf(temp,"%04d/%02d/%02d - %02d:%02d:%02d\n",now.year(),now.month(),now.day(),now.hour(),now.minute(),now.second());
+    Serial1.println(temp);
+    return;
+}
+
+// cli_rtc_set - set a new RTC time
+void cli_rtc_set(int argc, char *argv[])
+{
+    // if autoset is turned on, don't allow for the time to be manipulated
+    if (RTC_AUTOSET == 1){
+        Serial1.println("Error: RTC Autoset set to true");
+        return;
+    }
+    else{
+        // if there aren't enough args don't parse a new time
+        if(argc < 2 | argc > 2) {
+            Serial1.println("Error: incorrect number of arguments. Input should be yyyy/mm/dd hh:mm:ss");
+            return;
+        }
+        
+        // read in the command line input, parse it to yyyy/mm/dd hh:mm:ss
+        int year,month,day,hour,minute,second;
+        char temp[35]; 
+        sscanf(argv[1],"%d/%d/%d",&year,&month,&day);
+        sscanf(argv[2],"%2d%c%2d%c%2d",&hour,temp,&minute,temp,&second);
+        
+        // set the time based on the input and print it to the command line
+        rtc.adjust(DateTime(year,month,day,hour,minute,second));
+        sprintf(temp,"Set time to %04d/%02d/%02d %02d:%02d:%02d",year, month, day, hour, minute, second);
+        Serial1.println(temp);
+        return;
+    }
+    // if none of the above qualify, throw an error
+    Serial1.println("Error: input should be yyyy/mm/dd hh:mm:ss");
+    return;
+}
+
+// cli_sd_ls - prints all files and directories saved on the SD card
+void cli_sd_ls(int argc, char *argv[])
+{
+    File currentFile;
+    currentFile = SD.open("/");
+    printDirectory(currentFile, 0);
+    currentFile.close();
+    return;
+}
+
+// print out all data contained in a file
+void cli_sd_cat(int argc, char *argv[])
+{
+    if(argc<1 | argc>1)
+    {
+        Serial1.println("Error: incorrect number of args");
+        return;
+    }
+    
+    File currentFile;
+    currentFile = SD.open(argv[1]);
+    if (currentFile){
+        Serial1.println(argv[1]);
+        // read from the file until there's nothing else in it:
+        while (currentFile.available()) {
+          Serial1.write(currentFile.read());
+        }
+    } else {
+    // if the file didn't open, print an error:
+    Serial1.println("error opening file");
+   }
+    return;
+}
+ 
+// append to a file
+// argv[1] = filename, argv[2] = text to be written to file
+void cli_sd_append(int argc, char *argv[])
+{
+    if(argc<2 | argc>2)
+    {
+        Serial1.println("Error: incorrect number of args");
+        return;
+    }
+    
+    File currentFile;
+    currentFile = SD.open(argv[1],FILE_WRITE);
+    if(currentFile){
+        Serial1.print("Writing to file "); Serial1.println(argv[1]);
+        currentFile.println(argv[2]);
+        currentFile.close();
+        Serial1.println("Write Complete");
+    } else {
+        Serial1.print("Error opening "); Serial1.println(argv[1]);
+    }
+}
+
+void printDirectory(File dir, int numTabs) {
+    while (true) {
+        File entry =  dir.openNextFile();
+        if (! entry) {
+          // no more files
+          break;
+        }
+        for (uint8_t i = 0; i < numTabs; i++) {
+          Serial1.print("\t");
+        }
+        Serial1.print(entry.name());
+        if (entry.isDirectory()) {
+          Serial1.println("/");
+          printDirectory(entry, numTabs + 1);
+        } else {
+          // files have sizes, directories do not
+           Serial1.print("\t\t");
+           Serial1.println(entry.size(), DEC);
+        }
+        entry.close();
+  }
+}
