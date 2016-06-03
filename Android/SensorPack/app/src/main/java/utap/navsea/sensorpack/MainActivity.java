@@ -336,22 +336,38 @@ public class MainActivity  extends BlunoLibrary {
 	/**
 	 * Parse csv data sent by Arduino
 	 */
-	private ArrayList<String> parseData(String input){
-		//TODO change this to deal with an array of strings so that all data can be processed once downloaded
+	private void parseData(String input){
+		int dataType = 0;
+		int curIndex = 0;
+		String eof = " U+1F4A9";
 		ArrayList<String> parsedData = new ArrayList<String>();
+
 		for(String splitVal : input.split(",")){
 			parsedData.add(splitVal);
+
+			if(dataType==0) {
+				if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+					print2BT(parsedData.get(curIndex));
+					print2BT(", ");
+				}
+			}
+
+			curIndex++;
+			dataType++;
+			if(dataType>10) dataType = 0; //reset data counter
 		}
 
-		return parsedData;
+		//Float[] floatData = new Float[parsedData.size()];
+		//return floatData;
 	}
 
-	private void downloadData(String input){ //ArrayList<String> downloadData(String input){
+	private void downloadData(String input){
 		//ArrayList<String> downloadedData = new ArrayList<String>();
 		downloadedData.add(input);
 	}
 
-	private boolean check4eof(String input){
+	private boolean check4eof(ArrayList<String> inputString){
+		String input = inputString.get(inputString.size() - 1);
 		char[] eof = {'U','+','1','F','4','A','9'};
 		int eofLength = 7;
 		char[] charCheck = new char[eofLength];
@@ -369,31 +385,19 @@ public class MainActivity  extends BlunoLibrary {
 
 
 	@Override
-	public void onSerialReceived(String theString) {							//Once connection data received, this function will be called
-		// TODO Auto-generated method stub
-		String flag = theString;
-		String testEof = "U+1F4A9";
+	public void onSerialReceived(String theString) {	//Once connection data received, this function will be called
 		//The Serial data from the BLUNO may be sub-packaged, so using a buffer to hold the String is a good choice.
-
-		int dataSize = 44; //let's pretend we are sent the length of the file
-
-		//When we call this by sending a control flag from the Android, the data should
-		//stay in the same order, but right now it won't because it is constantly printing
-
-		ArrayList<String> data = parseData(theString);
-
+		int dataType = 0;
 		downloadData(theString);
 
-		dataCount++;
+		boolean check = check4eof(downloadedData);
+
+		if(check){
 			for (String printStr : downloadedData) {
 				downloadedStrings = downloadedStrings.concat(printStr);
-
-				//if(printStr.equals(testEof)) print2BT("Done printing");
 			}
-
-		print2BT(downloadedStrings);
-		boolean check = check4eof(downloadedStrings);
-		if(check) print2BT("EOF REACHED");//parseData(downloadedStrings);
+			parseData(downloadedStrings);
+		}
 
 
 /*		ArrayList<String> data = parseData(theString);
