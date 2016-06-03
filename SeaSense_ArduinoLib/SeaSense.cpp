@@ -8,6 +8,7 @@
 #include "SPI.h"
 #include "SD.h"
 #include "Cli.h"
+#include "avr/wdt.h" 
 
 // global vars (defined in globals.h)
 boolean RTC_AUTOSET;
@@ -15,11 +16,11 @@ RTC_DS1307 rtc;
 
 char cli_rxBuf [MAX_INPUT_SIZE];
 
-// SD card stuff
-const int chipSelect = 4;
-
 // Initializations are done here automatically,
 SeaSense::SeaSense(int output){
+    // disable the watchdog timer
+    wdt_disable();
+    
     // LED pin
     pinMode(output,OUTPUT);
     _output = output;
@@ -38,13 +39,6 @@ SeaSense::SeaSense(int output){
 
 // Initialize - sets up a SoftwareSerial bluetooth client. Can perform other initialization code here as well
 void SeaSense::Initialize(){
-    
-    Serial.print("Initializing SD card...");
-    if (!SD.begin(chipSelect)) {
-        Serial.println("initialization failed!");
-        //return;
-    }
-    Serial.println("initialization done.");
 
     // change the bluetooth serial data rate to 9600 baud
     Serial1.begin(115200);
@@ -54,26 +48,41 @@ void SeaSense::Initialize(){
     delay(100);
     Serial1.println("U,9600,N");
     Serial1.begin(9600);
-    Serial.println("Bluetooth successfully initialized"); 
-    Serial.print("RTC AUTOSET = "); Serial.println(RTC_AUTOSET);
-    newCli = false; // will write '>' for bt CLI if true
-    digitalWrite(_output,HIGH); // indicate config complete
-    init = true;
+    delay(5);
+    Serial1.println("Bluetooth successfully configured");
+    
+    Serial1.print("Initializing SD card ...");
+    if (!SD.begin(SD_CS))
+        Serial1.println(" failed");
+    else
+        Serial1.println(" done");
     
     // set up the RTC
     if (! rtc.begin()) {
-        Serial.println("Couldn't find RTC");
+        Serial1.println("Error: Couldn't find RTC. Try a system reset");
         while (1);
     }
-    
-    if ((! rtc.isrunning()) & RTC_AUTOSET == 1) {
-        Serial.println("RTC is NOT running!");
+
+    if ((! rtc.isrunning()) & (RTC_AUTOSET == 1)) {
+        Serial1.println("RTC is NOT running!");
         // following line sets the RTC to the date & time this sketch was compiled
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        Serial.println("RTC Autoset");
+        Serial1.println("RTC Autoset");
     }
-
-
+    else if ((! rtc.isrunning()) & (RTC_AUTOSET == 0)) {
+        Serial1.println("RTC unconfigured - please use rtc_set to configure the RTC");
+    }
+    else
+        Serial1.println("RTC successfully initialized");
+    
+    newCli = true; // will write '>' for bt CLI if true
+    init = true;
+    digitalWrite(_output,HIGH); // indicate config complete
+    Serial1.print("Type in ");
+    Serial1.print((char)0x22); 
+    Serial1.print("help"); 
+    Serial1.print((char)0x22); 
+    Serial1.println(" for a list of commands");
 }
 
 // BluetoothClient - reads in new characters from the bluetooth 
