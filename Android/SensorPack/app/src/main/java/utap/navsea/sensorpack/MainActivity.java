@@ -75,8 +75,8 @@ public class MainActivity  extends BlunoLibrary {
 	private EditText serialSendText;
 	private TextView serialReceivedText;
 
-	public LineChart chartTemp = null;
-	public LineChart chartGyroX = null;
+	public LineChart chart1 = null;
+	public LineChart chart2 = null;
 	public ImageView compass = null;
 	private float angle = 0;
 	private Context context;
@@ -143,15 +143,15 @@ public class MainActivity  extends BlunoLibrary {
 		});*/
 
 		Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-		chartTemp = (LineChart) findViewById(R.id.chart); //get the first chart
-		chartGyroX = (LineChart) findViewById(R.id.chart1); //get the second chart
+		chart1 = (LineChart) findViewById(R.id.chart); //get the first chart
+		chart2 = (LineChart) findViewById(R.id.chart1); //get the second chart
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
 		Float[] data = {80f, 255f, 3f, 4f, 200f, 150f, 125f};
 		Float[] data1 = {200f, 100f, 60f, 89f};
 		ArrayList<Entry> entries = loadArray(data);
 		ArrayList<Entry> entries1 = loadArray(data1);
-		graphTest(chartTemp, entries, "Temperature (Deg C)", Color.RED);
-		graphTest(chartGyroX, entries1, "Watermelons", Color.GREEN);
+		graphTest(chart1, entries, "Temperature (Deg C)", Color.RED);
+		graphTest(chart2, entries1, "Watermelons", Color.GREEN);
 		//setSupportActionBar(toolbar);
 
 		FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -445,8 +445,8 @@ public class MainActivity  extends BlunoLibrary {
 				downloadedStrings = downloadedStrings.concat(printStr);
 			}
 			parseData(downloadedStrings);
-			graphTest(chartTemp, convert2Entry(temperature), "Temperature data", Color.RED);
-			graphTest(chartGyroX, convert2Entry(light), "Light data", Color.GREEN);
+			graphTest(chart1, convert2Entry(temperature), "Temperature data", Color.RED);
+			graphTest(chart2, convert2Entry(light), "Light data", Color.GREEN);
 
 			print2BT("Temperature: " + temperature.toString() + "\n");
 			print2BT("Depth: " + depth.toString() + "\n");
