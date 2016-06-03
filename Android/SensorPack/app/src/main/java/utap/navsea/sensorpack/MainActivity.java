@@ -74,20 +74,16 @@ public class MainActivity  extends BlunoLibrary {
 	private Button buttonSerialSend;
 	private EditText serialSendText;
 	private TextView serialReceivedText;
-
 	public LineChart chart1 = null;
 	public LineChart chart2 = null;
 	public ImageView compass = null;
 	private float angle = 0;
 	private Context context;
 	private Activity activity;
-	private static final int PERMISSION_REQUEST_CODE = 1;
 	private View view;
-
 	private int serialCount = 0;
 	private String placeHolder = "Empty";
 	private String lastFlag = "Empty";
-
 	private int dataTypeIndex = 0;
 	private int dataCounter = 0; //determines if disp, temp, cond...etc
 	private int dataCount = 0; //individual data counters
@@ -102,10 +98,7 @@ public class MainActivity  extends BlunoLibrary {
 	private ArrayList<Float> gyroX = new ArrayList<Float>();
 	private ArrayList<Float> gyroY = new ArrayList<Float>();
 	private ArrayList<Float> gyroZ = new ArrayList<Float>();
-
 	private String downloadedStrings = new String();
-
-
 	private ArrayList<String> downloadedData = new ArrayList<String>();
 
 
@@ -119,28 +112,6 @@ public class MainActivity  extends BlunoLibrary {
 
         serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
         //serialSendText=(EditText) findViewById(R.id.serialSendText);			//initial the EditText of the sending data
-
-        //buttonSerialSend = (Button) findViewById(R.id.buttonSerialSend);		//initial the button for sending the data
-        //buttonSerialSend.setOnClickListener(new OnClickListener() {
-
-/*			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-
-				serialSend(serialSendText.getText().toString());				//send the data to the BLUNO
-			}
-		});
-
-        //buttonScan = (Button) findViewById(R.id.buttonScan);					//initial the button for scanning the BLE device
-        buttonScan.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-
-				buttonScanOnClickProcess();										//Alert Dialog for selecting the BLE device
-			}
-		});*/
 
 		Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 		chart1 = (LineChart) findViewById(R.id.chart); //get the first chart
@@ -172,6 +143,20 @@ public class MainActivity  extends BlunoLibrary {
                 }*/
             }
         });
+
+		/**
+		 * Intent code from
+		 * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
+		 */
+		FloatingActionButton fabTC = (FloatingActionButton) findViewById(R.id.fabTC);
+		assert fabTC != null;
+		fabTC.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
+				MainActivity.this.startActivity(intentApp);
+			}
+		});
 
 	}
 

@@ -25,24 +25,33 @@
     <com.github.mikephil.charting.charts.LineChart
         android:id="@+id/chart2"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="400dp"
         android:layout_alignParentTop="true"
+        android:layout_marginTop="30dp"
         android:layout_weight="0.5" />
 
     <com.github.mikephil.charting.charts.LineChart
         android:id="@+id/chart3"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_anchor="@id/chart2"
-        app:layout_anchorGravity="bottom|end"
-        android:layout_weight="0.5"
-        android:layout_below="@id/chart2"/>
+        android:layout_height="400dp"
+        android:layout_marginBottom="30dp"
+        android:layout_gravity="bottom|end"
+        android:layout_weight="0.5" />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/fab_margin"
+        app:backgroundTint="#ae0000"
+        android:src="@drawable/ic_file_download_black_24dp" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fabDL"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|left"
         android:layout_margin="@dimen/fab_margin"
         app:backgroundTint="#ae0000"
         android:src="@drawable/ic_file_download_black_24dp" />

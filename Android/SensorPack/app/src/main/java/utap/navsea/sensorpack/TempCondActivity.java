@@ -58,6 +58,20 @@ public class TempCondActivity extends BlunoLibrary {
             }
         });
 
+        /**
+         * Intent code from
+         * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
+         */
+        FloatingActionButton fabDL = (FloatingActionButton) findViewById(R.id.fabDL);
+        assert fabDL != null;
+        fabDL.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intentApp = new Intent(TempCondActivity.this, DepthLightActivity.class);
+                TempCondActivity.this.startActivity(intentApp);
+            }
+        });
+
     }
 
     private ArrayList<Entry> loadArray(Float[] data){

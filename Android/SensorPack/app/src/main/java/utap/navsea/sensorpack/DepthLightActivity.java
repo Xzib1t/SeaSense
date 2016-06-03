@@ -33,7 +33,7 @@ public class DepthLightActivity extends BlunoLibrary {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tempcond);
+        setContentView(R.layout.activity_depthlight);
         onCreateProcess();
         serialBegin(9600);//115200);													//set the Uart Baudrate on BLE chip to 115200
 
@@ -44,8 +44,8 @@ public class DepthLightActivity extends BlunoLibrary {
         Float[] data1 = {200f, 100f, 60f, 89f};
         ArrayList<Entry> entries = loadArray(data);
         ArrayList<Entry> entries1 = loadArray(data1);
-        graphTest(chartDepth, entries, "Temperature (Deg C)", Color.RED);
-        graphTest(chartLight, entries1, "Conductivity", Color.GREEN);
+        graphTest(chartDepth, entries, "Depth", Color.RED);
+        graphTest(chartLight, entries1, "Light", Color.GREEN);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         assert fab != null;
@@ -55,6 +55,20 @@ public class DepthLightActivity extends BlunoLibrary {
                 Snackbar.make(view, "Searching for devices", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 buttonScanOnClickProcess();										//Alert Dialog for selecting the BLE device
+            }
+        });
+
+        /**
+         * Intent code from
+         * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
+         */
+        FloatingActionButton fabMA = (FloatingActionButton) findViewById(R.id.fabMA);
+        assert fabMA != null;
+        fabMA.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intentApp = new Intent(DepthLightActivity.this, MainActivity.class);
+                DepthLightActivity.this.startActivity(intentApp);
             }
         });
 
@@ -91,6 +105,8 @@ public class DepthLightActivity extends BlunoLibrary {
             chart.invalidate(); // refresh
         }
     }
+
+
 
     private ArrayList<String> setupXaxis(ArrayList<Entry> tempC){
         ArrayList<String> xVals = new ArrayList<String>();
