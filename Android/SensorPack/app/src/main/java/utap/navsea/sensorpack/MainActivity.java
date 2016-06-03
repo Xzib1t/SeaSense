@@ -361,6 +361,7 @@ public class MainActivity  extends BlunoLibrary {
 				case 4:
 					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
 						heading.add(Float.parseFloat(parsedData.get(curIndex)));
+						spinCompass(compass, Float.parseFloat(parsedData.get(curIndex)));
 					}
 					break;
 				case 5:
@@ -446,8 +447,18 @@ public class MainActivity  extends BlunoLibrary {
 			parseData(downloadedStrings);
 			graphTest(chartTemp, convert2Entry(temperature), "Temperature data", Color.RED);
 			graphTest(chartGyroX, convert2Entry(light), "Light data", Color.GREEN);
-			print2BT("Temperature: " + temperature.toString() + "  ");
-			print2BT("Light: " + light.toString());
+
+			print2BT("Temperature: " + temperature.toString() + "\n");
+			print2BT("Depth: " + depth.toString() + "\n");
+			print2BT("Conductivity: " + conductivity.toString() + "\n");
+			print2BT("Light: " + light.toString() + "\n");
+			print2BT("Heading: " + heading.toString() + "\n");
+			print2BT("Accelerometer X: " + accelX.toString() + "\n");
+			print2BT("Accelerometer Y: " + accelY.toString() + "\n");
+			print2BT("Accelerometer Z: " + accelZ.toString() + "\n");
+			print2BT("Gyroscope X: " + gyroX.toString() + "\n");
+			print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
+			print2BT("Gyroscope Z: " + gyroZ.toString());
 		}
 
 
