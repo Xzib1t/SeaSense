@@ -33,6 +33,7 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("sd_append", "Append to a file", cli_sd_append) \
         CLI_CMD("sd_create", "Create a file", cli_sd_create) \
         CLI_CMD("sd_del", "Delete a file", cli_sd_del) \
+        CLI_CMD("reset", "Reset the SeaSense (BE CAREFUL - KILLS ALL PROCESSES)", cli_wdt_reset) \
 
 // Generate the list of function prototypes
 #undef CLI_CMD
@@ -70,6 +71,10 @@ void processCMD(char *command, int size)
     Serial.println("Recieved new entry: ");
     cli_argv[argc] = &command[0];
     command[size+1] = '\0';
+    if(command[0] == '\0'){
+        Serial.println("Recieved blank entry");
+        return;
+    }
     for(j=0;j<size;j++){ 
         Serial.print(command[j]); 
         if (command[j]==' ')
@@ -143,6 +148,9 @@ void cli_test(int argc, char *argv[])
 // cli_rtc_get - print the current time
 void cli_rtc_get(int argc, char *argv[])
 {
+    if (! rtc.isrunning()) {
+        Serial1.println("Error: RTC is not running.\n\rPlease set RTC_AUTOSET to true or use the rtc_set command");
+    }
     char temp[25];
     DateTime now = rtc.now();
     sprintf(temp,"%04d/%02d/%02d - %02d:%02d:%02d\n",now.year(),now.month(),now.day(),now.hour(),now.minute(),now.second());
@@ -275,7 +283,14 @@ void cli_sd_del(int argc, char *argv[]) {
     return;
 }
 
+void cli_wdt_reset(int argc, char *argv[]) {
+    wdt_enable(WDTO_500MS);
+    Serial1.println("System reset in 500mS");
+    while(1); // eat processor cycles until the wdt overflows
+}
+
 void printDirectory(File dir, int numTabs) {
+    dir.seek(0); // fix for sd_ls showing nothing after modifying files
     while (true) {
         File entry =  dir.openNextFile();
         if (! entry) {

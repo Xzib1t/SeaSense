@@ -8,6 +8,7 @@
 #include "SPI.h"
 #include "SD.h"
 #include "Cli.h"
+#include "avr/wdt.h" 
 
 
 class SeaSense
