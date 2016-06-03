@@ -103,14 +103,19 @@ public class MainActivity  extends BlunoLibrary {
 	private Float[] gyroY = {0f};
 	private Float[] gyroZ = {0f};
 
+	private String downloadedStrings = new String();
+
+
+	private ArrayList<String> downloadedData = new ArrayList<String>();
+
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-        onCreateProcess();														//onCreate Process by BlunoLibrary
+        onCreateProcess();						ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
 
-        serialBegin(115200);													//set the Uart Baudrate on BLE chip to 115200
+        serialBegin(9600);//115200);													//set the Uart Baudrate on BLE chip to 115200
 
         serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
         //serialSendText=(EditText) findViewById(R.id.serialSendText);			//initial the EditText of the sending data
@@ -341,11 +346,33 @@ public class MainActivity  extends BlunoLibrary {
 		return parsedData;
 	}
 
+	private void downloadData(String input){ //ArrayList<String> downloadData(String input){
+		//ArrayList<String> downloadedData = new ArrayList<String>();
+		downloadedData.add(input);
+	}
+
+	private boolean check4eof(String input){
+		char[] eof = {'U','+','1','F','4','A','9'};
+		int eofLength = 7;
+		char[] charCheck = new char[eofLength];
+		if(input.length() >= eofLength){
+			int iterate = 0;
+			for(int i=input.length()-eofLength; i<input.length(); i++){
+				charCheck[iterate] = input.charAt(i);
+				iterate++;
+			}
+
+			if(Arrays.equals(charCheck,eof)) return true;
+		}
+		return false;
+	}
+
 
 	@Override
 	public void onSerialReceived(String theString) {							//Once connection data received, this function will be called
 		// TODO Auto-generated method stub
 		String flag = theString;
+		String testEof = "U+1F4A9";
 		//The Serial data from the BLUNO may be sub-packaged, so using a buffer to hold the String is a good choice.
 
 		int dataSize = 44; //let's pretend we are sent the length of the file
@@ -353,12 +380,28 @@ public class MainActivity  extends BlunoLibrary {
 		//When we call this by sending a control flag from the Android, the data should
 		//stay in the same order, but right now it won't because it is constantly printing
 
-		ArrayList<String[]> data = parseData(theString);
-		for(int i=0; i<20; i++){
-			for (String value : data) {
-				print2BT("Value: " + value);
+		ArrayList<String> data = parseData(theString);
+
+		downloadData(theString);
+
+		dataCount++;
+			for (String printStr : downloadedData) {
+				downloadedStrings = downloadedStrings.concat(printStr);
+
+				//if(printStr.equals(testEof)) print2BT("Done printing");
 			}
-		}
+
+		print2BT(downloadedStrings);
+		boolean check = check4eof(downloadedStrings);
+		if(check) print2BT("EOF REACHED");//parseData(downloadedStrings);
+
+
+/*		ArrayList<String> data = parseData(theString);
+			for (String value : data) {
+				print2BT(" Value: " + value);
+			}
+		for(String a : data) System.out.println(a);*/
+
 
 	/*	if(!flag.equals(",")){ //when actual data is sent
 			switch(dataTypeIndex){

@@ -9,18 +9,19 @@
     tools:context="utap.navsea.sensorpack.MainActivity">
 
     <ScrollView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
         android:id="@+id/scrollView"
         android:layout_below="@+id/editText2"
         android:layout_alignStart="@+id/editText2"
         android:layout_alignParentBottom="true"
+        android:paddingTop="40dp"
         android:layout_alignEnd="@+id/serialSendText">
 
         <TextView
             android:id="@+id/serialReceivedText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:ems="10"
             android:textSize="10sp"
             android:layout_below="@+id/editText2"

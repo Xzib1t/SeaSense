@@ -52,7 +52,7 @@ public abstract  class BlunoLibrary  extends Activity{
 		}
 	}
 	
-	private int mBaudrate=115200;	//set the default baud rate to 115200
+	private int mBaudrate=9600;//115200;	//set the default baud rate to 115200
 	private String mPassword="AT+PASSWOR=DFRobot\r\n";
 	
 	
@@ -333,7 +333,7 @@ public abstract  class BlunoLibrary  extends Activity{
 				}
             	
             
-            	System.out.println("displayData "+intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+            	//System.out.println("displayData "+intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
             	
 //            	mPlainProtocol.mReceivedframe.append(intent.getStringExtra(BluetoothLeService.EXTRA_DATA)) ;
 //            	System.out.print("mPlainProtocol.mReceivedframe:");

@@ -54,6 +54,8 @@ float data[] = {50.3,-8,885,90.45,0,100,150,10,100,15,32,50.2,2,880,180.26,160,1
 int arrSize = sizeof(data)/sizeof(float);
 int testCounter = 0;
 
+String eof = "U+1F4A9";
+
 void setup(){
   display.begin(SSD1306_SWITCHCAPVCC);
   display.display();
@@ -67,7 +69,7 @@ void setup(){
   display.clearDisplay();
   
   Wire.begin();
-  Serial.begin(115200);
+  Serial.begin(9600);
   setupL3G4200D(2000); // Configure L3G4200  - 250, 500 or 2000 deg/sec
   delay(1500); //wait for the sensor to be ready 
 
@@ -86,8 +88,9 @@ void loop(){
     //Serial.println(arrSize);
     for(int i=0; i<arrSize; i++){
       Serial.print(data[i]);
-      Serial.println(",");
+      Serial.print(",");
     }
+    Serial.print(eof);
     testCounter++;
   }
 
