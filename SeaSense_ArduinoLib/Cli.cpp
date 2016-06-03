@@ -9,8 +9,7 @@
 // input text and number of args from a new command line entry
 static int cli_argc;
 static char* cli_argv[MAX_CLI_ARGV]; //see globals.h
-
-    
+ 
 /* Create a type for each CLI command. */
 struct CLI_CMD
 {
@@ -26,13 +25,18 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("help", "Show a list of commands", cli_help) \
         CLI_CMD("#", "Comment", cli_comment) \
 		CLI_CMD("test", "A test command", cli_test) \
+        /* Realtime Clock commands. */ \
         CLI_CMD("rtc_get", "Get the RTC time", cli_rtc_get) \
         CLI_CMD("rtc_set", "Set the RTC time", cli_rtc_set) \
+        /* SD card debugging commands. */ \
         CLI_CMD("sd_ls", "List all files on the SD card", cli_sd_ls) \
         CLI_CMD("sd_cat", "Dump a file", cli_sd_cat) \
         CLI_CMD("sd_append", "Append to a file", cli_sd_append) \
         CLI_CMD("sd_create", "Create a file", cli_sd_create) \
         CLI_CMD("sd_del", "Delete a file", cli_sd_del) \
+        /* Data logging commands */ \
+        CLI_CMD("log", "Enable/disable logging sensor data to command line.", cli_log_data) \
+        /* Misc. commands*/ \
         CLI_CMD("reset", "Reset the SeaSense (BE CAREFUL - KILLS ALL PROCESSES)", cli_wdt_reset) \
 
 // Generate the list of function prototypes
@@ -42,8 +46,6 @@ CLI_CORE_CMD_LIST
 
 // misc. function prototypes
 void printDirectory(File dir, int numTabs);
-
-
 
 // Generate the list of CLI commands. 
 //      note that converting "text like this" to a char* is a
@@ -212,7 +214,7 @@ void cli_sd_cat(int argc, char *argv[])
     File currentFile;
     currentFile = SD.open(argv[1]);
     if (currentFile){
-        Serial1.print ("Reading contents of: "); Serial1.println(argv[1]);
+        Serial1.print ("Contents of "); Serial1.print(argv[1]); Serial1.println(":");
         // read from the file until there's nothing else in it:
         while (currentFile.available()) {
           Serial1.write(currentFile.read());
@@ -245,6 +247,12 @@ void cli_sd_append(int argc, char *argv[])
             currentFile.print(" ");//argv parsing removes spaces
         }
         currentFile.print("\n\r"); // add a new line after appending text
+        // add a special EOF emoji
+        currentFile.print((char)0xF0);
+        currentFile.print((char)0x9F);
+        currentFile.print((char)0x92);
+        currentFile.println((char)0xA9);
+        currentFile.println((char)EOF);
         currentFile.close();
         Serial1.println("Write Complete");
     } else {
@@ -252,23 +260,24 @@ void cli_sd_append(int argc, char *argv[])
     }
 }
 
+// create a new file on the SD card
 void cli_sd_create(int argc, char *argv[]) {
     if(argc<1 | argc>1)
     {
         Serial1.println("Error: incorrect number of args");
         return;
     }
-    
     File currentFile;
     currentFile = SD.open(argv[1],FILE_WRITE);
     if(currentFile) {
         Serial1.print("Created file "); Serial1.println(argv[1]);
     } else
-        Serial1.println("Error creating file");
+        Serial1.println("Error creating file. Does name conform to 8.3 convention?");
     currentFile.close();
     return;
 }
 
+// delete a file from the SD card
 void cli_sd_del(int argc, char *argv[]) {
     if(argc<1 | argc>1)
     {
@@ -283,6 +292,14 @@ void cli_sd_del(int argc, char *argv[]) {
     return;
 }
 
+void cli_log_data(int argc, char *argv[])
+{
+    logData = !logData;
+    if(logData) // if data logging is enabled, print out a header for each column
+        Serial1.println("Time\t\tTemp\tDepth\tCond\tLight\tHead");
+    return;
+}
+// reset the microcontroller by enabling the watchdog timer and letting it overflow
 void cli_wdt_reset(int argc, char *argv[]) {
     wdt_enable(WDTO_500MS);
     Serial1.println("System reset in 500mS");

@@ -22,4 +22,5 @@ void setup(){
 void loop(){
     // Scan the bluetooth port for new data packets
     ss1.BluetoothClient();
+    ss1.CollectData();
 }

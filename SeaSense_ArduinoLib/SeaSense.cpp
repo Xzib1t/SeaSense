@@ -8,11 +8,24 @@
 #include "SPI.h"
 #include "SD.h"
 #include "Cli.h"
+#include "dataCollection.h"
 #include "avr/wdt.h" 
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
 // global vars (defined in globals.h)
 boolean RTC_AUTOSET;
+boolean logData; 
+boolean sd_logData;
 RTC_DS1307 rtc;
+char Timestamp[9];
+double Temp = 0.0;
+unsigned int Depth = 0;
+int Cond = 0;
+int Light = 0;
+int Head = 0;
+int AccelX = 0,AccelY = 0,AccelZ = 0;
+int GyroX = 0,GyroY = 0,GyroZ = 0;
 
 char cli_rxBuf [MAX_INPUT_SIZE];
 
@@ -35,6 +48,10 @@ SeaSense::SeaSense(int output){
     pinMode(10, OUTPUT); // per SD install instructions
     pinMode(10, OUTPUT); // per SD install instructions
     digitalWrite(10, HIGH); 
+    
+    // don't enable data logging by default
+    logData = false;
+    sd_logData = false;
 }
 
 // Initialize - sets up a SoftwareSerial bluetooth client. Can perform other initialization code here as well
@@ -74,6 +91,22 @@ void SeaSense::Initialize(){
     }
     else
         Serial1.println("RTC successfully initialized");
+    
+    // initialize ISR(s)
+    cli();             // disable global interrupts
+    TCCR1A = 0;        // set entire TCCR1A register to 0
+    TCCR1B = 0;
+ 
+    // set compare match register to desired timer count:
+    OCR1A = 15624; // 1 second per int at 1024 prescale
+    // turn on CTC mode:
+    TCCR1B |= (1 << WGM12);
+    // Set CS10 and CS12 bits for 1024 prescaler:
+    TCCR1B |= ((1 << CS10)|(1 << CS12));
+    // enable timer compare interrupt:
+    TIMSK1 |= (1 << OCIE1A);
+    // enable global interrupts:
+    sei();
     
     newCli = true; // will write '>' for bt CLI if true
     init = true;
@@ -118,6 +151,25 @@ void SeaSense::BluetoothClient(){
         
         newCli = false;
     }
-    
+    return;
 }
 
+void SeaSense::CollectData()
+{
+    getTime();
+    return;
+}
+
+// Interrupt is called once a second, 
+ISR(TIMER1_COMPA_vect) 
+{
+  if(logData)
+  {
+      Serial1.print(Timestamp); Serial1.print("\t");
+      Serial1.print(Temp); Serial1.print("\t");
+      Serial1.print(Depth); Serial1.print("\t");
+      Serial1.print(Cond); Serial1.print("\t");
+      Serial1.print(Light); Serial1.print("\t");
+      Serial1.println(Head);
+  }
+}

@@ -8,7 +8,10 @@
 #include "SPI.h"
 #include "SD.h"
 #include "Cli.h"
-#include "avr/wdt.h" 
+#include "dataCollection.h"
+#include "avr/wdt.h"
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
 
 class SeaSense
@@ -17,6 +20,7 @@ class SeaSense
         SeaSense(int output);
         void Initialize();
         void BluetoothClient();
+        void CollectData();
 
     private:
         boolean init; // initialization complete
