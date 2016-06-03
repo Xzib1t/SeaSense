@@ -91,17 +91,17 @@ public class MainActivity  extends BlunoLibrary {
 	private int dataTypeIndex = 0;
 	private int dataCounter = 0; //determines if disp, temp, cond...etc
 	private int dataCount = 0; //individual data counters
-	private Float[] temperature = {0f};
-	private Float[] depth = {0f};
-	private Float[] conductivity = {0f};
-	private Float[] light = {0f};
-	private Float[] heading = {0f};
-	private Float[] accelX = {0f};
-	private Float[] accelY = {0f};
-	private Float[] accelZ = {0f};
-	private Float[] gyroX = {0f};
-	private Float[] gyroY = {0f};
-	private Float[] gyroZ = {0f};
+	private ArrayList<Float> temperature = new ArrayList<Float>();
+	private ArrayList<Float> depth = new ArrayList<Float>();
+	private ArrayList<Float> conductivity = new ArrayList<Float>();
+	private ArrayList<Float> light = new ArrayList<Float>();
+	private ArrayList<Float> heading = new ArrayList<Float>();
+	private ArrayList<Float> accelX = new ArrayList<Float>();
+	private ArrayList<Float> accelY = new ArrayList<Float>();
+	private ArrayList<Float> accelZ = new ArrayList<Float>();
+	private ArrayList<Float> gyroX = new ArrayList<Float>();
+	private ArrayList<Float> gyroY = new ArrayList<Float>();
+	private ArrayList<Float> gyroZ = new ArrayList<Float>();
 
 	private String downloadedStrings = new String();
 
@@ -228,15 +228,6 @@ public class MainActivity  extends BlunoLibrary {
 		return xVals;
 	}
 
-	/**
-	 * Save incoming data from sensor pack
-	 * This method is a placeholder for testing until
-	 * the sensor pack can save data by itself, then dump it here
-	 */
-	private void saveData(){
-
-	}
-
 	private void formatChart(LineChart chart){
 		chart.setEnabled(true);
 		chart.setTouchEnabled(true);
@@ -345,20 +336,71 @@ public class MainActivity  extends BlunoLibrary {
 		for(String splitVal : input.split(",")){
 			parsedData.add(splitVal);
 
-			if(dataType==0) {
-				if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-					print2BT(parsedData.get(curIndex));
-					print2BT(", ");
-				}
-			}
+			switch(dataType){
+				case 0:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						temperature.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 1:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						depth.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 2:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						conductivity.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 3:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						light.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
 
+					break;
+				case 4:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						heading.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 5:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						accelX.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 6:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						accelY.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 7:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						accelZ.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 8:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						gyroX.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 9:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						gyroY.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				case 10:
+					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
+						gyroZ.add(Float.parseFloat(parsedData.get(curIndex)));
+					}
+					break;
+				default:
+
+					break;
+			}
 			curIndex++;
 			dataType++;
 			if(dataType>10) dataType = 0; //reset data counter
 		}
-
-		//Float[] floatData = new Float[parsedData.size()];
-		//return floatData;
 	}
 
 	private void downloadData(String input){
@@ -383,11 +425,16 @@ public class MainActivity  extends BlunoLibrary {
 		return false;
 	}
 
+	private ArrayList<Entry> convert2Entry(ArrayList<Float> input){
+		Float[] floatArray = input.toArray(new Float[input.size()]);
+		ArrayList<Entry> entryArray = loadArray(floatArray);
+		return entryArray;
+	}
+
 
 	@Override
 	public void onSerialReceived(String theString) {	//Once connection data received, this function will be called
 		//The Serial data from the BLUNO may be sub-packaged, so using a buffer to hold the String is a good choice.
-		int dataType = 0;
 		downloadData(theString);
 
 		boolean check = check4eof(downloadedData);
@@ -397,65 +444,12 @@ public class MainActivity  extends BlunoLibrary {
 				downloadedStrings = downloadedStrings.concat(printStr);
 			}
 			parseData(downloadedStrings);
+			graphTest(chartTemp, convert2Entry(temperature), "Temperature data", Color.RED);
+			graphTest(chartGyroX, convert2Entry(light), "Light data", Color.GREEN);
+			print2BT("Temperature: " + temperature.toString() + "  ");
+			print2BT("Light: " + light.toString());
 		}
 
-
-/*		ArrayList<String> data = parseData(theString);
-			for (String value : data) {
-				print2BT(" Value: " + value);
-			}
-		for(String a : data) System.out.println(a);*/
-
-
-	/*	if(!flag.equals(",")){ //when actual data is sent
-			switch(dataTypeIndex){
-				case 0:
-					temperature[dataCount] = Float.parseFloat(flag);
-					break;
-				case 1:
-					depth[dataCount] = Float.parseFloat(flag);
-					break;
-				case 2:
-					conductivity[dataCount] = Float.parseFloat(flag);
-					break;
-				case 3:
-					light[dataCount] = Float.parseFloat(flag);
-					break;
-				case 4:
-					heading[dataCount] = Float.parseFloat(flag);
-					break;
-				case 5:
-					accelX[dataCount] = Float.parseFloat(flag);
-					break;
-				case 6:
-					accelY[dataCount] = Float.parseFloat(flag);
-					break;
-				case 7:
-					accelZ[dataCount] = Float.parseFloat(flag);
-					break;
-				case 8:
-					gyroX[dataCount] = Float.parseFloat(flag);
-					break;
-				case 9:
-					gyroY[dataCount] = Float.parseFloat(flag);
-					break;
-				case 10:
-					gyroZ[dataCount] = Float.parseFloat(flag);
-					break;
-				default:
-
-					break;
-			}
-			dataTypeIndex++;
-			if(dataTypeIndex>=11) dataTypeIndex = 0;
-			dataCounter++;
-			if(dataCounter>=(dataSize-1)) {
-				dataCounter = 0;
-
-				ArrayList<Entry> temps = loadArray(temperature);
-				graphTest(chartTemp, temps, "Temperature", Color.RED);
-			}
-		}*/
 
 		//uncomment below code to run regular program
 /*		if(lastFlag.equals("Gyro")){
