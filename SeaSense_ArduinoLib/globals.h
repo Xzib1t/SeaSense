@@ -3,10 +3,14 @@
         #include "RTClib.h"
         extern boolean RTC_AUTOSET;
         extern RTC_DS1307 rtc;
-        
+
+        #include "SD.h"
+        extern File SDfile;
+
         /*Data values for writing to the SD card/serial log*/
         extern boolean logData;
         extern boolean sd_logData;
+        extern boolean app_logData;
         extern char Timestamp[9];
         extern double Temp;
         extern unsigned int Depth;

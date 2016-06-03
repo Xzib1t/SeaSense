@@ -29,13 +29,16 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("rtc_get", "Get the RTC time", cli_rtc_get) \
         CLI_CMD("rtc_set", "Set the RTC time", cli_rtc_set) \
         /* SD card debugging commands. */ \
+        CLI_CMD("sd_init", "Initialize the SD card", cli_sd_init) \
         CLI_CMD("sd_ls", "List all files on the SD card", cli_sd_ls) \
         CLI_CMD("sd_cat", "Dump a file", cli_sd_cat) \
         CLI_CMD("sd_append", "Append to a file", cli_sd_append) \
         CLI_CMD("sd_create", "Create a file", cli_sd_create) \
         CLI_CMD("sd_del", "Delete a file", cli_sd_del) \
         /* Data logging commands */ \
-        CLI_CMD("log", "Enable/disable logging sensor data to command line.", cli_log_data) \
+        CLI_CMD("log", "Log sensor data to command line.", cli_log_data) \
+        CLI_CMD("logapp", "Log sensor data to the andriod app", cli_log_app) \
+        CLI_CMD("logfile", "Log sensor data to file.", cli_log_file) \
         /* Misc. commands*/ \
         CLI_CMD("reset", "Reset the SeaSense (BE CAREFUL - KILLS ALL PROCESSES)", cli_wdt_reset) \
 
@@ -46,6 +49,7 @@ CLI_CORE_CMD_LIST
 
 // misc. function prototypes
 void printDirectory(File dir, int numTabs);
+char* newFile(int filenum);
 
 // Generate the list of CLI commands. 
 //      note that converting "text like this" to a char* is a
@@ -192,10 +196,20 @@ void cli_rtc_set(int argc, char *argv[])
     return;
 }
 
+void cli_sd_init(int argc, char *argv[])
+{
+    Serial1.print("Initializing SD card ...");
+    if (!SD.begin(SD_CS))
+        Serial1.println(" failed");
+    else
+        Serial1.println(" done");
+    return;
+}
 // cli_sd_ls - prints all files and directories saved on the SD card
 void cli_sd_ls(int argc, char *argv[])
 {
     File currentFile;
+    currentFile.seek(0); // fix for sd_ls showing nothing after modifying files
     currentFile = SD.open("/");
     printDirectory(currentFile, 0);
     currentFile.close();
@@ -252,7 +266,6 @@ void cli_sd_append(int argc, char *argv[])
         currentFile.print((char)0x9F);
         currentFile.print((char)0x92);
         currentFile.println((char)0xA9);
-        currentFile.println((char)EOF);
         currentFile.close();
         Serial1.println("Write Complete");
     } else {
@@ -292,6 +305,7 @@ void cli_sd_del(int argc, char *argv[]) {
     return;
 }
 
+// log data to the bluetooth serial port in a human-readable format
 void cli_log_data(int argc, char *argv[])
 {
     logData = !logData;
@@ -299,6 +313,36 @@ void cli_log_data(int argc, char *argv[])
         Serial1.println("Time\t\tTemp\tDepth\tCond\tLight\tHead");
     return;
 }
+
+// log data to the bluetooth serial port in a machine-recognizable format
+void cli_log_app(int argc, char *argv[])
+{
+  //  delay(15000);
+    app_logData = !app_logData;
+    return;
+}
+
+// Create a new datafile and begin logging data to it
+void cli_log_file(int argc, char *argv[])
+{
+    sd_logData = !sd_logData;
+    if(sd_logData){ // if data logging is toggled to on..
+        char filename[13];
+        strncat(filename,newFile(0),13);
+        SDfile = SD.open(filename,FILE_WRITE);
+        SDfile.println("Time,Temp,Depth,Cond,Light,Head,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ");
+        Serial1.print("Logging data to file "); Serial1.println(filename);
+    } else { // if data logging is toggled to off...
+        SDfile.print((char)0xF0);
+        SDfile.print((char)0x9F);
+        SDfile.print((char)0x92);
+        SDfile.println((char)0xA9);
+        SDfile.close();
+        Serial1.println("Stopped logging data to file");
+    }
+    return;
+}
+
 // reset the microcontroller by enabling the watchdog timer and letting it overflow
 void cli_wdt_reset(int argc, char *argv[]) {
     wdt_enable(WDTO_500MS);
@@ -328,4 +372,21 @@ void printDirectory(File dir, int numTabs) {
         }
         entry.close();
   }
+}
+
+// newfile - scans SD card for a filename in the format of YYMMDDxx.csv
+// returns a pointer to a new 8.3 filename containing YYMMDD and a number (00-99)
+char* newFile(int filenum){
+        DateTime now = rtc.now();
+        char filename[13];
+        boolean exists = true;
+        while(exists == true){
+             sprintf(filename,"%02d%02d%02d%02d.csv",now.year()-2000,now.month(),now.day(),filenum);
+             if(SD.exists(filename)){
+                 filenum++;
+             } else {
+                 exists = false;
+             }
+        }
+        return filename;
 }
