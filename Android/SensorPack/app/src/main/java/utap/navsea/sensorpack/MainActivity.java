@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-/**
- * Several of the methods in this file were copied directly from
- * https://github.com/DFRobot/BlunoBasicDemo/blob/master/Android/BlunoBasicDemo/app/src/main/java/com/dfrobot/angelo/blunobasicdemo/MainActivity.java
- */
 
 package utap.navsea.sensorpack;
 
@@ -69,7 +65,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-public class MainActivity  extends BlunoLibrary {
+public class MainActivity  extends AppCompatActivity {
 	private Button buttonScan;
 	private Button buttonSerialSend;
 	private EditText serialSendText;
@@ -106,9 +102,7 @@ public class MainActivity  extends BlunoLibrary {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-        onCreateProcess();						ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
-
-        serialBegin(9600);//115200);													//set the Uart Baudrate on BLE chip to 115200
+        ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
 
         serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
         //serialSendText=(EditText) findViewById(R.id.serialSendText);			//initial the EditText of the sending data
@@ -132,7 +126,6 @@ public class MainActivity  extends BlunoLibrary {
             public void onClick(View view) {
                 Snackbar.make(view, "Compass simulation running", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-				buttonScanOnClickProcess();										//Alert Dialog for selecting the BLE device
 
                 //spinCompass(compass,randNumGen());
 /*                  for(int i=0; i<10; i++) {
@@ -250,60 +243,6 @@ public class MainActivity  extends BlunoLibrary {
 		imageView.setRotation(angle);
 	}
 
-
-	protected void onResume(){
-		super.onResume();
-		System.out.println("BlUNOActivity onResume");
-		onResumeProcess();														//onResume Process by BlunoLibrary
-	}
-
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		onActivityResultProcess(requestCode, resultCode, data);					//onActivityResult Process by BlunoLibrary
-		super.onActivityResult(requestCode, resultCode, data);
-	}
-	
-    @Override
-    protected void onPause() {
-        super.onPause();
-        onPauseProcess();														//onPause Process by BlunoLibrary
-    }
-	
-	protected void onStop() {
-		super.onStop();
-		onStopProcess();														//onStop Process by BlunoLibrary
-	}
-    
-	@Override
-    protected void onDestroy() {
-        super.onDestroy();	
-        onDestroyProcess();														//onDestroy Process by BlunoLibrary
-    }
-
-	@Override
-	public void onConectionStateChange(connectionStateEnum theConnectionState) {//Once connection state changes, this function will be called
-		switch (theConnectionState) {											//Four connection state
-		case isConnected:
-			buttonScan.setText("Connected");
-			break;
-		case isConnecting:
-			buttonScan.setText("Connecting");
-			break;
-		case isToScan:
-			buttonScan.setText("Scan");
-			break;
-		case isScanning:
-			buttonScan.setText("Scanning");
-			break;
-		case isDisconnecting:
-			buttonScan.setText("isDisconnecting");
-			break;
-		default:
-			break;
-		}
-	}
-
 	private void print2BT(String theString){
 		serialReceivedText.append(theString);		//append the text into the EditText
 		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
@@ -417,8 +356,6 @@ public class MainActivity  extends BlunoLibrary {
 		return entryArray;
 	}
 
-
-	@Override
 	public void onSerialReceived(String theString) {	//Once connection data received, this function will be called
 		//The Serial data from the BLUNO may be sub-packaged, so using a buffer to hold the String is a good choice.
 		downloadData(theString);

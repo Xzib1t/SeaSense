@@ -29,7 +29,6 @@
             android:screenOrientation="portrait"
             android:label="Depth and Light Display">
         </activity>
-        <service android:name="utap.navsea.sensorpack.BluetoothLeService" android:enabled="true"/>
 
     </application>
 
