@@ -17,7 +17,7 @@
 class SeaSense
 {
     public:
-        SeaSense(int output);
+        SeaSense(int output, int light_freq, int light_s0, int light_s1);
         void Initialize();
         void BluetoothClient();
         void CollectData();
@@ -29,6 +29,7 @@ class SeaSense
         int _i;
         int _rxCmdSize;
         char rxChar;   
+        int _freq, _s0, _s1;
 
 };
 

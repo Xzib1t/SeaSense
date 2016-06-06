@@ -33,9 +33,13 @@ char cli_rxBuf [MAX_INPUT_SIZE];
 int count;
 
 // Initializations are done here automatically,
-SeaSense::SeaSense(int output){
+SeaSense::SeaSense(int output, int light_freq, int light_s0, int light_s1){
     // disable the watchdog timer
     wdt_disable();
+    
+    _freq = light_freq;
+    _s0 = light_s0;
+    _s1 = light_s1;
     
     // LED pin
     pinMode(output,OUTPUT);
@@ -72,6 +76,13 @@ void SeaSense::Initialize(){
     delay(5);
     Serial1.println("Bluetooth successfully configured");
     
+    // configure ADC to run with high speed clock (set prescale to 16)
+    // increases timebase from 125kHz to 1MHz (~8x faster!)
+    bitClear(ADCSRA,ADPS0);
+    bitClear(ADCSRA,ADPS1);
+    bitSet(ADCSRA,ADPS2);
+    
+    
     Serial1.print("Initializing SD card ...");
     if (!SD.begin(SD_CS))
         Serial1.println(" failed");
@@ -95,6 +106,9 @@ void SeaSense::Initialize(){
     }
     else
         Serial1.println("RTC successfully initialized");
+    
+    // initialize the light sensor
+    light_sensor_init(_freq,_s0,_s1);
     
     // initialize ISR(s)
     cli();             // disable global interrupts
