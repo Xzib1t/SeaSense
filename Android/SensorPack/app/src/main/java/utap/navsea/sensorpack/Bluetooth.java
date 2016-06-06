@@ -5,6 +5,9 @@
  * https://developer.android.com/guide/topics/connectivity/bluetooth.html
  * or created using the information from the above guide
  *
+ * https://github.com/prefanatic/BME-363-Lab was also consulted in the creation
+ * of this file
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -43,7 +46,11 @@ import java.util.UUID;
 public class Bluetooth extends AppCompatActivity{
     private ArrayAdapter<String> mArrayAdapter;
     private static BluetoothSocket socket = null;
-    private static final UUID uuid = UUID.fromString("10101010-0101-0101-0F01-1F571A632AB9");
+    //Below UUID is the standard SSP UUID:
+    //Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
+    private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static BluetoothDevice device = null;
+    private static BluetoothAdapter mBluetoothAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -62,12 +69,10 @@ public class Bluetooth extends AppCompatActivity{
                 newDevicesListView.setAdapter(mArrayAdapter);
                 newDevicesListView.setClickable(true);
 
-                //connect2device(device);
-
-
             }
         });
 
+        getDevice();
 
         mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
 
@@ -82,14 +87,13 @@ public class Bluetooth extends AppCompatActivity{
     private void connect2device(BluetoothDevice mBluetoothAdapter) {
         socket = null;
         try {
-            // MY_UUID is the app's UUID string, also used by the client code
             socket = mBluetoothAdapter.createRfcommSocketToServiceRecord(uuid);
             socket.connect();
         } catch (IOException e) { }
     }
 
     /**
-     * The contents of this method are found at:
+     * Some of the contents of this method are found at:
      * http://stackoverflow.com/questions/9596663/how-to-make-items-clickable-in-list-view
      * Modifications were made to conform to the specifications of this app
      */
@@ -98,9 +102,13 @@ public class Bluetooth extends AppCompatActivity{
         lv.setAdapter(new ArrayAdapter<String> (this, R.layout.activity_bluetooth));
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> arg, View view, int position, long id) {
-                // When clicked, show a toast with the TextView text
-                Toast.makeText(getApplicationContext(), ((TextView) view).getText(),
-                        Toast.LENGTH_SHORT).show();
+                String address = (String) ((TextView) view).getText();
+                for(String temp : address.split("\n")) {
+                    address = temp; //Only get address, discard name
+                }
+                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+
+                connect2device(device);
 
             }
 
@@ -110,7 +118,7 @@ public class Bluetooth extends AppCompatActivity{
     private void setupBT(){
         int REQUEST_ENABLE_BT = 1;
 
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
