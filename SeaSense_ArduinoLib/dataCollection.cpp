@@ -4,7 +4,7 @@
 #include "SeaSense.h"
 
 // used for counting pulses from the light sensor
-volatile int carryOut = 0;
+int carryOut = 0;
 
 // function prototypes
 void light_sensitivity(int scale, int s0, int s1);
@@ -34,6 +34,10 @@ void getLight() {
     carryOut = 0;
 }
 
+void getTemp(int tempPin){
+    // LM35CAH is 10mV / deg C
+    Temp = (analogRead(tempPin)*500.0)/1024;//(5.0*analogRead(tempPin)*100.0)/1024;
+}
 // used for scaling light sensor readings
 void light_sensitivity(int scale, int s0, int s1){
     switch(scale){

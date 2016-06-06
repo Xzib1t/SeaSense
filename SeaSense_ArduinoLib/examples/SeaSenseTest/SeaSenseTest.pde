@@ -5,7 +5,7 @@
 
 // create a new instanse of the SeaSense library "ss1"
 // pin 13 = indicator LED
-SeaSense ss1(13,47,6,7);
+SeaSense ss1(13,47,6,7,A15);
 
 void setup(){
     // initialize serial coms (FOR DEBUG ONLY)

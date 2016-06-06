@@ -15,7 +15,7 @@
         extern double Temp;
         extern unsigned int Depth;
         extern int Cond;
-        extern int Light;
+        extern int Light,carryOut;
         extern int Head;
         extern int AccelX,AccelY,AccelZ;
         extern int GyroX,GyroY,GyroZ;

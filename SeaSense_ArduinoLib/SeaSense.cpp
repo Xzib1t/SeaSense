@@ -33,13 +33,14 @@ char cli_rxBuf [MAX_INPUT_SIZE];
 int count;
 
 // Initializations are done here automatically,
-SeaSense::SeaSense(int output, int light_freq, int light_s0, int light_s1){
+SeaSense::SeaSense(int output, int light_freq, int light_s0, int light_s1, int tempPin){
     // disable the watchdog timer
     wdt_disable();
     
     _freq = light_freq;
     _s0 = light_s0;
     _s1 = light_s1;
+    _temp = tempPin;
     
     // LED pin
     pinMode(output,OUTPUT);
@@ -172,8 +173,10 @@ void SeaSense::BluetoothClient(){
 // arduino sketch
 void SeaSense::CollectData()
 {
-    getLight();
+    // note that light sensor is being read from TIMER1 ISR for better timing interval accuracy
     getTime();
+    getTemp(_temp);
+    
     return;
 }
 
@@ -182,6 +185,8 @@ void SeaSense::CollectData()
 // File logs will be updated every ISR; serial logs every 10 ISRs
 ISR(TIMER1_COMPA_vect) 
 {
+  getLight(); // read in light from hardware counter exactly every 100ms
+    
   // log data to SD card
   if(sd_logData & SDfile){
       SDfile.print(Timestamp); SDfile.print(",");
@@ -205,8 +210,9 @@ ISR(TIMER1_COMPA_vect)
   else count = 0;
     
   // log data over the bluetooth port
-  if(!SDfile & (count == 0))
+  if(count == 0)
   {
+      
       if(logData){
           Serial1.print(Timestamp); Serial1.print("\t");
           Serial1.print(Temp); Serial1.print("\t");
@@ -234,4 +240,8 @@ ISR(TIMER1_COMPA_vect)
       }
   }
 
+}
+
+ISR(TIMER5_OVF_vect){ 
+  carryOut++;
 }
