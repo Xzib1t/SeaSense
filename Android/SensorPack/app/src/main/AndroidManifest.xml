@@ -25,10 +25,16 @@
             android:screenOrientation="portrait"
             android:label="Temperature and Conductivity Display">
         </activity>
+
         <activity android:name=".DepthLightActivity"
             android:screenOrientation="portrait"
             android:label="Depth and Light Display">
-        </activity>
+            </activity>
+
+            <activity android:name=".Bluetooth"
+                android:screenOrientation="portrait"
+                android:label="Bluetooth test">
+            </activity>
 
     </application>
 

@@ -17,14 +17,21 @@
 
 package utap.navsea.sensorpack;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.content.Intent;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.Adapter;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -64,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 public class MainActivity  extends AppCompatActivity {
 	private Button buttonScan;
@@ -98,10 +106,13 @@ public class MainActivity  extends AppCompatActivity {
 	private ArrayList<String> downloadedData = new ArrayList<String>();
 
 
+
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+
         ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
 
         serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
@@ -119,21 +130,14 @@ public class MainActivity  extends AppCompatActivity {
 		graphTest(chart2, entries1, "Watermelons", Color.GREEN);
 		//setSupportActionBar(toolbar);
 
+
 		FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Compass simulation running", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-
-                //spinCompass(compass,randNumGen());
-/*                  for(int i=0; i<10; i++) {
-                    angle = randNumGen();
-                    spinCompass(compass, angle);
-                    System.out.println(angle);
-                    //delay(1000);
-                }*/
             }
         });
 
@@ -146,12 +150,14 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
+				//Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
+				Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
 				MainActivity.this.startActivity(intentApp);
 			}
 		});
 
 	}
+
 
 	private ArrayList<Entry> loadArray(Float[] data){
 		ArrayList<Entry> entries = new ArrayList<>(); //figure out how to index values
