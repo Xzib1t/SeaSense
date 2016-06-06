@@ -41,6 +41,7 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("logfile", "Log sensor data to file.", cli_log_file) \
         /* Misc. commands*/ \
         CLI_CMD("reset", "Reset the SeaSense (BE CAREFUL - KILLS ALL PROCESSES)", cli_wdt_reset) \
+        
 
 // Generate the list of function prototypes
 #undef CLI_CMD

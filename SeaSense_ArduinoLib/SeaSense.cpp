@@ -53,7 +53,6 @@ SeaSense::SeaSense(int output, int light_freq, int light_s0, int light_s1){
     // will disable the ethernet chip and allow for the SD card to be 
     // read from (addresses this bug http://forum.arduino.cc/index.php?topic=28763.0)
     pinMode(10, OUTPUT); // per SD install instructions
-    pinMode(10, OUTPUT); // per SD install instructions
     digitalWrite(10, HIGH); 
     
     // don't enable data logging by default
@@ -69,7 +68,7 @@ void SeaSense::Initialize(){
     
     Serial1.begin(115200); // turn on serial to bluetooth module
     
-    // Timer 5 hardware pulse count
+    // Timer 5 hardware pulse count (used for light sensor)
     // see http://forum.arduino.cc/index.php?topic=259063.0
     TCCR5A = 0; 
     TCCR5B = 0x07;  
@@ -87,7 +86,7 @@ void SeaSense::Initialize(){
     
     Serial1.println("System Init...");
     
-    // initialize the light sensor
+    // Initialize the light sensor (only really matters if using TSL230r sensor)
     light_sensor_init(_freq,_s0,_s1);
     
     // configure ADC to run with high speed clock (set prescale to 16)
@@ -168,6 +167,9 @@ void SeaSense::BluetoothClient(){
     return;
 }
 
+// lowest priority code - used for sending pre-gathered sensor data to
+// a serial log or file. This code should be run from the main loop of your
+// arduino sketch
 void SeaSense::CollectData()
 {
     getLight();
@@ -175,7 +177,9 @@ void SeaSense::CollectData()
     return;
 }
 
-// Interrupt is called once every 100mS
+// Interrupt is called once every 100mS - checks to see if any type of
+// serial or file logging is enabled and acts accordingly.
+// File logs will be updated every ISR; serial logs every 10 ISRs
 ISR(TIMER1_COMPA_vect) 
 {
   // log data to SD card

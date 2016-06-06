@@ -8,7 +8,6 @@ volatile int carryOut = 0;
 
 // function prototypes
 void light_sensitivity(int scale, int s0, int s1);
-void getLight();
 
 void getTime(){
     DateTime now = rtc.now();
@@ -16,9 +15,10 @@ void getTime(){
     return;
 }
 
+// initialize light sensor scaling rate (only used for TSL230r sensor)
 void light_sensor_init(int freqPin, int light_s0, int light_s1){
     // light sensor config
-    pinMode(light_s0, OUTPUT);
+    pinMode(light_s0,OUTPUT);
     pinMode(light_s1,OUTPUT);
     
     // set sensitivity to 1x
@@ -27,12 +27,14 @@ void light_sensor_init(int freqPin, int light_s0, int light_s1){
     return;
 }
 
+// read a new value from the hardware counter to global var Light
 void getLight() {
     Light = 65535 * carryOut + TCNT5;
     TCNT5 = 0;
     carryOut = 0;
 }
 
+// used for scaling light sensor readings
 void light_sensitivity(int scale, int s0, int s1){
     switch(scale){
         case 1:
