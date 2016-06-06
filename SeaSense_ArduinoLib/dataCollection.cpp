@@ -4,7 +4,7 @@
 #include "SeaSense.h"
 
 // used for counting pulses from the light sensor
-unsigned long pulseTime,lastTime;
+volatile int carryOut = 0;
 
 // function prototypes
 void light_sensitivity(int scale, int s0, int s1);
@@ -18,27 +18,19 @@ void getTime(){
 
 void light_sensor_init(int freqPin, int light_s0, int light_s1){
     // light sensor config
-    pinMode(freqPin, INPUT);
     pinMode(light_s0, OUTPUT);
     pinMode(light_s1,OUTPUT);
     
     // set sensitivity to 1x
     // NOTE this fxn only matters for the outdated TSL230r sensor
     light_sensitivity(1,light_s0,light_s1);
-    
-    attachInterrupt(digitalPinToInterrupt(freqPin), getLight, RISING);
     return;
 }
 
 void getLight() {
-    // disabling interrupts around this critical section slows things down too much
-    // next step will be to make this a hardware counter and remove the interrupt
-    Light = pulseTime - lastTime;
-    
-    // after getting a new reading, reset for the next run
-    lastTime = pulseTime;
-    // micros is only usable if duration is under 1-2mS
-    pulseTime = micros();
+    Light = 65535 * carryOut + TCNT5;
+    TCNT5 = 0;
+    carryOut = 0;
 }
 
 void light_sensitivity(int scale, int s0, int s1){
@@ -46,21 +38,21 @@ void light_sensitivity(int scale, int s0, int s1){
         case 1:
             digitalWrite(s0,1);
             digitalWrite(s1,0);
-            Serial1.println("Light sensor scaled to 1x");
+            Serial1.println("\tLight sensor scaled to 1x");
             break;
         case 10:
             digitalWrite(s0,0);
             digitalWrite(s1,1);
-            Serial1.println("Light sensor scaled to 10x");
+            Serial1.println("\tLight sensor scaled to 10x");
             break;
         case 100:
             digitalWrite(s0,1);
             digitalWrite(s1,1);
-            Serial1.println("Light sensor scaled to 100x");
+            Serial1.println("\tLight sensor scaled to 100x");
             break;
         default:
-            Serial1.println("Error: invalid light sensor scale");
-            Serial1.println("Reconfigure in dataCollection.cpp");
+            Serial1.println("\tError: invalid light sensor scale");
+            Serial1.println("\tReconfigure in dataCollection.cpp");
             digitalWrite(s0,0);
             digitalWrite(s1,0);
     }

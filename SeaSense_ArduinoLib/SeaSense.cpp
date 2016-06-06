@@ -64,17 +64,31 @@ SeaSense::SeaSense(int output, int light_freq, int light_s0, int light_s1){
 
 // Initialize - sets up a SoftwareSerial bluetooth client. Can perform other initialization code here as well
 void SeaSense::Initialize(){
-
-    // change the bluetooth serial data rate to 9600 baud
-    //Serial1.begin(115200);
-    //Serial1.print("$");
-    //Serial1.print("$");
-    //Serial1.print("$");
-    //delay(100);
-    //Serial1.println("U,9600,N");
-    Serial1.begin(115200);
-    delay(5);
-    Serial1.println("Bluetooth successfully configured");
+    
+    cli();             // disable global interrupts
+    
+    Serial1.begin(115200); // turn on serial to bluetooth module
+    
+    // Timer 5 hardware pulse count
+    // see http://forum.arduino.cc/index.php?topic=259063.0
+    TCCR5A = 0; 
+    TCCR5B = 0x07;  
+    TIMSK5 |= (1 << TOIE5) ; 
+    
+    // Timer1 interrupt routine for logging data
+    TCCR1A = 0;        // set entire TCCR1A register to 0
+    TCCR1B = 0;
+    OCR1A = 6249; // 1/10 second per int at 256 prescale (62500/(6249+1))
+    TCCR1B |= (1 << WGM12); // turn on CTC mode
+    TCCR1B |= (1 << CS12); // Set CS10 and CS12 bits for 256 prescaler:
+    TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt:
+    
+    sei(); // enable global interrupts:
+    
+    Serial1.println("System Init...");
+    
+    // initialize the light sensor
+    light_sensor_init(_freq,_s0,_s1);
     
     // configure ADC to run with high speed clock (set prescale to 16)
     // increases timebase from 125kHz to 1MHz (~8x faster!)
@@ -82,8 +96,8 @@ void SeaSense::Initialize(){
     bitClear(ADCSRA,ADPS1);
     bitSet(ADCSRA,ADPS2);
     
-    
-    Serial1.print("Initializing SD card ...");
+    // initialize the SD card
+    Serial1.print("\tInitializing SD card ...");
     if (!SD.begin(SD_CS))
         Serial1.println(" failed");
     else
@@ -91,46 +105,27 @@ void SeaSense::Initialize(){
     
     // set up the RTC
     if (! rtc.begin()) {
-        Serial1.println("Error: Couldn't find RTC. Try a system reset");
+        Serial1.println("\tError: Couldn't find RTC. Try a system reset");
         while (1);
     }
 
     if ((! rtc.isrunning()) & (RTC_AUTOSET == 1)) {
-        Serial1.println("RTC is NOT running!");
+        Serial1.println("\tRTC is NOT running!");
         // following line sets the RTC to the date & time this sketch was compiled
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        Serial1.println("RTC Autoset");
+        Serial1.println("\tRTC Autoset");
     }
     else if ((! rtc.isrunning()) & (RTC_AUTOSET == 0)) {
-        Serial1.println("RTC unconfigured - please use rtc_set to configure the RTC");
+        Serial1.println("\tRTC unconfigured - please use rtc_set to configure the RTC");
     }
     else
-        Serial1.println("RTC successfully initialized");
-    
-    // initialize the light sensor
-    light_sensor_init(_freq,_s0,_s1);
-    
-    // initialize ISR(s)
-    cli();             // disable global interrupts
-    TCCR1A = 0;        // set entire TCCR1A register to 0
-    TCCR1B = 0;
- 
-    // set compare match register to desired timer count:
-    OCR1A = 6249; // 1/10 second per int at 256 prescale (62500/(6249+1))
-    // turn on CTC mode:
-    TCCR1B |= (1 << WGM12);
-    // Set CS10 and CS12 bits for 256 prescaler:
-    TCCR1B |= (1 << CS12);
-    // enable timer compare interrupt:
-    TIMSK1 |= (1 << OCIE1A);
-    // enable global interrupts:
-    sei();
+        Serial1.println("\tRTC successfully initialized");
     
     newCli = true; // will write '>' for bt CLI if true
     init = true;
     digitalWrite(_output,HIGH); // indicate config complete
     
-    Serial1.print("Type in ");
+    Serial1.print("\tType in ");
     Serial1.print((char)0x22); 
     Serial1.print("help"); 
     Serial1.print((char)0x22); 
@@ -175,11 +170,12 @@ void SeaSense::BluetoothClient(){
 
 void SeaSense::CollectData()
 {
+    getLight();
     getTime();
     return;
 }
 
-// Interrupt is called once a second, 
+// Interrupt is called once every 100mS
 ISR(TIMER1_COMPA_vect) 
 {
   // log data to SD card
