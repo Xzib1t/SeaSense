@@ -36,10 +36,14 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Set;
 import java.util.UUID;
 
@@ -51,14 +55,15 @@ public class Bluetooth extends AppCompatActivity{
     private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static BluetoothDevice device = null;
     private static BluetoothAdapter mBluetoothAdapter;
+    StringBuilder total = new StringBuilder();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth);
 
-        Button mButton = (Button) findViewById(R.id.button);
-        mButton.setOnClickListener(new View.OnClickListener() {
+        Button buttonList = (Button) findViewById(R.id.button_list);
+        buttonList.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 mArrayAdapter.clear();
                 setupBT();
@@ -76,13 +81,47 @@ public class Bluetooth extends AppCompatActivity{
 
         mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
 
-        // Register the BroadcastReceiver
-/*        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy*/
-
+        Button buttonRead = (Button) findViewById(R.id.button_read);
+        buttonRead.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                try {
+                    InputStream inStream = socket.getInputStream();
+                    OutputStream outStream = socket.getOutputStream();
+                    readData(inStream, outStream);
+                }
+                catch(IOException e){
+                    //TODO
+                }
+            }
+        });
+        print2BT(total.toString() + "\n");
     }
 
 
+    /**
+     * Most of this method was taken from:
+     * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
+     * Modifications were made to conform to the specifications of this app
+     */
+    private void readData(InputStream inStream, OutputStream outStream) {
+    byte[] buffer = new byte[256];  // buffer store for the stream
+    int bytes; // bytes returned from read()
+    try {
+
+        DataInputStream mmInStream = new DataInputStream(inStream);
+        DataOutputStream mmOutStream = new DataOutputStream(outStream);
+
+        mmOutStream.write(255); //test output stream
+
+        // Read from the InputStream
+        bytes = mmInStream.read(buffer);
+        String readMessage = new String(buffer, 0, bytes);
+
+        print2BT(readMessage);
+    } catch (Exception e) {
+        //TODO
+    }
+}
 
     private void connect2device(BluetoothDevice mBluetoothAdapter) {
         socket = null;
@@ -109,12 +148,22 @@ public class Bluetooth extends AppCompatActivity{
                 BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
 
                 connect2device(device);
-
             }
 
         });
     }
 
+    private void print2BT(String theString){
+        TextView bluetoothLog = (TextView) findViewById(R.id.bluetooth_log);
+        bluetoothLog.append(theString);		//append the text into the EditText
+        ((ScrollView)bluetoothLog.getParent()).fullScroll(View.FOCUS_DOWN);
+    }
+
+    /**
+     * Much of this method was taken from:
+     * https://developer.android.com/guide/topics/connectivity/bluetooth.html
+     * Modifications were made to conform to the specifications of this app
+     */
     private void setupBT(){
         int REQUEST_ENABLE_BT = 1;
 
@@ -124,6 +173,7 @@ public class Bluetooth extends AppCompatActivity{
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
+
 
         Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
         // If there are paired devices
@@ -136,7 +186,11 @@ public class Bluetooth extends AppCompatActivity{
         }
     }
 
-    // https://developer.android.com/guide/topics/connectivity/bluetooth.html
+    /**
+     * Much of this method was taken from:
+     * https://developer.android.com/guide/topics/connectivity/bluetooth.html
+     * Modifications were made to conform to the specifications of this app
+     */
     // Create a BroadcastReceiver for ACTION_FOUND
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
