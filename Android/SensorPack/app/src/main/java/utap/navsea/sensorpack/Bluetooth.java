@@ -153,10 +153,8 @@ public class Bluetooth extends AppCompatActivity{
                     for (String printStr : downloadedData) {
                         downloadedStrings = downloadedStrings.concat(printStr);
                     }
-                    //print2BT(downloadedStrings);
+                    //print2BT(downloadedStrings + "\n");
                     parseData(downloadedStrings);
-                    //graphTest(chart1, convert2Entry(temperature), "Temperature data", Color.RED);
-                    //graphTest(chart2, convert2Entry(light), "Light data", Color.GREEN);
 
                     /*print2BT("Temperature: " + temperature.toString() + "\n");
                     print2BT("Depth: " + depth.toString() + "\n");

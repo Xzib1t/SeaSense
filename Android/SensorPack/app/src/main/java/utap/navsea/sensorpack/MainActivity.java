@@ -178,7 +178,7 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
 				//Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
-/*				Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
+				/*Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
 				MainActivity.this.startActivity(intentApp);*/
 				try {
 					if(socket!=null) {
