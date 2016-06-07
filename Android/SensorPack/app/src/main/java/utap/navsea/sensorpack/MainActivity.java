@@ -17,20 +17,25 @@
 
 package utap.navsea.sensorpack;
 
+import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.content.Intent;
+import android.support.v7.widget.ListPopupWindow;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Adapter;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -67,11 +72,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
+
+import utap.navsea.sensorpack.Bluetooth;
 
 public class MainActivity  extends AppCompatActivity {
 	private Button buttonScan;
@@ -105,8 +114,12 @@ public class MainActivity  extends AppCompatActivity {
 	private String downloadedStrings = new String();
 	private ArrayList<String> downloadedData = new ArrayList<String>();
 
+	private static ArrayAdapter<String> mArrayAdapter;
+	private static BluetoothAdapter mBluetoothAdapter;
 
-
+	private Dialog dialog;
+	private static BluetoothSocket socket = null;
+	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -130,6 +143,9 @@ public class MainActivity  extends AppCompatActivity {
 		graphTest(chart2, entries1, "Watermelons", Color.GREEN);
 		//setSupportActionBar(toolbar);
 
+		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
+		dialog = new Dialog(this);
+
 
 		FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         assert fab != null;
@@ -138,8 +154,19 @@ public class MainActivity  extends AppCompatActivity {
             public void onClick(View view) {
                 Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-            }
+
+
+				getDevice();
+				displayList();
+				dialog.setContentView(R.layout.device_list_popup);
+
+				//ListView lv = (ListView ) dialog.findViewById(R.id.device_list_display2);
+				dialog.setCancelable(true);
+				dialog.setTitle("BluetoothDevices");
+				dialog.show();
+			}
         });
+
 
 		/**
 		 * Intent code from
@@ -151,11 +178,83 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
 				//Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
-				Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
-				MainActivity.this.startActivity(intentApp);
+/*				Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
+				MainActivity.this.startActivity(intentApp);*/
+				try {
+					if(socket!=null) {
+						OutputStream outStream = socket.getOutputStream();
+						utap.navsea.sensorpack.Bluetooth.writeData(outStream);
+						InputStream inStream = socket.getInputStream();
+						utap.navsea.sensorpack.Bluetooth.readData(inStream);
+						graphTest(chart1, convert2Entry(temperature), "Temp", Color.RED);
+					}
+				} catch (IOException e) {
+					//TODO
+				}
 			}
 		});
 
+	}
+
+	private void displayList(){
+		mArrayAdapter.clear();
+		setupBT();
+
+		ListView newDevicesListView = (ListView)
+				findViewById(R.id.device_list_display);
+
+		newDevicesListView.setAdapter(mArrayAdapter);
+		newDevicesListView.setClickable(true);
+	}
+
+	private void setupBT(){
+		int REQUEST_ENABLE_BT = 1;
+
+		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+		if (!mBluetoothAdapter.isEnabled()) {
+			Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+			startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+		}
+
+		Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+		// If there are paired devices
+		if (pairedDevices.size() > 0) {
+			// Loop through paired devices
+			for (BluetoothDevice device : pairedDevices) {
+				// Add the name and address to an array adapter to show in a ListView
+				mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+			}
+		}
+	}
+
+	/**
+	 * Some of the contents of this method are found at:
+	 * http://stackoverflow.com/questions/9596663/how-to-make-items-clickable-in-list-view
+	 * Modifications were made to conform to the specifications of this app
+	 */
+	private void getDevice(){
+		ListView lv = (ListView) findViewById(R.id.device_list_display);
+		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.device_list_popup));
+		lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+			public void onItemClick(AdapterView<?> arg, View view, int position, long id) {
+				String address = (String) ((TextView) view).getText();
+				for (String temp : address.split("\n")) {
+					address = temp; //Only get address, discard name
+				}
+				BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+
+				connect2device(device);
+			}
+		});
+	}
+
+	private void connect2device(BluetoothDevice mBluetoothAdapter) {
+		socket = null;
+		try {
+			socket = mBluetoothAdapter.createRfcommSocketToServiceRecord(uuid);
+			socket.connect();
+		} catch (IOException e) { }
 	}
 
 

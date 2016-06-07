@@ -30,6 +30,12 @@
             android:layout_alignParentBottom="true" />
     </ScrollView>
 
+    <ListView
+        android:id="@+id/device_list_display"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_alignParentBottom="true" />
+
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -65,4 +71,5 @@
 
     <include layout="@layout/content_main" />
     </android.support.design.widget.CoordinatorLayout>
+
 

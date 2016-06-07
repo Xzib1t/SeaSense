@@ -29,7 +29,6 @@ import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -51,30 +50,26 @@ import java.util.Set;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
-    private ArrayAdapter<String> mArrayAdapter;
+    private static ArrayAdapter<String> mArrayAdapter;
     private static BluetoothSocket socket = null;
     //Below UUID is the standard SSP UUID:
     //Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
     private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static BluetoothDevice device = null;
     private static BluetoothAdapter mBluetoothAdapter;
 
-    StringBuilder total = new StringBuilder();
-
-
-    private ArrayList<Float> temperature = new ArrayList<Float>();
-    private ArrayList<Float> depth = new ArrayList<Float>();
-    private ArrayList<Float> conductivity = new ArrayList<Float>();
-    private ArrayList<Float> light = new ArrayList<Float>();
-    private ArrayList<Float> heading = new ArrayList<Float>();
-    private ArrayList<Float> accelX = new ArrayList<Float>();
-    private ArrayList<Float> accelY = new ArrayList<Float>();
-    private ArrayList<Float> accelZ = new ArrayList<Float>();
-    private ArrayList<Float> gyroX = new ArrayList<Float>();
-    private ArrayList<Float> gyroY = new ArrayList<Float>();
-    private ArrayList<Float> gyroZ = new ArrayList<Float>();
-    private String downloadedStrings = new String();
-    private ArrayList<String> downloadedData = new ArrayList<String>();
+    private static ArrayList<Float> temperature = new ArrayList<Float>();
+    private static ArrayList<Float> depth = new ArrayList<Float>();
+    private static ArrayList<Float> conductivity = new ArrayList<Float>();
+    private static ArrayList<Float> light = new ArrayList<Float>();
+    private static ArrayList<Float> heading = new ArrayList<Float>();
+    private static ArrayList<Float> accelX = new ArrayList<Float>();
+    private static ArrayList<Float> accelY = new ArrayList<Float>();
+    private static ArrayList<Float> accelZ = new ArrayList<Float>();
+    private static ArrayList<Float> gyroX = new ArrayList<Float>();
+    private static ArrayList<Float> gyroY = new ArrayList<Float>();
+    private static ArrayList<Float> gyroZ = new ArrayList<Float>();
+    private static String downloadedStrings = new String();
+    private static ArrayList<String> downloadedData = new ArrayList<String>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -113,7 +108,6 @@ public class Bluetooth extends AppCompatActivity{
                 }
             }
         });
-        print2BT(total.toString() + "\n");
 
         Button buttonWrite = (Button) findViewById(R.id.button_write);
         buttonWrite.setOnClickListener(new View.OnClickListener() {
@@ -130,14 +124,12 @@ public class Bluetooth extends AppCompatActivity{
         });
     }
 
-
-
     /**
      * Most of this method was taken from:
      * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
      * Modifications were made to conform to the specifications of this app
      */
-    private void readData(InputStream inStream) {
+    public static void readData(InputStream inStream) {
     try {
         DataInputStream mmInStream = new DataInputStream(inStream);
 
@@ -166,7 +158,7 @@ public class Bluetooth extends AppCompatActivity{
                     //graphTest(chart1, convert2Entry(temperature), "Temperature data", Color.RED);
                     //graphTest(chart2, convert2Entry(light), "Light data", Color.GREEN);
 
-                    print2BT("Temperature: " + temperature.toString() + "\n");
+                    /*print2BT("Temperature: " + temperature.toString() + "\n");
                     print2BT("Depth: " + depth.toString() + "\n");
                     print2BT("Conductivity: " + conductivity.toString() + "\n");
                     print2BT("Light: " + light.toString() + "\n");
@@ -176,7 +168,7 @@ public class Bluetooth extends AppCompatActivity{
                     print2BT("Accelerometer Z: " + accelZ.toString() + "\n");
                     print2BT("Gyroscope X: " + gyroX.toString() + "\n");
                     print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
-                    print2BT("Gyroscope Z: " + gyroZ.toString());
+                    print2BT("Gyroscope Z: " + gyroZ.toString());*/
 
                     delimFound = true;
                 }
@@ -186,7 +178,7 @@ public class Bluetooth extends AppCompatActivity{
         }
 }
 
-    private void connect2device(BluetoothDevice mBluetoothAdapter) {
+    public static void connect2device(BluetoothDevice mBluetoothAdapter) {
         socket = null;
         try {
             socket = mBluetoothAdapter.createRfcommSocketToServiceRecord(uuid);
@@ -218,7 +210,7 @@ public class Bluetooth extends AppCompatActivity{
 
 
 
-    private void writeData(OutputStream outStream){
+    public static void writeData(OutputStream outStream){
 
        try {
            DataOutputStream mmOutStream = new DataOutputStream(outStream);
@@ -235,7 +227,7 @@ public class Bluetooth extends AppCompatActivity{
        }
     }
 
-    private boolean check4eof(ArrayList<String> inputString){
+    private static boolean check4eof(ArrayList<String> inputString){
         String input = inputString.get(inputString.size() - 1); //Read last entry in array list
         char[] eof = {'U','+','1','F','4','A','9'};
         int eofLength = 7;
@@ -252,7 +244,7 @@ public class Bluetooth extends AppCompatActivity{
         return false;
     }
 
-    private void parseData(String input){
+    private static void parseData(String input){
         int dataType = 0;
         int curIndex = 0;
         String eof = "U+1F4A9";//" U+1F4A9";
