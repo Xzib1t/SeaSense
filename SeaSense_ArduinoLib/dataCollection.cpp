@@ -8,6 +8,7 @@ int carryOut = 0;
 
 // function prototypes
 void light_sensitivity(int scale, int s0, int s1);
+void resetADC();
 
 void getTime(){
     DateTime now = rtc.now();
@@ -34,10 +35,32 @@ void getLight() {
     carryOut = 0;
 }
 
+// cycle through the adc buffer, come up with an average val for each sensor, and
+// process said val to its final form
 void getADCreadings(){
-    Temp = (adcBuf[0]*500.0)/1024;//(5.0*analogRead(tempPin)*100.0)/1024;
-    
+    int var = 0;
+    int i = 0;
+    int avg = 0;
+    // cycle through the ADC buffer and get an average for each channel
+    for (var = 0; var < NUM_ADC_CHANNELS; var++){
+        for(i = 0; i < ADC_BUFFER_SIZE; i++){
+            avg+=adcBuf[var][i];
+        }
+        avg = avg/ADC_BUFFER_SIZE;
+        // set global vars for each channel's reading based on the avg
+        switch(var){
+            case 0: Temp = (avg*500.0)/1024;
+                break;
+            case 1: Depth = avg;
+                break;
+            case 2: Cond = avg;
+                break;
+        }
+    }
+    resetADC(); // allow for a new set of readings to occur  
 }
+
+
 // used for scaling light sensor readings
 void light_sensitivity(int scale, int s0, int s1){
     switch(scale){
@@ -64,3 +87,16 @@ void light_sensitivity(int scale, int s0, int s1){
     }
 }
 
+// resets the ADC for new conversions starting with channel 10 and buffer index 0
+void resetADC(){
+    // allow for 2D adc buffer to be written to again
+    adc_channel = 10; 
+    adc_pos = 0;
+    // clear old ADC MUX settings
+    ADMUX &= ~((1<<MUX4)|(1<<MUX3)|(1<<MUX2)|(1<<MUX1)|(1<<MUX0));  
+    ADCSRB &= ~(1<<MUX5);
+    // MUX[5:0] = 100010 = ADC channel 10
+    ADMUX |= (1 << MUX1);
+    ADCSRB |= (1 << MUX5);
+    ADCSRA |= (1 << ADSC); // Start A2D Conversions
+}

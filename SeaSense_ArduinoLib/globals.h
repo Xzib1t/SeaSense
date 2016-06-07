@@ -10,7 +10,8 @@
         #define MAX_INPUT_SIZE 100
         #define MAX_CLI_ARGV 20
         #define SD_CS 4
-        #define ADC_BUFFER_SIZE 30
+        #define NUM_ADC_CHANNELS 3
+        #define ADC_BUFFER_SIZE 10
 
         /*Data values for writing to the SD card/serial log*/
         extern boolean logData;
@@ -24,7 +25,7 @@
         extern int Head;
         extern int AccelX,AccelY,AccelZ;
         extern int GyroX,GyroY,GyroZ;
-        extern int adcBuf[ADC_BUFFER_SIZE];
-        extern byte adc_channel;
+        extern int adcBuf[NUM_ADC_CHANNELS][ADC_BUFFER_SIZE];
+        extern byte adc_channel, adc_pos;
         
 #endif

@@ -34,7 +34,7 @@ int count; // used in timer1 interrupt
 
 // used for ADC interrupt routine
 byte adc_channel = 10;
-int adcBuf[ADC_BUFFER_SIZE];
+int adcBuf[NUM_ADC_CHANNELS][ADC_BUFFER_SIZE];
 byte adc_pos = 0; // position in adcBuf
 
 // Initializations are done here automatically,
@@ -160,11 +160,13 @@ void SeaSense::BluetoothClient(){
             case '\r': 
                 _rxCmdSize = _i;
                 newCli = true;
+                /*COMMENT OUT FOR JOE*/
                 if(!app_logData) Serial1.println('\0'); // jump to a new line
               break;
             default: 
                 cli_rxBuf[_i] = rxChar;
-                if(!app_logData)  Serial1.print(cli_rxBuf[_i]);
+                /*COMMENT OUT FOR JOE*/
+                if(!app_logData) Serial1.print(cli_rxBuf[_i]);
         }
     }
     if (newCli == true)
@@ -251,7 +253,7 @@ ISR(TIMER1_COMPA_vect)
           Serial1.print(GyroY); Serial1.print(",");
           Serial1.print(GyroZ); Serial1.print(",");
           Serial1.print("U+1F4A9");
-          //app_logData = false;
+          app_logData = false;
           return;
       }
       
@@ -274,18 +276,19 @@ ISR(ADC_vect){
     int temp = ADCL;
     temp += ADCH<<2;
     
-    adcBuf[adc_pos] = temp;
+    adcBuf[adc_channel-10][adc_pos] = temp;
 
-    if(adc_pos<ADC_BUFFER_SIZE) { // up to 30
+    if(adc_pos<ADC_BUFFER_SIZE) {
         // increment to next buffer position
-        adc_pos++;
-        
-        // constantly cycle which ADC is being read from
-        if(adc_channel<12) 
+        adc_pos++;       
+        ADCSRA |= (1 << ADSC); // Start A2D Conversions (ONLY IF BUFFER ISN'T FULL)
+    } else {
+        // cycle which ADC is being read from
+        if(adc_channel<12) {
+            adc_pos = 0; // allow for a new conversion
             adc_channel++;
-        else
-            adc_channel = 10;
-    
+        }
+        
         // clear old ADC MUX settings
         ADMUX &= ~((1<<MUX4)|(1<<MUX3)|(1<<MUX2)|(1<<MUX1)|(1<<MUX0));  
         ADCSRB &= ~(1<<MUX5);
@@ -309,11 +312,6 @@ ISR(ADC_vect){
                 break;
             default:
                 Serial1.println("Error: Incorrect ADC ");
-        }       
-        ADCSRA |= (1 << ADSC);    // Start A2D Conversions (ONLY IF BUFFER ISN'T FULL)
-     
-    } else {
-        adc_pos = 0;
         }
-    
+    }
 } 
