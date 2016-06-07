@@ -31,6 +31,8 @@ File SDfile;
 
 char cli_rxBuf [MAX_INPUT_SIZE];
 int count;
+int adc_ch;
+int adcBuf;
 
 // Initializations are done here automatically,
 SeaSense::SeaSense(int output, int light_freq, int light_s0, int light_s1, int tempPin){
@@ -76,25 +78,34 @@ void SeaSense::Initialize(){
     TIMSK5 |= (1 << TOIE5) ; 
     
     // Timer1 interrupt routine for logging data
-    TCCR1A = 0;        // set entire TCCR1A register to 0
+    TCCR1A = 0;   // set entire TCCR1A register to 0
     TCCR1B = 0;
     OCR1A = 6249; // 1/10 second per int at 256 prescale (62500/(6249+1))
     TCCR1B |= (1 << WGM12); // turn on CTC mode
     TCCR1B |= (1 << CS12); // Set CS10 and CS12 bits for 256 prescaler:
     TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt:
     
+    // ADC conversion ISR
+    // REFS0 - AVCC reference with external cap at AREF pin
+    // ADLAR - left adjust result
+    // MUX[5:0] = 100111 = ADC channel 15
+    ADMUX |= ((1 << REFS0)|(1 << ADLAR)|(1 << MUX2)|(1 << MUX1)|(1 << MUX0));
+    ADCSRB |= (1 << MUX5);
+    // ADC status register
+    // clear ADPSx prescale and set to 125kHz samp rate
+    // enable ADC (ADEN), enable ADC interrupt (ADIE) 
+    ADCSRA |= ((1 << ADEN)|(1 << ADIE)|(1 << ADPS2)|(1 << ADPS1)|(1 << ADPS0));     // Enable ADC, ADC interrupts
+    
     sei(); // enable global interrupts:
+    
+    ADCSRA |= (1 << ADSC);     // Start A2D Conversions  */
     
     Serial1.println("System Init...");
     
     // Initialize the light sensor (only really matters if using TSL230r sensor)
     light_sensor_init(_freq,_s0,_s1);
     
-    // configure ADC to run with high speed clock (set prescale to 16)
-    // increases timebase from 125kHz to 1MHz (~8x faster!)
-    bitClear(ADCSRA,ADPS0);
-    bitClear(ADCSRA,ADPS1);
-    bitSet(ADCSRA,ADPS2);
+    
     
     // initialize the SD card
     Serial1.print("\tInitializing SD card ...");
@@ -146,11 +157,11 @@ void SeaSense::BluetoothClient(){
             case '\r': 
                 _rxCmdSize = _i;
                 newCli = true;
-                Serial1.println('\0'); // jump to a new line
+                if(!app_logData) Serial1.println('\0'); // jump to a new line
               break;
             default: 
                 cli_rxBuf[_i] = rxChar;
-                Serial1.print(cli_rxBuf[_i]);
+                if(!app_logData)  Serial1.print(cli_rxBuf[_i]);
         }
     }
     if (newCli == true)
@@ -161,7 +172,7 @@ void SeaSense::BluetoothClient(){
             _i--;
         }
         cli_rxBuf[0] = '>'; // print '>' char
-        Serial1.print(cli_rxBuf); 
+        if(!app_logData) Serial1.print(cli_rxBuf);
         
         newCli = false;
     }
@@ -213,7 +224,7 @@ ISR(TIMER1_COMPA_vect)
   if(count == 0)
   {
       
-      if(logData){
+      if(logData & !app_logData){
           Serial1.print(Timestamp); Serial1.print("\t");
           Serial1.print(Temp); Serial1.print("\t");
           Serial1.print(Depth); Serial1.print("\t");
@@ -222,8 +233,9 @@ ISR(TIMER1_COMPA_vect)
           Serial1.println(Head);
           return;
       }
-      else if(app_logData){
-          Serial1.print(Timestamp); Serial1.print(",");
+      else if(app_logData & !logData){
+          //Serial1.print(Timestamp); Serial1.print(",");
+          Serial.println("Logging data to app");
           Serial1.print(Temp); Serial1.print(",");
           Serial1.print(Depth); Serial1.print(",");
           Serial1.print(Cond); Serial1.print(",");
@@ -236,12 +248,34 @@ ISR(TIMER1_COMPA_vect)
           Serial1.print(GyroY); Serial1.print(",");
           Serial1.print(GyroZ); Serial1.print(",");
           Serial1.print("U+1F4A9");
+          //app_logData = false;
           return;
       }
+      
   }
 
 }
 
+// Timer overflow for edge count interrupt (used with light sensor)
 ISR(TIMER5_OVF_vect){ 
   carryOut++;
 }
+
+// ADC ISR
+// useful reading:
+// https://bennthomsen.wordpress.com/arduino/peripherals/analogue-input/
+// http://www.avrfreaks.net/forum/sampling-multiple-adc-channels
+// Users' guide pg 283
+ISR(ADC_vect)           
+  {
+ // see pg 286 of users' guide
+  adcBuf = ADCL;
+  adcBuf += ADCH<<2; 
+  
+    // clear old ADC register settings
+  //ADMUX &= ~(MUX4|MUX3|MUX2|MUX1|MUX0);  
+  //ADCSRB &= ~(MUX5);
+  //Defines the new ADC channel to be read
+  //ADMUX |= (MUX2|MUX1|MUX0);
+  //ADCSRB |= (MUX5); //Set MUX5 as well
+  } 

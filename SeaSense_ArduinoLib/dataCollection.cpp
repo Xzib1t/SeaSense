@@ -35,8 +35,10 @@ void getLight() {
 }
 
 void getTemp(int tempPin){
+    //Serial.println(adcBuf);
     // LM35CAH is 10mV / deg C
-    Temp = (analogRead(tempPin)*500.0)/1024;//(5.0*analogRead(tempPin)*100.0)/1024;
+    Temp = (adcBuf*500.0)/1024;//(5.0*analogRead(tempPin)*100.0)/1024;
+    ADCSRA |= (1 << ADSC);    // Start A2D Conversions 
 }
 // used for scaling light sensor readings
 void light_sensitivity(int scale, int s0, int s1){

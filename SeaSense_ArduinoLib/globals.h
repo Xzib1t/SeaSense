@@ -19,7 +19,7 @@
         extern int Head;
         extern int AccelX,AccelY,AccelZ;
         extern int GyroX,GyroY,GyroZ;
-        
+        extern int adcBuf;
         #define MAX_INPUT_SIZE 100
         #define MAX_CLI_ARGV 20
         #define SD_CS 4
