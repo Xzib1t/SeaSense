@@ -85,17 +85,32 @@ public class Bluetooth extends AppCompatActivity{
         buttonRead.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 try {
-                    InputStream inStream = socket.getInputStream();
-                    OutputStream outStream = socket.getOutputStream();
-                    readData(inStream, outStream);
-                }
-                catch(IOException e){
+                    if(socket!=null) {
+                        InputStream inStream = socket.getInputStream();
+                        readData(inStream);
+                    }
+                } catch (IOException e) {
                     //TODO
                 }
             }
         });
         print2BT(total.toString() + "\n");
+
+        Button buttonWrite = (Button) findViewById(R.id.button_write);
+        buttonWrite.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                try {
+                    if(socket!=null) {
+                        OutputStream outStream = socket.getOutputStream();
+                        writeData(outStream);
+                    }
+                } catch (IOException e) {
+                    //TODO
+                }
+            }
+        });
     }
+
 
 
     /**
@@ -103,21 +118,19 @@ public class Bluetooth extends AppCompatActivity{
      * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
      * Modifications were made to conform to the specifications of this app
      */
-    private void readData(InputStream inStream, OutputStream outStream) {
-    byte[] buffer = new byte[256];  // buffer store for the stream
-    int bytes; // bytes returned from read()
+    private void readData(InputStream inStream) {
     try {
 
-        DataInputStream mmInStream = new DataInputStream(inStream);
-        DataOutputStream mmOutStream = new DataOutputStream(outStream);
+        byte[] buffer = new byte[256];  // buffer store for the stream
+        int bytes; // bytes returned from read()
 
-        mmOutStream.write(255); //test output stream
+        DataInputStream mmInStream = new DataInputStream(inStream);
 
         // Read from the InputStream
-        bytes = mmInStream.read(buffer);
+        bytes = inStream.read(buffer);
         String readMessage = new String(buffer, 0, bytes);
+        for(int i=0; i<100; i++)  print2BT(readMessage);
 
-        print2BT(readMessage);
     } catch (Exception e) {
         //TODO
     }
@@ -151,6 +164,24 @@ public class Bluetooth extends AppCompatActivity{
             }
 
         });
+    }
+
+    private void writeData(OutputStream outStream){
+
+       try {
+           DataOutputStream mmOutStream = new DataOutputStream(outStream);
+           mmOutStream.write(108); //This is "logapp" in ASCII code, it is the command
+           mmOutStream.write(111); //that causes the Arduino side to start sending data
+           mmOutStream.write(103);
+           mmOutStream.write(0);
+           mmOutStream.write(97);
+           mmOutStream.write(112);
+           mmOutStream.write(112);
+           mmOutStream.write(13);
+       }
+       catch(IOException e){
+           //TODO
+       }
     }
 
     private void print2BT(String theString){

@@ -39,5 +39,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Read Input Stream"/>
+
+    <Button
+        android:id="@+id/button_write"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Write Output Stream"/>
+
         </LinearLayout>
 
