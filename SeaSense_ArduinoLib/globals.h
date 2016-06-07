@@ -7,6 +7,11 @@
         #include "SD.h"
         extern File SDfile;
 
+        #define MAX_INPUT_SIZE 100
+        #define MAX_CLI_ARGV 20
+        #define SD_CS 4
+        #define ADC_BUFFER_SIZE 30
+
         /*Data values for writing to the SD card/serial log*/
         extern boolean logData;
         extern boolean sd_logData;
@@ -19,8 +24,7 @@
         extern int Head;
         extern int AccelX,AccelY,AccelZ;
         extern int GyroX,GyroY,GyroZ;
-        extern int adcBuf;
-        #define MAX_INPUT_SIZE 100
-        #define MAX_CLI_ARGV 20
-        #define SD_CS 4
+        extern int adcBuf[ADC_BUFFER_SIZE];
+        extern byte adc_channel;
+        
 #endif

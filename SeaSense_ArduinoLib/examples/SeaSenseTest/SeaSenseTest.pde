@@ -1,11 +1,13 @@
 // Created by Georges Gauthier - glgauthier@wpi.edu
 // ported from the original seasense PIC code
 
+// NOTE - This library requires the installation of adafruit's RTClib in order to work
+
 #include <SeaSense.h>
 
 // create a new instanse of the SeaSense library "ss1"
 // pin 13 = indicator LED
-SeaSense ss1(13,47,6,7,A15);
+SeaSense ss1(13,47,6,7);
 
 void setup(){
     // initialize serial coms (FOR DEBUG ONLY)

@@ -30,19 +30,21 @@ int GyroX = 0,GyroY = 0,GyroZ = 0;
 File SDfile;
 
 char cli_rxBuf [MAX_INPUT_SIZE];
-int count;
-int adc_ch;
-int adcBuf;
+int count; // used in timer1 interrupt
+
+// used for ADC interrupt routine
+byte adc_channel = 10;
+int adcBuf[ADC_BUFFER_SIZE];
+byte adc_pos = 0; // position in adcBuf
 
 // Initializations are done here automatically,
-SeaSense::SeaSense(int output, int light_freq, int light_s0, int light_s1, int tempPin){
+SeaSense::SeaSense(int output, int light_freq, int light_s0, int light_s1){
     // disable the watchdog timer
     wdt_disable();
     
     _freq = light_freq;
     _s0 = light_s0;
     _s1 = light_s1;
-    _temp = tempPin;
     
     // LED pin
     pinMode(output,OUTPUT);
@@ -88,9 +90,10 @@ void SeaSense::Initialize(){
     // ADC conversion ISR
     // REFS0 - AVCC reference with external cap at AREF pin
     // ADLAR - left adjust result
-    // MUX[5:0] = 100111 = ADC channel 15
-    ADMUX |= ((1 << REFS0)|(1 << ADLAR)|(1 << MUX2)|(1 << MUX1)|(1 << MUX0));
+    // MUX[5:0] = 100010 = ADC channel 10
+    ADMUX |= ((1 << REFS0)|(1 << ADLAR)|(1 << MUX1));
     ADCSRB |= (1 << MUX5);
+    
     // ADC status register
     // clear ADPSx prescale and set to 125kHz samp rate
     // enable ADC (ADEN), enable ADC interrupt (ADIE) 
@@ -186,7 +189,7 @@ void SeaSense::CollectData()
 {
     // note that light sensor is being read from TIMER1 ISR for better timing interval accuracy
     getTime();
-    getTemp(_temp);
+    getADCreadings();
     
     return;
 }
@@ -266,16 +269,51 @@ ISR(TIMER5_OVF_vect){
 // https://bennthomsen.wordpress.com/arduino/peripherals/analogue-input/
 // http://www.avrfreaks.net/forum/sampling-multiple-adc-channels
 // Users' guide pg 283
-ISR(ADC_vect)           
-  {
- // see pg 286 of users' guide
-  adcBuf = ADCL;
-  adcBuf += ADCH<<2; 
-  
-    // clear old ADC register settings
-  //ADMUX &= ~(MUX4|MUX3|MUX2|MUX1|MUX0);  
-  //ADCSRB &= ~(MUX5);
-  //Defines the new ADC channel to be read
-  //ADMUX |= (MUX2|MUX1|MUX0);
-  //ADCSRB |= (MUX5); //Set MUX5 as well
-  } 
+ISR(ADC_vect){
+    // read in current adc value (users' guide pg 286)
+    int temp = ADCL;
+    temp += ADCH<<2;
+    
+    adcBuf[adc_pos] = temp;
+
+    if(adc_pos<ADC_BUFFER_SIZE) { // up to 30
+        // increment to next buffer position
+        adc_pos++;
+        
+        // constantly cycle which ADC is being read from
+        if(adc_channel<12) 
+            adc_channel++;
+        else
+            adc_channel = 10;
+    
+        // clear old ADC MUX settings
+        ADMUX &= ~((1<<MUX4)|(1<<MUX3)|(1<<MUX2)|(1<<MUX1)|(1<<MUX0));  
+        ADCSRB &= ~(1<<MUX5);
+
+        // set MUX[5:0] to correspond to the next register
+        switch(adc_channel){
+            case 10:
+                // MUX[5:0] = 100010 = ADC channel 10
+                ADMUX |= (1 << MUX1);
+                ADCSRB |= (1 << MUX5);
+                break;
+            case 11:
+                // MUX[5:0] = 100011 = ADC channel 11
+                ADMUX |= ((1 << MUX1)|(1 << MUX0));
+                ADCSRB |= (1 << MUX5);
+                break;
+            case 12: 
+                // MUX[5:0] = 100100 = ADC channel 12
+                ADMUX |= (1 << MUX2);
+                ADCSRB |= (1 << MUX5);
+                break;
+            default:
+                Serial1.println("Error: Incorrect ADC ");
+        }       
+        ADCSRA |= (1 << ADSC);    // Start A2D Conversions (ONLY IF BUFFER ISN'T FULL)
+     
+    } else {
+        adc_pos = 0;
+        }
+    
+} 
