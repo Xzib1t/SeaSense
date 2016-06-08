@@ -135,10 +135,10 @@ public class Bluetooth extends AppCompatActivity{
 
             // Read from the InputStream
 
-            boolean delimFound = false;
+            boolean eofFound = false;
             //TODO reset downloadedData here
 
-            while (!delimFound) {
+            while (!eofFound) {
 
                 byte[] buffer = new byte[256];  // buffer store for the stream
                 int bytes; // bytes returned from read()
@@ -168,7 +168,7 @@ public class Bluetooth extends AppCompatActivity{
                     print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
                     print2BT("Gyroscope Z: " + gyroZ.toString());
 
-                    delimFound = true;
+                    eofFound = true;
                 }
             }
         }catch(Exception e){
@@ -225,8 +225,8 @@ public class Bluetooth extends AppCompatActivity{
         }
     }
 
-    private static boolean check4eof(ArrayList<String> inputString){
-        String input = inputString.get(inputString.size() - 1); //Read last entry in array list
+    private boolean check4eof(ArrayList<String> inputString){
+        /*String input = inputString.get(inputString.size() - 1); //Read last entry in array list
         char[] eof = {'U','+','1','F','4','A','9'};
         int eofLength = 7;
         char[] charCheck = new char[eofLength];
@@ -238,7 +238,21 @@ public class Bluetooth extends AppCompatActivity{
             }
 
             if(Arrays.equals(charCheck,eof)) return true;
+
+        }*/
+
+        String buffer = "";
+
+        for (String printStr : inputString) {
+            buffer = buffer.concat(printStr);
         }
+
+        for(String splitVal : buffer.split(",")) {
+            if (!(splitVal.equals("logapp" + '\n' + '\r' + '>'))) { //ignore the command data
+                if(splitVal.equals("U+1F4A9")) return true; //check for the eof
+            }
+        }
+
         return false;
     }
 
@@ -249,7 +263,7 @@ public class Bluetooth extends AppCompatActivity{
         ArrayList<String> parsedData = new ArrayList<String>();
 
         for(String splitVal : input.split(",")){
-            if(!(splitVal.equals("logapp" + '\n' + '>'))) { //ignore the command data
+            if(!(splitVal.equals("logapp" + '\n' + '\r' + '>'))) { //ignore the command data
                 parsedData.add(splitVal);
                 print2BT("Parsed: " + splitVal + "\n");
                 switch (dataType) {
