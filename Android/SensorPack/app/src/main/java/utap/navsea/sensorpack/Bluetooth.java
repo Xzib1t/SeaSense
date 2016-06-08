@@ -68,7 +68,6 @@ public class Bluetooth extends AppCompatActivity{
     private static ArrayList<Float> gyroX = new ArrayList<Float>();
     private static ArrayList<Float> gyroY = new ArrayList<Float>();
     private static ArrayList<Float> gyroZ = new ArrayList<Float>();
-    private static String downloadedStrings = new String();
     private static ArrayList<String> downloadedData = new ArrayList<String>();
 
     @Override
@@ -136,7 +135,9 @@ public class Bluetooth extends AppCompatActivity{
             // Read from the InputStream
 
             boolean eofFound = false;
-            //TODO reset downloadedData here
+            String downloadedStrings = new String();
+
+            resetBuffers(); //Resets all buffers to take in new data
 
             while (!eofFound) {
 
@@ -153,27 +154,43 @@ public class Bluetooth extends AppCompatActivity{
                     for (String printStr : downloadedData) {
                         downloadedStrings = downloadedStrings.concat(printStr);
                     }
-                    //print2BT(downloadedStrings + "\n");
                     parseData(downloadedStrings);
-
-/*                    print2BT("Temperature: " + temperature.toString() + "\n");
-                    print2BT("Depth: " + depth.toString() + "\n");
-                    print2BT("Conductivity: " + conductivity.toString() + "\n");
-                    print2BT("Light: " + light.toString() + "\n");
-                    print2BT("Heading: " + heading.toString() + "\n");
-                    print2BT("Accelerometer X: " + accelX.toString() + "\n");
-                    print2BT("Accelerometer Y: " + accelY.toString() + "\n");
-                    print2BT("Accelerometer Z: " + accelZ.toString() + "\n");
-                    print2BT("Gyroscope X: " + gyroX.toString() + "\n");
-                    print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
-                    print2BT("Gyroscope Z: " + gyroZ.toString());*/
-
                     eofFound = true;
                 }
             }
         }catch(Exception e){
             //TODO
         }
+    }
+
+    private static void resetBuffers(){
+        downloadedData.clear();
+        temperature.clear();
+        depth.clear();
+        conductivity.clear();
+        light.clear();
+        heading.clear();
+        accelX.clear();
+        accelY.clear();
+        accelZ.clear();
+        gyroX.clear();
+        gyroY.clear();
+        gyroZ.clear();
+    }
+
+    private void printAllData(){
+        //print2BT(downloadedStrings + "\n");
+        print2BT("Temperature: " + temperature.toString() + "\n");
+        print2BT("Depth: " + depth.toString() + "\n");
+        print2BT("Conductivity: " + conductivity.toString() + "\n");
+        print2BT("Light: " + light.toString() + "\n");
+        print2BT("Heading: " + heading.toString() + "\n");
+        print2BT("Accelerometer X: " + accelX.toString() + "\n");
+        print2BT("Accelerometer Y: " + accelY.toString() + "\n");
+        print2BT("Accelerometer Z: " + accelZ.toString() + "\n");
+        print2BT("Gyroscope X: " + gyroX.toString() + "\n");
+        print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
+        print2BT("Gyroscope Z: " + gyroZ.toString());
     }
 
     public static void connect2device(BluetoothDevice mBluetoothAdapter) {

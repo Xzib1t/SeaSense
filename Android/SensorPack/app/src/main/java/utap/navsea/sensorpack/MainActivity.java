@@ -123,10 +123,9 @@ public class MainActivity  extends AppCompatActivity {
 		spinner = (ProgressBar)findViewById(R.id.progressBar1); //loading bar
 		spinner.setVisibility(View.INVISIBLE);
 
+        //ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
 
-        ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
-
-		Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+		//Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 		chart1 = (LineChart) findViewById(R.id.chart); //get the first chart
 		chart2 = (LineChart) findViewById(R.id.chart1); //get the second chart
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
@@ -143,13 +142,8 @@ public class MainActivity  extends AppCompatActivity {
             public void onClick(View view) {
                 Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-
-
-
 				getDevice();
 				displayList();
-
-
 			}
         });
 
@@ -186,7 +180,9 @@ public class MainActivity  extends AppCompatActivity {
 				InputStream inStream = socket.getInputStream();
 				Bluetooth.readData(inStream);
 				graphTest(chart1, convert2Entry(Bluetooth.getTemp()), "Temp", Color.RED);
+				chart1.invalidate(); //Refresh graph
 				graphTest(chart2, convert2Entry(Bluetooth.getLight()), "Light", Color.GREEN);
+				chart2.invalidate(); //refresh graph
 			}
 		} catch (IOException e) {
 			//TODO
@@ -354,6 +350,19 @@ public class MainActivity  extends AppCompatActivity {
 		Float[] floatArray = input.toArray(new Float[input.size()]);
 		ArrayList<Entry> entryArray = loadArray(floatArray);
 		return entryArray;
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		try {
+			socket.close();
+		}
+		catch(IOException e){
+			//TODO
+			//Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
+			//.setAction("Action", null).show();
+		}
 	}
 
 	/**
