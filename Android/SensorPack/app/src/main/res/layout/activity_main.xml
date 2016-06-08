@@ -62,6 +62,15 @@
            app:backgroundTint="#ae0000"
            android:src="@drawable/ic_bluetooth_black_24dp" />
 
+        <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|right"
+        android:layout_margin="@dimen/fab_margin"
+        app:backgroundTint="#ae0000"
+        android:src="@drawable/ic_keyboard_arrow_right_black_24dp" />
+
     <ProgressBar
         android:id="@+id/progressBar1"
         style="?android:attr/progressBarStyleLarge"
@@ -72,5 +81,6 @@
 
     <include layout="@layout/content_main" />
     </android.support.design.widget.CoordinatorLayout>
+
 
 

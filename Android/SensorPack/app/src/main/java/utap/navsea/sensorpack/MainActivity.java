@@ -14,50 +14,26 @@
  * limitations under the License.
  */
 
-
 package utap.navsea.sensorpack;
 
 import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.content.Intent;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.ListPopupWindow;
-import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import android.Manifest;
-import android.app.Activity;
-import android.content.Context;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.YAxis;
@@ -67,53 +43,31 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
-import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Toast;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import utap.navsea.sensorpack.Bluetooth;
-
 public class MainActivity  extends AppCompatActivity {
-	private Button buttonScan;
-	private Button buttonSerialSend;
-	private EditText serialSendText;
 	private TextView serialReceivedText;
 	public LineChart chart1 = null;
 	public LineChart chart2 = null;
 	public ImageView compass = null;
 	private float angle = 0;
-	private Context context;
-	private Activity activity;
-	private View view;
-	private int serialCount = 0;
-	private String placeHolder = "Empty";
-	private String lastFlag = "Empty";
-	private int dataTypeIndex = 0;
-	private int dataCounter = 0; //determines if disp, temp, cond...etc
-	private int dataCount = 0; //individual data counters
-
 	private static ArrayAdapter<String> mArrayAdapter;
 	private static BluetoothAdapter mBluetoothAdapter;
-
 	private Dialog dialog;
 	private static BluetoothSocket socket = null;
+	private FloatingActionButton fab = null;
+	private FloatingActionButton fabRight = null;
+	private ProgressBar spinner;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
-	private ProgressBar spinner;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -123,7 +77,7 @@ public class MainActivity  extends AppCompatActivity {
 		spinner = (ProgressBar)findViewById(R.id.progressBar1); //loading bar
 		spinner.setVisibility(View.INVISIBLE);
 
-        //ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
+        //ArrayList<String> downloadedData = new ArrayList<String>(); //onCreate Process by BlunoLibrary
 
 		//Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 		chart1 = (LineChart) findViewById(R.id.chart); //get the first chart
@@ -134,8 +88,10 @@ public class MainActivity  extends AppCompatActivity {
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
 		dialog = new Dialog(this);
 
+		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
+		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
 
-		FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+		fab = (FloatingActionButton) findViewById(R.id.fab);
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -144,23 +100,24 @@ public class MainActivity  extends AppCompatActivity {
                         .setAction("Action", null).show();
 				getDevice();
 				displayList();
+				fab.setVisibility(View.INVISIBLE); //Hide fab when we're done connecting
+				fabRight.setVisibility(View.VISIBLE); //Show our navigational fab
 			}
         });
 
+		assert fabRight != null;
+		fabRight.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				changeActivity(TempCondActivity.class);
+			}
+		});
 
-		/**
-		 * Intent code from
-		 * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
-		 */
 		FloatingActionButton fabTC = (FloatingActionButton) findViewById(R.id.fabTC);
 		assert fabTC != null;
 		fabTC.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				//Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
-			/*	Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
-				MainActivity.this.startActivity(intentApp);*/
-
 				if(socket!=null) {
 					spinner.setVisibility(View.VISIBLE); //This doesn't display until click event exit
 					downloadData();
@@ -169,7 +126,6 @@ public class MainActivity  extends AppCompatActivity {
 
 			}
 		});
-
 	}
 
 	private void downloadData(){
@@ -219,6 +175,15 @@ public class MainActivity  extends AppCompatActivity {
 				mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
 			}
 		}
+	}
+
+	/**
+	 * Intent code from
+	 * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
+	 */
+	void changeActivity(Class mClass){
+		Intent intentApp = new Intent(MainActivity.this, mClass);
+		MainActivity.this.startActivity(intentApp);
 	}
 
 	/**
@@ -326,14 +291,6 @@ public class MainActivity  extends AppCompatActivity {
 		chart.setDrawGridBackground(true);
 		chart.setDrawBorders(true);
 		chart.setBorderColor(Color.BLACK);
-	}
-
-	private float randNumGen(){ //http://stackoverflow.com/questions/5271598/java-generate-random-number-between-two-given-values
-		Random r = new Random();
-		int Low = 0;
-		int High = 360;
-		int Result = r.nextInt(High-Low) + Low;
-		return Result;
 	}
 
 	private void spinCompass(ImageView imageView, float angle){

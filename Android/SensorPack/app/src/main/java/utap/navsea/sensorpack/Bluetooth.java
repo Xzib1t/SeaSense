@@ -39,13 +39,11 @@ import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
@@ -86,12 +84,10 @@ public class Bluetooth extends AppCompatActivity{
 
                 newDevicesListView.setAdapter(mArrayAdapter);
                 newDevicesListView.setClickable(true);
-
             }
         });
 
         getDevice();
-
         mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
 
         Button buttonRead = (Button) findViewById(R.id.button_read);
@@ -124,30 +120,22 @@ public class Bluetooth extends AppCompatActivity{
     }
 
     /**
-     * Most of this method was taken from:
+     * Some pieces of this method were taken from:
      * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
      * Modifications were made to conform to the specifications of this app
      */
     public static void readData(InputStream inStream) {
         try {
-            DataInputStream mmInStream = new DataInputStream(inStream);
-
-            // Read from the InputStream
-
             boolean eofFound = false;
             String downloadedStrings = new String();
-
             resetBuffers(); //Resets all buffers to take in new data
 
             while (!eofFound) {
-
-                byte[] buffer = new byte[256];  // buffer store for the stream
+                byte[] buffer = new byte[256];  //buffer store for the stream
                 int bytes; // bytes returned from read()
                 bytes = inStream.read(buffer);
                 String readMessage = new String(buffer, 0, bytes);
-
-                downloadedData.add(readMessage);
-
+                downloadedData.add(readMessage); //Add new strings to arraylist
                 boolean check = check4eof(downloadedData);
 
                 if (check) {
@@ -231,6 +219,14 @@ public class Bluetooth extends AppCompatActivity{
         return light;
     }
 
+    public static ArrayList<Float> getCond(){
+        return conductivity;
+    }
+
+    public static ArrayList<Float> getDepth(){
+        return depth;
+    }
+
 
     public static void writeData(OutputStream outStream){
 
@@ -250,21 +246,6 @@ public class Bluetooth extends AppCompatActivity{
     }
 
     private static boolean check4eof(ArrayList<String> inputString){
-        /*String input = inputString.get(inputString.size() - 1); //Read last entry in array list
-        char[] eof = {'U','+','1','F','4','A','9'};
-        int eofLength = 7;
-        char[] charCheck = new char[eofLength];
-        if(input.length() >= eofLength){
-            int iterate = 0;
-            for(int i=input.length()-eofLength; i<input.length(); i++){
-                charCheck[iterate] = input.charAt(i);
-                iterate++;
-            }
-
-            if(Arrays.equals(charCheck,eof)) return true;
-
-        }*/
-
         String buffer = "";
 
         for (String printStr : inputString) {
@@ -371,14 +352,12 @@ public class Bluetooth extends AppCompatActivity{
      */
     private void setupBT(){
         int REQUEST_ENABLE_BT = 1;
-
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
-
 
         Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
         // If there are paired devices
@@ -409,5 +388,4 @@ public class Bluetooth extends AppCompatActivity{
             }
         }
     };
-
 }
