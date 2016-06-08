@@ -30,12 +30,6 @@
             android:layout_alignParentBottom="true" />
     </ScrollView>
 
-    <ListView
-        android:id="@+id/device_list_display"
-        android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:layout_alignParentBottom="true" />
-
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -66,7 +60,14 @@
            android:layout_gravity="bottom|end"
            android:layout_margin="@dimen/fab_margin"
            app:backgroundTint="#ae0000"
-           android:src="@drawable/ic_file_download_black_24dp" />
+           android:src="@drawable/ic_bluetooth_black_24dp" />
+
+    <ProgressBar
+        android:id="@+id/progressBar1"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true" />
 
 
     <include layout="@layout/content_main" />

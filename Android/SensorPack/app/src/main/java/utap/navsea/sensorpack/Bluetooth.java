@@ -57,7 +57,7 @@ public class Bluetooth extends AppCompatActivity{
     private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static BluetoothAdapter mBluetoothAdapter;
 
-    public static ArrayList<Float> temperature = new ArrayList<Float>();
+    private static ArrayList<Float> temperature = new ArrayList<Float>();
     private static ArrayList<Float> depth = new ArrayList<Float>();
     private static ArrayList<Float> conductivity = new ArrayList<Float>();
     private static ArrayList<Float> light = new ArrayList<Float>();
@@ -206,6 +206,13 @@ public class Bluetooth extends AppCompatActivity{
         });
     }
 
+    public static ArrayList<Float> getTemp(){
+        return temperature;
+    }
+
+    public static ArrayList<Float> getLight(){
+        return light;
+    }
 
 
     public static void writeData(OutputStream outStream){

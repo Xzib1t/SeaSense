@@ -23,9 +23,11 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.content.Intent;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.ListPopupWindow;
 import android.util.Log;
 import android.view.View;
@@ -37,6 +39,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -106,28 +109,27 @@ public class MainActivity  extends AppCompatActivity {
 
 	private Dialog dialog;
 	private static BluetoothSocket socket = null;
+	//Below UUID is the standard SSP UUID:
+	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+	private ProgressBar spinner;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-        ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
+		spinner = (ProgressBar)findViewById(R.id.progressBar1); //loading bar
+		spinner.setVisibility(View.INVISIBLE);
 
-        serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
-        //serialSendText=(EditText) findViewById(R.id.serialSendText);			//initial the EditText of the sending data
+
+        ArrayList<String> downloadedData = new ArrayList<String>();								//onCreate Process by BlunoLibrary
 
 		Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 		chart1 = (LineChart) findViewById(R.id.chart); //get the first chart
 		chart2 = (LineChart) findViewById(R.id.chart1); //get the second chart
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
-		Float[] data = {80f, 255f, 3f, 4f, 200f, 150f, 125f};
-		Float[] data1 = {200f, 100f, 60f, 89f};
-		ArrayList<Entry> entries = loadArray(data);
-		ArrayList<Entry> entries1 = loadArray(data1);
-		graphTest(chart1, entries, "Temperature (Deg C)", Color.RED);
-		graphTest(chart2, entries1, "Watermelons", Color.GREEN);
 		//setSupportActionBar(toolbar);
 
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
@@ -141,15 +143,13 @@ public class MainActivity  extends AppCompatActivity {
             public void onClick(View view) {
                 Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-				
+
+
+
 				getDevice();
 				displayList();
-				dialog.setContentView(R.layout.device_list_popup);
 
-				//ListView lv = (ListView ) dialog.findViewById(R.id.device_list_display2);
-				dialog.setCancelable(true);
-				dialog.setTitle("BluetoothDevices");
-				dialog.show();
+
 			}
         });
 
@@ -166,22 +166,31 @@ public class MainActivity  extends AppCompatActivity {
 				//Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
 			/*	Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
 				MainActivity.this.startActivity(intentApp);*/
-				try {
-					if(socket!=null) {
-						Snackbar.make(view, "Downloading data", Snackbar.LENGTH_LONG)
-								.setAction("Action", null).show();
-						OutputStream outStream = socket.getOutputStream();
-						utap.navsea.sensorpack.Bluetooth.writeData(outStream);
-						InputStream inStream = socket.getInputStream();
-						utap.navsea.sensorpack.Bluetooth.readData(inStream);
-						graphTest(chart1, convert2Entry(Bluetooth.temperature), "Temp", Color.RED);
-					}
-				} catch (IOException e) {
-					//TODO
+
+				if(socket!=null) {
+					spinner.setVisibility(View.VISIBLE); //This doesn't display until click event exit
+					downloadData();
+					spinner.setVisibility(View.INVISIBLE);
 				}
+
 			}
 		});
 
+	}
+
+	private void downloadData(){
+		try {
+			if (socket != null) {
+				OutputStream outStream = socket.getOutputStream();
+				Bluetooth.writeData(outStream);
+				InputStream inStream = socket.getInputStream();
+				Bluetooth.readData(inStream);
+				graphTest(chart1, convert2Entry(Bluetooth.getTemp()), "Temp", Color.RED);
+				graphTest(chart2, convert2Entry(Bluetooth.getLight()), "Light", Color.GREEN);
+			}
+		} catch (IOException e) {
+			//TODO
+		}
 	}
 
 	private void displayList(){
@@ -189,7 +198,7 @@ public class MainActivity  extends AppCompatActivity {
 		setupBT();
 
 		ListView newDevicesListView = (ListView)
-				findViewById(R.id.device_list_display);
+				dialog.findViewById(R.id.device_list_display);
 
 		newDevicesListView.setAdapter(mArrayAdapter);
 		newDevicesListView.setClickable(true);
@@ -222,8 +231,13 @@ public class MainActivity  extends AppCompatActivity {
 	 * Modifications were made to conform to the specifications of this app
 	 */
 	private void getDevice(){
-		ListView lv = (ListView) findViewById(R.id.device_list_display);
+		dialog.setContentView(R.layout.device_list_popup);
+		dialog.setCancelable(true);
+		dialog.setTitle("Bluetooth Devices");
+
+		ListView lv = (ListView) dialog.findViewById(R.id.device_list_display);
 		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.device_list_popup));
+
 		lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			public void onItemClick(AdapterView<?> arg, View view, int position, long id) {
 				String address = (String) ((TextView) view).getText();
@@ -235,6 +249,8 @@ public class MainActivity  extends AppCompatActivity {
 				connect2device(device);
 			}
 		});
+
+		dialog.show();
 	}
 
 	private void connect2device(BluetoothDevice mBluetoothAdapter) {
@@ -252,14 +268,6 @@ public class MainActivity  extends AppCompatActivity {
 			entries.add(i, new Entry(data[i], i));
 		}
 		return entries;
-	}
-
-	private void delay(int time){
-		try {
-			Thread.sleep(time);
-		} catch(InterruptedException ex) {
-			Thread.currentThread().interrupt();
-		}
 	}
 
 	private void graphTest(LineChart chart, ArrayList<Entry> yData, String dataLabel, int color){
@@ -348,8 +356,11 @@ public class MainActivity  extends AppCompatActivity {
 		return entryArray;
 	}
 
+	/**
+	 * This method only works when used with a BLE chip (connecting to the Bluno works), not
+	 * regular Bluetooth
+     */
 	public void onSerialReceived(String theString) {	//Once connection data received, this function will be called
-		//The Serial data from the BLUNO may be sub-packaged, so using a buffer to hold the String is a good choice.
 
 		//uncomment below code to run regular program
 /*		if(lastFlag.equals("Gyro")){
