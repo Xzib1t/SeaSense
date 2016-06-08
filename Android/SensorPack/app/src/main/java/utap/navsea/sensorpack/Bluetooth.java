@@ -57,7 +57,7 @@ public class Bluetooth extends AppCompatActivity{
     private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static BluetoothAdapter mBluetoothAdapter;
 
-    private static ArrayList<Float> temperature = new ArrayList<Float>();
+    public static ArrayList<Float> temperature = new ArrayList<Float>();
     private static ArrayList<Float> depth = new ArrayList<Float>();
     private static ArrayList<Float> conductivity = new ArrayList<Float>();
     private static ArrayList<Float> light = new ArrayList<Float>();
@@ -129,7 +129,7 @@ public class Bluetooth extends AppCompatActivity{
      * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
      * Modifications were made to conform to the specifications of this app
      */
-    public void readData(InputStream inStream) {
+    public static void readData(InputStream inStream) {
         try {
             DataInputStream mmInStream = new DataInputStream(inStream);
 
@@ -153,10 +153,10 @@ public class Bluetooth extends AppCompatActivity{
                     for (String printStr : downloadedData) {
                         downloadedStrings = downloadedStrings.concat(printStr);
                     }
-                    print2BT(downloadedStrings + "\n");
+                    //print2BT(downloadedStrings + "\n");
                     parseData(downloadedStrings);
 
-                    print2BT("Temperature: " + temperature.toString() + "\n");
+/*                    print2BT("Temperature: " + temperature.toString() + "\n");
                     print2BT("Depth: " + depth.toString() + "\n");
                     print2BT("Conductivity: " + conductivity.toString() + "\n");
                     print2BT("Light: " + light.toString() + "\n");
@@ -166,7 +166,7 @@ public class Bluetooth extends AppCompatActivity{
                     print2BT("Accelerometer Z: " + accelZ.toString() + "\n");
                     print2BT("Gyroscope X: " + gyroX.toString() + "\n");
                     print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
-                    print2BT("Gyroscope Z: " + gyroZ.toString());
+                    print2BT("Gyroscope Z: " + gyroZ.toString());*/
 
                     eofFound = true;
                 }
@@ -225,7 +225,7 @@ public class Bluetooth extends AppCompatActivity{
         }
     }
 
-    private boolean check4eof(ArrayList<String> inputString){
+    private static boolean check4eof(ArrayList<String> inputString){
         /*String input = inputString.get(inputString.size() - 1); //Read last entry in array list
         char[] eof = {'U','+','1','F','4','A','9'};
         int eofLength = 7;
@@ -256,7 +256,7 @@ public class Bluetooth extends AppCompatActivity{
         return false;
     }
 
-    private void parseData(String input){
+    private static void parseData(String input){
         int dataType = 0;
         int curIndex = 0;
         String eof = "U+1F4A9";
@@ -265,7 +265,6 @@ public class Bluetooth extends AppCompatActivity{
         for(String splitVal : input.split(",")){
             if(!(splitVal.equals("logapp" + '\n' + '\r' + '>'))) { //ignore the command data
                 parsedData.add(splitVal);
-                print2BT("Parsed: " + splitVal + "\n");
                 switch (dataType) {
                     case 0:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof

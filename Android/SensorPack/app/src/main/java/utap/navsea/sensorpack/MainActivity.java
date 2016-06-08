@@ -100,19 +100,6 @@ public class MainActivity  extends AppCompatActivity {
 	private int dataTypeIndex = 0;
 	private int dataCounter = 0; //determines if disp, temp, cond...etc
 	private int dataCount = 0; //individual data counters
-	private ArrayList<Float> temperature = new ArrayList<Float>();
-	private ArrayList<Float> depth = new ArrayList<Float>();
-	private ArrayList<Float> conductivity = new ArrayList<Float>();
-	private ArrayList<Float> light = new ArrayList<Float>();
-	private ArrayList<Float> heading = new ArrayList<Float>();
-	private ArrayList<Float> accelX = new ArrayList<Float>();
-	private ArrayList<Float> accelY = new ArrayList<Float>();
-	private ArrayList<Float> accelZ = new ArrayList<Float>();
-	private ArrayList<Float> gyroX = new ArrayList<Float>();
-	private ArrayList<Float> gyroY = new ArrayList<Float>();
-	private ArrayList<Float> gyroZ = new ArrayList<Float>();
-	private String downloadedStrings = new String();
-	private ArrayList<String> downloadedData = new ArrayList<String>();
 
 	private static ArrayAdapter<String> mArrayAdapter;
 	private static BluetoothAdapter mBluetoothAdapter;
@@ -154,8 +141,7 @@ public class MainActivity  extends AppCompatActivity {
             public void onClick(View view) {
                 Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-
-
+				
 				getDevice();
 				displayList();
 				dialog.setContentView(R.layout.device_list_popup);
@@ -178,19 +164,21 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
 				//Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
-				Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
-				MainActivity.this.startActivity(intentApp);
-/*				try {
+			/*	Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
+				MainActivity.this.startActivity(intentApp);*/
+				try {
 					if(socket!=null) {
+						Snackbar.make(view, "Downloading data", Snackbar.LENGTH_LONG)
+								.setAction("Action", null).show();
 						OutputStream outStream = socket.getOutputStream();
 						utap.navsea.sensorpack.Bluetooth.writeData(outStream);
 						InputStream inStream = socket.getInputStream();
 						utap.navsea.sensorpack.Bluetooth.readData(inStream);
-						graphTest(chart1, convert2Entry(temperature), "Temp", Color.RED);
+						graphTest(chart1, convert2Entry(Bluetooth.temperature), "Temp", Color.RED);
 					}
 				} catch (IOException e) {
 					//TODO
-				}*/
+				}
 			}
 		});
 
@@ -353,107 +341,6 @@ public class MainActivity  extends AppCompatActivity {
 		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
 	}
 
-	/**
-	 * Parse csv data sent by Arduino
-	 */
-	private void parseData(String input){
-		int dataType = 0;
-		int curIndex = 0;
-		String eof = " U+1F4A9";
-		ArrayList<String> parsedData = new ArrayList<String>();
-
-		for(String splitVal : input.split(",")){
-			parsedData.add(splitVal);
-
-			switch(dataType){
-				case 0:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						temperature.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 1:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						depth.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 2:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						conductivity.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 3:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						light.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-
-					break;
-				case 4:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						heading.add(Float.parseFloat(parsedData.get(curIndex)));
-						spinCompass(compass, Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 5:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						accelX.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 6:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						accelY.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 7:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						accelZ.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 8:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						gyroX.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 9:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						gyroY.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				case 10:
-					if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-						gyroZ.add(Float.parseFloat(parsedData.get(curIndex)));
-					}
-					break;
-				default:
-
-					break;
-			}
-			curIndex++;
-			dataType++;
-			if(dataType>10) dataType = 0; //reset data counter
-		}
-	}
-
-	private void downloadData(String input){
-		//ArrayList<String> downloadedData = new ArrayList<String>();
-		downloadedData.add(input);
-	}
-
-	private boolean check4eof(ArrayList<String> inputString){
-		String input = inputString.get(inputString.size() - 1);
-		char[] eof = {'U','+','1','F','4','A','9'};
-		int eofLength = 7;
-		char[] charCheck = new char[eofLength];
-		if(input.length() >= eofLength){
-			int iterate = 0;
-			for(int i=input.length()-eofLength; i<input.length(); i++){
-				charCheck[iterate] = input.charAt(i);
-				iterate++;
-			}
-
-			if(Arrays.equals(charCheck,eof)) return true;
-		}
-		return false;
-	}
 
 	private ArrayList<Entry> convert2Entry(ArrayList<Float> input){
 		Float[] floatArray = input.toArray(new Float[input.size()]);
@@ -463,31 +350,6 @@ public class MainActivity  extends AppCompatActivity {
 
 	public void onSerialReceived(String theString) {	//Once connection data received, this function will be called
 		//The Serial data from the BLUNO may be sub-packaged, so using a buffer to hold the String is a good choice.
-		downloadData(theString);
-
-		boolean check = check4eof(downloadedData);
-
-		if(check){
-			for (String printStr : downloadedData) {
-				downloadedStrings = downloadedStrings.concat(printStr);
-			}
-			parseData(downloadedStrings);
-			graphTest(chart1, convert2Entry(temperature), "Temperature data", Color.RED);
-			graphTest(chart2, convert2Entry(light), "Light data", Color.GREEN);
-
-			print2BT("Temperature: " + temperature.toString() + "\n");
-			print2BT("Depth: " + depth.toString() + "\n");
-			print2BT("Conductivity: " + conductivity.toString() + "\n");
-			print2BT("Light: " + light.toString() + "\n");
-			print2BT("Heading: " + heading.toString() + "\n");
-			print2BT("Accelerometer X: " + accelX.toString() + "\n");
-			print2BT("Accelerometer Y: " + accelY.toString() + "\n");
-			print2BT("Accelerometer Z: " + accelZ.toString() + "\n");
-			print2BT("Gyroscope X: " + gyroX.toString() + "\n");
-			print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
-			print2BT("Gyroscope Z: " + gyroZ.toString());
-		}
-
 
 		//uncomment below code to run regular program
 /*		if(lastFlag.equals("Gyro")){
