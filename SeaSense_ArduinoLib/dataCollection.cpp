@@ -17,7 +17,7 @@ void getTime(){
 }
 
 // initialize light sensor scaling rate (only used for TSL230r sensor)
-void light_sensor_init(int freqPin, int light_s0, int light_s1){
+void light_sensor_init(int light_s0, int light_s1){
     // light sensor config
     pinMode(light_s0,OUTPUT);
     pinMode(light_s1,OUTPUT);
@@ -38,26 +38,29 @@ void getLight() {
 // cycle through the adc buffer, come up with an average val for each sensor, and
 // process said val to its final form
 void getADCreadings(){
-    int var = 0;
     int i = 0;
     int avg = 0;
+    
     // cycle through the ADC buffer and get an average for each channel
-    for (var = 0; var < NUM_ADC_CHANNELS; var++){
-        for(i = 0; i < ADC_BUFFER_SIZE; i++){
-            avg+=adcBuf[var][i];
-        }
-        avg = avg/ADC_BUFFER_SIZE;
-        // set global vars for each channel's reading based on the avg
-        switch(var){
-            case 0: Temp = (avg*500.0)/1024;
-                break;
-            case 1: Depth = avg;
-                break;
-            case 2: Cond = avg;
-                break;
-        }
+    for(i = 0; i < ADC_BUFFER_SIZE; i++){
+        avg+=adcBuf[i];
     }
-    resetADC(); // allow for a new set of readings to occur  
+    avg = avg/ADC_BUFFER_SIZE;
+    
+    // set global vars for each channel's reading based on the avg
+    switch(adc_channel){
+        case 10: Temp = (avg*500.0)/1024;
+            break;
+        case 11: Depth = avg;
+            break;
+        case 12: Cond = avg;
+            break;
+    }
+    
+    cli(); // globally disable interrupts while the ADC registers are being modified
+    resetADC(); // configure the ADC for a new set of readings
+    sei(); // re-enable interrupts
+    ADCSRA |= (1 << ADSC); // restart A2D Conversions
 }
 
 
@@ -89,14 +92,39 @@ void light_sensitivity(int scale, int s0, int s1){
 
 // resets the ADC for new conversions starting with channel 10 and buffer index 0
 void resetADC(){
-    // allow for 2D adc buffer to be written to again
-    adc_channel = 10; 
+    // cycle which ADC is being read from
+    if(adc_channel<12) {
+        adc_channel++;
+    }
+    else adc_channel = 10;
+    
+    // allow for a new conversion
     adc_pos = 0;
+
+    //ADMUX |= ((1 << REFS0)|(1 << ADLAR)); // make sure data is same format 
+              
     // clear old ADC MUX settings
     ADMUX &= ~((1<<MUX4)|(1<<MUX3)|(1<<MUX2)|(1<<MUX1)|(1<<MUX0));  
     ADCSRB &= ~(1<<MUX5);
-    // MUX[5:0] = 100010 = ADC channel 10
-    ADMUX |= (1 << MUX1);
-    ADCSRB |= (1 << MUX5);
-    ADCSRA |= (1 << ADSC); // Start A2D Conversions
+
+    // set MUX[5:0] to correspond to the next register
+    switch(adc_channel){
+        case 10:
+            // MUX[5:0] = 100010 = ADC channel 10
+            ADMUX |= (1 << MUX1);
+            ADCSRB |= (1 << MUX5);
+            break;
+        case 11:
+            // MUX[5:0] = 100011 = ADC channel 11
+            ADMUX |= ((1 << MUX1)|(1 << MUX0));
+            ADCSRB |= (1 << MUX5);
+            break;
+        case 12: 
+            // MUX[5:0] = 100100 = ADC channel 12
+            ADMUX |= (1 << MUX2);
+            ADCSRB |= (1 << MUX5);
+            break;
+        default:
+            Serial1.println("Error: Incorrect ADC ");
+    }
 }

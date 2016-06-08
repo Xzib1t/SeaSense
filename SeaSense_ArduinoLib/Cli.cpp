@@ -318,7 +318,7 @@ void cli_log_data(int argc, char *argv[])
 // log data to the bluetooth serial port in a machine-recognizable format
 void cli_log_app(int argc, char *argv[])
 {
-    delay(2000);
+    delay(10);
     app_logData = !app_logData;
     return;
 }
