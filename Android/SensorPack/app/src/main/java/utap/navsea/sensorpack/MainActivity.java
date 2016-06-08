@@ -109,7 +109,7 @@ public class MainActivity  extends AppCompatActivity {
 		fabRight.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				changeActivity(TempCondActivity.class);
+				changeActivity(TempCondActivity.class); //Switches to TempCondActivity
 			}
 		});
 
@@ -119,15 +119,19 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
 				if(socket!=null) {
+					//TODO fix spinner
 					spinner.setVisibility(View.VISIBLE); //This doesn't display until click event exit
 					downloadData();
 					spinner.setVisibility(View.INVISIBLE);
 				}
-
 			}
 		});
 	}
 
+	/**
+	 * Send command to Bluno to start data transfer
+	 * Receive data, then graph
+	 */
 	private void downloadData(){
 		try {
 			if (socket != null) {
@@ -145,6 +149,10 @@ public class MainActivity  extends AppCompatActivity {
 		}
 	}
 
+	/**
+	 * This method creates a list of paired Bluetooth devices
+	 * in a dialog box and maxes the options clickable
+	 */
 	private void displayList(){
 		mArrayAdapter.clear();
 		setupBT();
@@ -156,9 +164,11 @@ public class MainActivity  extends AppCompatActivity {
 		newDevicesListView.setClickable(true);
 	}
 
+	/**
+	 * This method gets paired devices and stores them
+	 */
 	private void setupBT(){
 		int REQUEST_ENABLE_BT = 1;
-
 		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
 		if (!mBluetoothAdapter.isEnabled()) {
@@ -190,6 +200,10 @@ public class MainActivity  extends AppCompatActivity {
 	 * Some of the contents of this method are found at:
 	 * http://stackoverflow.com/questions/9596663/how-to-make-items-clickable-in-list-view
 	 * Modifications were made to conform to the specifications of this app
+	 *
+	 * This method is also responsible for creating a list of available
+	 * Bluetooth devices within a dialog, then connecting to a device
+	 * chosen by the user.
 	 */
 	private void getDevice(){
 		dialog.setContentView(R.layout.device_list_popup);
@@ -214,6 +228,11 @@ public class MainActivity  extends AppCompatActivity {
 		dialog.show();
 	}
 
+	/**
+	 * This method opens a Bluetooth socket and connects the Android
+	 * to the selected Bluetooth device from the getDevice() method
+	 * @param mBluetoothAdapter
+     */
 	private void connect2device(BluetoothDevice mBluetoothAdapter) {
 		socket = null;
 		try {
@@ -222,7 +241,15 @@ public class MainActivity  extends AppCompatActivity {
 		} catch (IOException e) { }
 	}
 
-
+	/**
+	 * This method converts a Float array to an ArrayList of entries.
+	 * This is done so that the data is formatted for graphing using the
+	 * MPAndroidChart libraries.
+	 * This method is called in the conver2Entry() method.
+	 *
+	 * @param data
+	 * @return entries
+     */
 	private ArrayList<Entry> loadArray(Float[] data){
 		ArrayList<Entry> entries = new ArrayList<>(); //figure out how to index values
 		for(int i=0; i<data.length; i++){
@@ -231,6 +258,27 @@ public class MainActivity  extends AppCompatActivity {
 		return entries;
 	}
 
+	/**
+	 * This method converts an ArrayList of Floats to an ArrayList of entries.
+	 * This is done so that the data is formatted for graphing using the
+	 * MPAndroidChart libraries.
+	 * @param input
+	 * @return
+	 */
+	private ArrayList<Entry> convert2Entry(ArrayList<Float> input){
+		Float[] floatArray = input.toArray(new Float[input.size()]);
+		ArrayList<Entry> entryArray = loadArray(floatArray);
+		return entryArray;
+	}
+
+	/**
+	 * This method graphs an input ArrayList of entries, sets the data set title,
+	 * and selects the line color for the data.
+	 * @param chart
+	 * @param yData
+	 * @param dataLabel
+     * @param color
+     */
 	private void graphTest(LineChart chart, ArrayList<Entry> yData, String dataLabel, int color){
 		if(yData != null) {
 			ArrayList<Entry> tempC = yData;//new ArrayList<Entry>();
@@ -255,6 +303,11 @@ public class MainActivity  extends AppCompatActivity {
 		}
 	}
 
+	/**
+	 * This method formats the X axis appropriately for incoming data
+	 * @param tempC
+	 * @return
+     */
 	private ArrayList<String> setupXaxis(ArrayList<Entry> tempC){
 		ArrayList<String> xVals = new ArrayList<String>();
 		String[] tempXvals = new String[tempC.size()];
@@ -268,6 +321,11 @@ public class MainActivity  extends AppCompatActivity {
 		return xVals;
 	}
 
+	/**
+	 * This method takes care of the basic formatting for
+	 * the chart that data will be graphed to.
+	 * @param chart
+     */
 	private void formatChart(LineChart chart){
 		chart.setEnabled(true);
 		chart.setTouchEnabled(true);
@@ -293,22 +351,27 @@ public class MainActivity  extends AppCompatActivity {
 		chart.setBorderColor(Color.BLACK);
 	}
 
+	/**
+	 * This method rotates the compass image to a desired angle
+	 * @param imageView
+	 * @param angle
+     */
 	private void spinCompass(ImageView imageView, float angle){
 		imageView.setRotation(angle);
 	}
 
+	/**
+	 * This method prints text to a text box on the MainActivity screen
+	 * @param theString
+     */
 	private void print2BT(String theString){
 		serialReceivedText.append(theString);		//append the text into the EditText
 		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
 	}
 
-
-	private ArrayList<Entry> convert2Entry(ArrayList<Float> input){
-		Float[] floatArray = input.toArray(new Float[input.size()]);
-		ArrayList<Entry> entryArray = loadArray(floatArray);
-		return entryArray;
-	}
-
+	/**
+	 * Closes the Bluetooth socket
+	 */
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
@@ -320,61 +383,6 @@ public class MainActivity  extends AppCompatActivity {
 			//Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
 			//.setAction("Action", null).show();
 		}
-	}
-
-	/**
-	 * This method only works when used with a BLE chip (connecting to the Bluno works), not
-	 * regular Bluetooth
-     */
-	public void onSerialReceived(String theString) {	//Once connection data received, this function will be called
-
-		//uncomment below code to run regular program
-/*		if(lastFlag.equals("Gyro")){
-			//print2BT(theString);
-			if(!theString.equals("Gyro")){ //double check that this is the data we want
-				Float[] temp = {20f, 21f, 22f, 23f};
-				ArrayList<Entry> temps = loadArray(temp);
-				graphTest(chartTemp, temps, "Temp", Color.RED);
-				if(theString.equals("X")){
-					
-				}
-			}
-			lastFlag = "Empty"; //not really necessary
-		}
-		if(lastFlag.equals("ADXL")){
-			print2BT(theString);
-			if(!theString.equals("ADXL")){ //double check that this is the data we want
-
-			}
-			lastFlag = "Empty"; //not really necessary
-		}
-		if(lastFlag.equals("Compass")){
-			//print2BT(theString);
-			if(!theString.equals("Compass")){ //&& !theString.equals("ADXL") && !theString.equals("Gyro")){ //double check that this is the data we want
-				angle = Float.parseFloat(theString);
-				spinCompass(compass, angle);
-			}
-			lastFlag = "Empty"; //not really necessary
-		}
-
-		switch(flag) {
-			case "Gyro":
-				//print2BT("Gyro ");
-				//print2BT(theString);
-				lastFlag = "Gyro";
-				break;
-			case "ADXL":
-				//print2BT("ADXL ");
-				lastFlag = "ADXL";
-				break;
-			case "Compass":
-				//print2BT("Compass");
-				lastFlag = "Compass";
-				break;
-			default:
-				//spinCompass(compass, 0);
-				break;
-		}*/
 	}
 }
 
