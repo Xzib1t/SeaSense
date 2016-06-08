@@ -129,14 +129,14 @@ public class Bluetooth extends AppCompatActivity{
      * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
      * Modifications were made to conform to the specifications of this app
      */
-    public static void readData(InputStream inStream) {
-    try {
-        DataInputStream mmInStream = new DataInputStream(inStream);
+    public void readData(InputStream inStream) {
+        try {
+            DataInputStream mmInStream = new DataInputStream(inStream);
 
-        // Read from the InputStream
-
+            // Read from the InputStream
 
             boolean delimFound = false;
+            //TODO reset downloadedData here
 
             while (!delimFound) {
 
@@ -153,10 +153,10 @@ public class Bluetooth extends AppCompatActivity{
                     for (String printStr : downloadedData) {
                         downloadedStrings = downloadedStrings.concat(printStr);
                     }
-                    //print2BT(downloadedStrings + "\n");
+                    print2BT(downloadedStrings + "\n");
                     parseData(downloadedStrings);
 
-                    /*print2BT("Temperature: " + temperature.toString() + "\n");
+                    print2BT("Temperature: " + temperature.toString() + "\n");
                     print2BT("Depth: " + depth.toString() + "\n");
                     print2BT("Conductivity: " + conductivity.toString() + "\n");
                     print2BT("Light: " + light.toString() + "\n");
@@ -166,7 +166,7 @@ public class Bluetooth extends AppCompatActivity{
                     print2BT("Accelerometer Z: " + accelZ.toString() + "\n");
                     print2BT("Gyroscope X: " + gyroX.toString() + "\n");
                     print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
-                    print2BT("Gyroscope Z: " + gyroZ.toString());*/
+                    print2BT("Gyroscope Z: " + gyroZ.toString());
 
                     delimFound = true;
                 }
@@ -174,7 +174,7 @@ public class Bluetooth extends AppCompatActivity{
         }catch(Exception e){
             //TODO
         }
-}
+    }
 
     public static void connect2device(BluetoothDevice mBluetoothAdapter) {
         socket = null;
@@ -210,19 +210,19 @@ public class Bluetooth extends AppCompatActivity{
 
     public static void writeData(OutputStream outStream){
 
-       try {
-           DataOutputStream mmOutStream = new DataOutputStream(outStream);
-           mmOutStream.write(108); //This is "logapp" in ASCII code, it is the command
-           mmOutStream.write(111); //that causes the Arduino side to start sending data
-           mmOutStream.write(103);
-           mmOutStream.write(97);
-           mmOutStream.write(112);
-           mmOutStream.write(112);
-           mmOutStream.write(13); //carriage return
-       }
-       catch(IOException e){
-           //TODO
-       }
+        try {
+            DataOutputStream mmOutStream = new DataOutputStream(outStream);
+            mmOutStream.write(108); //This is "logapp" in ASCII code, it is the command
+            mmOutStream.write(111); //that causes the Arduino side to start sending data
+            mmOutStream.write(103);
+            mmOutStream.write(97);
+            mmOutStream.write(112);
+            mmOutStream.write(112);
+            mmOutStream.write(13); //carriage return
+        }
+        catch(IOException e){
+            //TODO
+        }
     }
 
     private static boolean check4eof(ArrayList<String> inputString){
@@ -242,79 +242,82 @@ public class Bluetooth extends AppCompatActivity{
         return false;
     }
 
-    private static void parseData(String input){
+    private void parseData(String input){
         int dataType = 0;
         int curIndex = 0;
-        String eof = "U+1F4A9";//" U+1F4A9";
+        String eof = "U+1F4A9";
         ArrayList<String> parsedData = new ArrayList<String>();
 
         for(String splitVal : input.split(",")){
-            parsedData.add(splitVal);
-            switch(dataType){
-                case 0:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        temperature.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 1:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        depth.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 2:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        conductivity.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 3:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        light.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
+            if(!(splitVal.equals("logapp" + '\n' + '>'))) { //ignore the command data
+                parsedData.add(splitVal);
+                print2BT("Parsed: " + splitVal + "\n");
+                switch (dataType) {
+                    case 0:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            temperature.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 1:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            depth.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 2:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            conductivity.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 3:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            light.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
 
-                    break;
-                case 4:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        heading.add(Float.parseFloat(parsedData.get(curIndex)));
-                        //spinCompass(compass, Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 5:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        accelX.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 6:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        accelY.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 7:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        accelZ.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 8:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        gyroX.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 9:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        gyroY.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                case 10:
-                    if( !(eof.equals( parsedData.get(curIndex) ) ) ){ //make sure we don't use the eof
-                        gyroZ.add(Float.parseFloat(parsedData.get(curIndex)));
-                    }
-                    break;
-                default:
+                        break;
+                    case 4:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            heading.add(Float.parseFloat(parsedData.get(curIndex)));
+                            //spinCompass(compass, Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 5:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            accelX.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 6:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            accelY.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 7:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            accelZ.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 8:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            gyroX.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 9:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            gyroY.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    case 10:
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            gyroZ.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
+                    default:
 
-                    break;
+                        break;
+                }
+                curIndex++;
+                dataType++;
+                if (dataType > 10) dataType = 0; //reset data counter
             }
-            curIndex++;
-            dataType++;
-            if(dataType>10) dataType = 0; //reset data counter
         }
     }
 

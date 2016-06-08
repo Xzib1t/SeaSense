@@ -178,9 +178,9 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
 				//Intent intentApp = new Intent(MainActivity.this, TempCondActivity.class);
-				/*Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
-				MainActivity.this.startActivity(intentApp);*/
-				try {
+				Intent intentApp = new Intent(MainActivity.this, Bluetooth.class);
+				MainActivity.this.startActivity(intentApp);
+/*				try {
 					if(socket!=null) {
 						OutputStream outStream = socket.getOutputStream();
 						utap.navsea.sensorpack.Bluetooth.writeData(outStream);
@@ -190,7 +190,7 @@ public class MainActivity  extends AppCompatActivity {
 					}
 				} catch (IOException e) {
 					//TODO
-				}
+				}*/
 			}
 		});
 
