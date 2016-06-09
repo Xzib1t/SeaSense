@@ -67,7 +67,6 @@ public class MainActivity  extends AppCompatActivity {
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
 	private ProgressBar spinner;
-	private boolean logAppPressed = false;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -127,12 +126,6 @@ public class MainActivity  extends AppCompatActivity {
 					//TODO fix spinner
 					//spinner.setVisibility(View.VISIBLE); //This doesn't display until click event exit
 					displayCommands();
-
-					if(logAppPressed){
-						downloadData();
-						logAppPressed = false;
-					}
-					//downloadData();
 					//spinner.setVisibility(View.INVISIBLE);
 				}
 			}
@@ -188,15 +181,18 @@ public class MainActivity  extends AppCompatActivity {
 		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.command_list_popup));
 
 		lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-			public void onItemClick(AdapterView<?> arg, View view, int position, long id){//int position, long id) {
+			public void onItemClick(AdapterView<?> arg, View view, int position, long id){
 				try {
 					if(socket!=null) {
 						OutputStream outStream = socket.getOutputStream();
-						if(position==14){
-							downloadData(); //if logapp was selected, prep to download data
-							logAppPressed = true;
+						if(position==13){
+							downloadData(); //if logapp was selected, download data
 						}
 						else Bluetooth.sendCommand(outStream, mCommandAdapter.getItem(position));
+					}
+					else{
+						Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
+								.setAction("Action", null).show();
 					}
 				}
 				catch(IOException e){
