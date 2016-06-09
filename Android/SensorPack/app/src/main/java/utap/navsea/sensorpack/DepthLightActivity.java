@@ -1,19 +1,12 @@
 package utap.navsea.sensorpack;
 
-/**
- * Several of the methods in this file were copied directly from
- * https://github.com/DFRobot/BlunoBasicDemo/blob/master/Android/BlunoBasicDemo/app/src/main/java/com/dfrobot/angelo/blunobasicdemo/MainActivity.java
- */
-
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v7.widget.Toolbar;
+import android.support.v7.app.AppCompatActivity;
+
 import android.view.View;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -25,53 +18,56 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.util.ArrayList;
 
-public class DepthLightActivity extends BlunoLibrary {
-    private TextView serialReceivedText;
+public class DepthLightActivity extends AppCompatActivity {
     public LineChart chartDepth = null;
     public LineChart chartLight = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_depthlight);
-        onCreateProcess();
-        serialBegin(9600);//115200);													//set the Uart Baudrate on BLE chip to 115200
+        setContentView(R.layout.activity_depthlight);	        //set the Uart Baudrate on BLE chip to 115200
 
         //serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
         chartDepth = (LineChart) findViewById(R.id.chart4); //get the first chart
         chartLight = (LineChart) findViewById(R.id.chart5); //get the second chart
-        Float[] data = {80f, 255f, 3f, 4f, 200f, 150f, 125f};
-        Float[] data1 = {200f, 100f, 60f, 89f};
-        ArrayList<Entry> entries = loadArray(data);
-        ArrayList<Entry> entries1 = loadArray(data1);
-        graphTest(chartDepth, entries, "Depth", Color.RED);
-        graphTest(chartLight, entries1, "Light", Color.GREEN);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        assert fab != null;
-        fab.setOnClickListener(new View.OnClickListener() {
+        graphTest(chartDepth, convert2Entry(Bluetooth.getDepth()), "Depth", Color.RED);
+        chartDepth.invalidate(); //Refresh graph
+        graphTest(chartLight, convert2Entry(Bluetooth.getLight()), "Light", Color.GREEN);
+        chartLight.invalidate(); //refresh graph
+
+        FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left2);
+        assert fabLeft != null;
+        fabLeft.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Searching for devices", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-                buttonScanOnClickProcess();										//Alert Dialog for selecting the BLE device
+                changeActivity(TempCondActivity.class);
             }
         });
 
-        /**
-         * Intent code from
-         * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
-         */
-        FloatingActionButton fabMA = (FloatingActionButton) findViewById(R.id.fabMA);
-        assert fabMA != null;
-        fabMA.setOnClickListener(new View.OnClickListener() {
+        FloatingActionButton fabRight = (FloatingActionButton) findViewById(R.id.fab_right2);
+        assert fabRight != null;
+        fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intentApp = new Intent(DepthLightActivity.this, MainActivity.class);
-                DepthLightActivity.this.startActivity(intentApp);
+                changeActivity(MainActivity.class);
             }
         });
+    }
 
+    /**
+     * Intent code from
+     * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
+     */
+    void changeActivity(Class mClass){
+        Intent intentApp = new Intent(DepthLightActivity.this, mClass);
+        DepthLightActivity.this.startActivity(intentApp);
+    }
+
+    private ArrayList<Entry> convert2Entry(ArrayList<Float> input){
+        Float[] floatArray = input.toArray(new Float[input.size()]);
+        ArrayList<Entry> entryArray = loadArray(floatArray);
+        return entryArray;
     }
 
     private ArrayList<Entry> loadArray(Float[] data){
@@ -146,43 +142,6 @@ public class DepthLightActivity extends BlunoLibrary {
         chart.setBorderColor(Color.BLACK);
     }
 
-
-    protected void onResume(){
-        super.onResume();
-        System.out.println("BlUNOActivity onResume");
-        onResumeProcess();														//onResume Process by BlunoLibrary
-    }
-
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        onActivityResultProcess(requestCode, resultCode, data);					//onActivityResult Process by BlunoLibrary
-        super.onActivityResult(requestCode, resultCode, data);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        onPauseProcess();														//onPause Process by BlunoLibrary
-    }
-
-    protected void onStop() {
-        super.onStop();
-        onStopProcess();														//onStop Process by BlunoLibrary
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        onDestroyProcess();														//onDestroy Process by BlunoLibrary
-    }
-
-    @Override
-    public void onConectionStateChange(connectionStateEnum theConnectionState) {//Once connection state changes, this function will be called
-        //TODO
-    }
-
-    @Override
     public void onSerialReceived(String theString) {    //Once connection data received, this function will be called
 
     }
