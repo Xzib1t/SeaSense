@@ -66,7 +66,7 @@ public class Bluetooth extends AppCompatActivity{
     private static ArrayList<Float> gyroX = new ArrayList<Float>();
     private static ArrayList<Float> gyroY = new ArrayList<Float>();
     private static ArrayList<Float> gyroZ = new ArrayList<Float>();
-    private static ArrayList<String> downloadedData = new ArrayList<String>();
+    public static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -505,7 +505,7 @@ public class Bluetooth extends AppCompatActivity{
      */
     private static void sendSdCat(OutputStream mmOutStream){
         //TODO add support for user input filenames
-        byte[] test = {116, 101, 115, 46, 116, 120, 116}; //test.txt this file is always on the SD card
+        byte[] test = {116, 101, 115, 116, 46, 116, 120, 116}; //test.txt this file is always on the SD card
         try {
             mmOutStream.write(115);
             mmOutStream.write(100);
@@ -577,7 +577,7 @@ public class Bluetooth extends AppCompatActivity{
      */
     private static void sendSdCreate(OutputStream mmOutStream){
         //TODO add support for user input filename
-        byte test[] = {116, 101, 115, 46, 116, 120, 116}; //test.txt
+        byte test[] = {116, 101, 115, 116, 46, 116, 120, 116}; //test.txt
         try {
             mmOutStream.write(115);
             mmOutStream.write(100);
@@ -605,7 +605,7 @@ public class Bluetooth extends AppCompatActivity{
      */
     private static void sendSdDel(OutputStream mmOutStream){
         //TODO add support for user input filename
-        byte test[] = {116, 101, 115, 46, 116, 120, 116}; //test.txt
+        byte test[] = {116, 101, 115, 116, 46, 116, 120, 116}; //test.txt
         try {
             mmOutStream.write(115);
             mmOutStream.write(100);
@@ -737,7 +737,7 @@ public class Bluetooth extends AppCompatActivity{
 
     private void print2BT(String theString){
         TextView bluetoothLog = (TextView) findViewById(R.id.bluetooth_log);
-        bluetoothLog.append(theString);		//append the text into the EditText
+        bluetoothLog.append(theString);	//append the text into the EditText
         ((ScrollView)bluetoothLog.getParent()).fullScroll(View.FOCUS_DOWN);
     }
 

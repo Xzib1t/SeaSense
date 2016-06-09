@@ -129,7 +129,7 @@ public class MainActivity  extends AppCompatActivity {
 		try {
 			if (socket != null) {
 				OutputStream outStream = socket.getOutputStream();
-				Bluetooth.sendCommand(outStream, "logapp");
+				Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
 				InputStream inStream = socket.getInputStream();
 				Bluetooth.readData(inStream);
 				//TODO update gyro and accel on this screen
