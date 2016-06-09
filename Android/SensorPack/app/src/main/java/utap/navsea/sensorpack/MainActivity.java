@@ -59,12 +59,15 @@ public class MainActivity  extends AppCompatActivity {
 	public ImageView compass = null;
 	private float angle = 0;
 	private static ArrayAdapter<String> mArrayAdapter;
+	private static ArrayAdapter<String> mCommandAdapter;
 	private static BluetoothAdapter mBluetoothAdapter;
 	private Dialog dialog;
+	private Dialog dialogCommands;
 	private static BluetoothSocket socket = null;
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
 	private ProgressBar spinner;
+	private boolean logAppPressed = false;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -86,7 +89,9 @@ public class MainActivity  extends AppCompatActivity {
 		//setSupportActionBar(toolbar);
 
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
+		mCommandAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
 		dialog = new Dialog(this);
+		dialogCommands = new Dialog(this);
 
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
@@ -120,9 +125,15 @@ public class MainActivity  extends AppCompatActivity {
 			public void onClick(View view) {
 				if(socket!=null) {
 					//TODO fix spinner
-					spinner.setVisibility(View.VISIBLE); //This doesn't display until click event exit
-					downloadData();
-					spinner.setVisibility(View.INVISIBLE);
+					//spinner.setVisibility(View.VISIBLE); //This doesn't display until click event exit
+					displayCommands();
+
+					if(logAppPressed){
+						downloadData();
+						logAppPressed = false;
+					}
+					//downloadData();
+					//spinner.setVisibility(View.INVISIBLE);
 				}
 			}
 		});
@@ -136,7 +147,7 @@ public class MainActivity  extends AppCompatActivity {
 		try {
 			if (socket != null) {
 				OutputStream outStream = socket.getOutputStream();
-				Bluetooth.writeData(outStream);
+				Bluetooth.sendCommand(outStream, "logapp");
 				InputStream inStream = socket.getInputStream();
 				Bluetooth.readData(inStream);
 				graphTest(chart1, convert2Entry(Bluetooth.getTemp()), "Temp", Color.RED);
@@ -162,6 +173,62 @@ public class MainActivity  extends AppCompatActivity {
 
 		newDevicesListView.setAdapter(mArrayAdapter);
 		newDevicesListView.setClickable(true);
+	}
+
+	/**
+	 * This method creates a list of commands in a dialog
+	 * box and makes the options clickable
+	 */
+	private void displayCommands(){
+		dialogCommands.setContentView(R.layout.command_list_popup);
+		dialogCommands.setCancelable(true);
+		dialogCommands.setTitle("Commands");
+
+		ListView lv = (ListView) dialogCommands.findViewById(R.id.command_list_display);
+		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.command_list_popup));
+
+		lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+			public void onItemClick(AdapterView<?> arg, View view, int position, long id){//int position, long id) {
+				try {
+					if(socket!=null) {
+						OutputStream outStream = socket.getOutputStream();
+						if(position==14){
+							downloadData(); //if logapp was selected, prep to download data
+							logAppPressed = true;
+						}
+						else Bluetooth.sendCommand(outStream, mCommandAdapter.getItem(position));
+					}
+				}
+				catch(IOException e){
+					//TODO
+				}
+			}
+		});
+		dialogCommands.show();
+
+		mCommandAdapter.clear();
+
+		mCommandAdapter.add("help");
+		mCommandAdapter.add("#");
+		mCommandAdapter.add("test");
+		mCommandAdapter.add("rtc_get");
+		mCommandAdapter.add("rtc_set");
+		mCommandAdapter.add("sd_init");
+		mCommandAdapter.add("sd_ls");
+		mCommandAdapter.add("sd_cat");
+		mCommandAdapter.add("sd_dd");
+		mCommandAdapter.add("sd_append");
+		mCommandAdapter.add("sd_create");
+		mCommandAdapter.add("sd_del");
+		mCommandAdapter.add("log");
+		mCommandAdapter.add("logapp");
+		mCommandAdapter.add("logfile");
+		mCommandAdapter.add("reset");
+
+		ListView commandListView = (ListView)
+				dialogCommands.findViewById(R.id.command_list_display);
+		commandListView.setAdapter(mCommandAdapter);
+		commandListView.setClickable(true);
 	}
 
 	/**
