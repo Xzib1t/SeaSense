@@ -15,7 +15,7 @@
 *   - ARG0: LED indicator (lit upon successful initialization)
 *   - ARG1 and ARG2: S0 and S1 pins for use with older TSL230R sensor
 */ 
-SeaSense ss1(13,49,51);
+SeaSense ss1(13,48,49);
 
 void setup(){
     // Initialize USB serial coms (FOR DEBUG ONLY)

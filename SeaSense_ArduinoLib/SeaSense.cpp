@@ -12,6 +12,7 @@
 #include "avr/wdt.h" 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <string.h>
 
 // global vars (defined in globals.h)
 boolean RTC_AUTOSET;
@@ -23,7 +24,7 @@ char Timestamp[9];
 double Temp = 0.0;
 unsigned int Depth = 0;
 int Cond = 0;
-int Light = 0;
+unsigned int Light = 0;
 int Head = 0;
 int AccelX = 0,AccelY = 0,AccelZ = 0;
 int GyroX = 0,GyroY = 0,GyroZ = 0;
@@ -32,12 +33,16 @@ File SDfile;
 char cli_rxBuf [MAX_INPUT_SIZE];
 int count; // used in timer1 interrupt
 
+
 // used for ADC interrupt routine
 byte adc_channel = 10; // first ADC channel to be read from 
 int adcBuf[ADC_BUFFER_SIZE]; // global buffer for incoming ADC readings
 byte adc_pos = 0; // position in adcBuf
 
 int count2 = 0; // temporarily here for use with testing the android app
+
+// set up variables using the SD utility library functions:
+Sd2Card card;
 
 // Initializations are done here automatically,
 SeaSense::SeaSense(int output, int light_s0, int light_s1){
@@ -58,8 +63,10 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     // if an Arduino Mega is used with ethernet shield, this segment
     // will disable the ethernet chip and allow for the SD card to be 
     // read from (addresses this bug http://forum.arduino.cc/index.php?topic=28763.0)
-    pinMode(10, OUTPUT); // per SD install instructions
+    pinMode(10, OUTPUT); // per SD install instructions (ethernet chip CS)
     digitalWrite(10, HIGH); 
+    pinMode(53, OUTPUT);    // SS pin on arduino mega
+    pinMode(SD_CS, OUTPUT);
     
     // don't enable data logging by default
     logData = false;
@@ -117,11 +124,19 @@ void SeaSense::Initialize(){
     light_sensor_init(_s0,_s1);
     
     // initialize the SD card
-    Serial1.print("\tInitializing SD card ...");
-    if (!SD.begin(SD_CS))
-        Serial1.println(" failed");
-    else
-        Serial1.println(" done");
+    Serial1.print("\tSearching for SD card ...");
+   // if (!SD.begin(SD_CS))
+    if (!card.init(SPI_HALF_SPEED, SD_CS)) 
+        Serial1.println(" card not found");
+    else {
+        Serial1.println(" card found");
+        Serial1.print("\tInitializing SD card ...");
+        if (!SD.begin(SD_CS))
+            Serial1.println(" failed");
+        else
+            Serial1.println(" done");
+    }
+    
     
     // initialize the RTC
     if (! rtc.begin()) {
@@ -253,7 +268,7 @@ ISR(TIMER1_COMPA_vect)
       SDfile.print(AccelZ); SDfile.print(",");
       SDfile.print(GyroX); SDfile.print(",");
       SDfile.print(GyroY); SDfile.print(",");
-      SDfile.println(GyroZ);
+      SDfile.print(GyroZ); SDfile.print("\n\r");
       return;
     }
     else if(app_logData & !logData){

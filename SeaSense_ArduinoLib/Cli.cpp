@@ -32,6 +32,7 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("sd_init", "Initialize the SD card", cli_sd_init) \
         CLI_CMD("sd_ls", "List all files on the SD card", cli_sd_ls) \
         CLI_CMD("sd_cat", "Dump a file", cli_sd_cat) \
+        CLI_CMD("sd_dd", "Dump all .csv files", cli_sd_dd) \
         CLI_CMD("sd_append", "Append to a file", cli_sd_append) \
         CLI_CMD("sd_create", "Create a file", cli_sd_create) \
         CLI_CMD("sd_del", "Delete a file", cli_sd_del) \
@@ -51,6 +52,8 @@ CLI_CORE_CMD_LIST
 // misc. function prototypes
 void printDirectory(File dir, int numTabs);
 char* newFile(int filenum);
+void dumpCSV(File dir, int numTabs); 
+bool isCSV(char* filename);
 
 // Generate the list of CLI commands. 
 //      note that converting "text like this" to a char* is a
@@ -234,6 +237,7 @@ void cli_sd_cat(int argc, char *argv[])
         while (currentFile.available()) {
           Serial1.write(currentFile.read());
         }
+        Serial1.print("\n\r");
     } else {
     // if the file didn't open, print an error:
     Serial1.println("error opening file");
@@ -241,6 +245,20 @@ void cli_sd_cat(int argc, char *argv[])
     return;
 }
  
+void cli_sd_dd(int argc, char *argv[])
+{
+    if(sd_logData){
+        Serial1.println("Error: can't dump files while logging to SD card");
+        return;
+    }
+    File currentFile;
+    currentFile.seek(0); // fix for sd_ls showing nothing after modifying files
+    currentFile = SD.open("/");
+    dumpCSV(currentFile,0);
+    currentFile.close();
+    Serial1.print("\n\r");
+}
+
 // append to a file
 // argv[1] = filename, argv[2]-argv[MAX_CLI_ARGV] = text to be written to file
 void cli_sd_append(int argc, char *argv[])
@@ -309,6 +327,10 @@ void cli_sd_del(int argc, char *argv[]) {
 // log data to the bluetooth serial port in a human-readable format
 void cli_log_data(int argc, char *argv[])
 {
+    if(app_logData){
+        Serial1.println("Error: already logging serial data!");
+        return;
+    }
     logData = !logData;
     if(logData) // if data logging is enabled, print out a header for each column
         Serial1.println("Time\t\tTemp\tDepth\tCond\tLight\tHead");
@@ -318,6 +340,10 @@ void cli_log_data(int argc, char *argv[])
 // log data to the bluetooth serial port in a machine-recognizable format
 void cli_log_app(int argc, char *argv[])
 {
+    if(logData){
+        Serial1.println("Error: already logging serial data!");
+        return;
+    }
     delay(10);
     app_logData = !app_logData;
     return;
@@ -334,10 +360,12 @@ void cli_log_file(int argc, char *argv[])
         SDfile.println("Time,Temp,Depth,Cond,Light,Head,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ");
         Serial1.print("Logging data to file "); Serial1.println(filename);
     } else { // if data logging is toggled to off...
-        SDfile.print((char)0xF0);
-        SDfile.print((char)0x9F);
-        SDfile.print((char)0x92);
-        SDfile.println((char)0xA9);
+        //SDfile.print((char)0xF0);
+        //SDfile.print((char)0x9F);
+       // SDfile.print((char)0x92);
+        //SDfile.println((char)0xA9);
+        SDfile.print("U+1F4A9"); 
+        SDfile.print(",");
         SDfile.close();
         Serial1.println("Stopped logging data to file");
     }
@@ -346,6 +374,14 @@ void cli_log_file(int argc, char *argv[])
 
 // reset the microcontroller by enabling the watchdog timer and letting it overflow
 void cli_wdt_reset(int argc, char *argv[]) {
+    if(sd_logData){ // don't mess up the memory card by resetting while writing
+        Serial1.print("Turning off data logging . . .");
+        sd_logData = !sd_logData;
+        SDfile.print("U+1F4A9"); 
+        SDfile.print(",");
+        SDfile.close();
+        Serial1.println("Stopped logging data to file");
+    }
     wdt_enable(WDTO_500MS);
     Serial1.println("System reset in 500mS");
     while(1); // eat processor cycles until the wdt overflows
@@ -375,6 +411,45 @@ void printDirectory(File dir, int numTabs) {
   }
 }
 
+// scans the entire directory and returns the contents of all
+// CSV files stored in the directory
+void dumpCSV(File dir, int numTabs)
+{
+    char *fileList;
+    
+    dir.seek(0); // fix for sd_ls showing nothing after modifying files
+    while (true) {
+        File entry =  dir.openNextFile();
+        if (! entry) {
+          // no more files
+          break;
+        }
+        if (entry.isDirectory()) {
+          dumpCSV(entry, numTabs + 1);
+        } else {
+            if(strchr(entry.name(),'~') == 0){ // don't count INDEXE~1 as a filename
+                if(isCSV(entry.name())) // only return .csv files
+                {
+                    Serial1.print("File "); 
+                    Serial1.print(entry.name());
+                    Serial1.print(":\n\r");
+                    File currentFile;
+                    currentFile = SD.open(entry.name());
+                    if (currentFile){
+                        // read from the file until there's nothing else in it:
+                        while (currentFile.available()) {
+                          Serial1.write(currentFile.read());
+                        }
+                        Serial1.print("\n\r");
+                    }
+                }
+            }
+        }
+        entry.close();
+  }
+    return;
+}
+
 // newfile - scans SD card for a filename in the format of YYMMDDxx.csv
 // returns a pointer to a new 8.3 filename containing YYMMDD and a number (00-99)
 char* newFile(int filenum){
@@ -390,4 +465,16 @@ char* newFile(int filenum){
              }
         }
         return filename;
+}
+
+// isCSV - returns true if a given filename ends with .CSV or .csv, false otherwise
+bool isCSV(char* filename) {
+  int8_t len = strlen(filename);
+  bool result;
+  if (strstr(strlwr(filename), ".csv")) {
+    result = true;
+  } else {
+    result = false;
+  }
+  return result;
 }

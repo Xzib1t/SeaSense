@@ -7,8 +7,8 @@
         #include "SD.h"
         extern File SDfile;
 
-        #define MAX_INPUT_SIZE 100
-        #define MAX_CLI_ARGV 20
+        #define MAX_INPUT_SIZE 80
+        #define MAX_CLI_ARGV 10
         #define SD_CS 4
         #define NUM_ADC_CHANNELS 3
         #define ADC_BUFFER_SIZE 10
@@ -21,7 +21,8 @@
         extern double Temp;
         extern unsigned int Depth;
         extern int Cond;
-        extern int Light,carryOut;
+        extern unsigned int Light;
+        extern int carryOut;
         extern int Head;
         extern int AccelX,AccelY,AccelZ;
         extern int GyroX,GyroY,GyroZ;

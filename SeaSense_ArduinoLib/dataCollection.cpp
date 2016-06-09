@@ -100,9 +100,7 @@ void resetADC(){
     
     // allow for a new conversion
     adc_pos = 0;
-
-    //ADMUX |= ((1 << REFS0)|(1 << ADLAR)); // make sure data is same format 
-              
+         
     // clear old ADC MUX settings
     ADMUX &= ~((1<<MUX4)|(1<<MUX3)|(1<<MUX2)|(1<<MUX1)|(1<<MUX0));  
     ADCSRB &= ~(1<<MUX5);
