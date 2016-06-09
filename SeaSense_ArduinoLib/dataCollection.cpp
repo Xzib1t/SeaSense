@@ -70,21 +70,21 @@ void light_sensitivity(int scale, int s0, int s1){
         case 1:
             digitalWrite(s0,1);
             digitalWrite(s1,0);
-            Serial1.println("\tLight sensor scaled to 1x");
+            Serial1.println(F("\tLight sensor scaled to 1x"));
             break;
         case 10:
             digitalWrite(s0,0);
             digitalWrite(s1,1);
-            Serial1.println("\tLight sensor scaled to 10x");
+            Serial1.println(F("\tLight sensor scaled to 10x"));
             break;
         case 100:
             digitalWrite(s0,1);
             digitalWrite(s1,1);
-            Serial1.println("\tLight sensor scaled to 100x");
+            Serial1.println(F("\tLight sensor scaled to 100x"));
             break;
         default:
-            Serial1.println("\tError: invalid light sensor scale");
-            Serial1.println("\tReconfigure in dataCollection.cpp");
+            Serial1.println(F("\tError: invalid light sensor scale"));
+            Serial1.println(F("\tReconfigure in dataCollection.cpp"));
             digitalWrite(s0,0);
             digitalWrite(s1,0);
     }
@@ -123,6 +123,6 @@ void resetADC(){
             ADCSRB |= (1 << MUX5);
             break;
         default:
-            Serial1.println("Error: Incorrect ADC ");
+            Serial1.println(F("Error: Incorrect ADC "));
     }
 }

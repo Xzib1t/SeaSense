@@ -21,7 +21,7 @@
         extern double Temp;
         extern unsigned int Depth;
         extern int Cond;
-        extern unsigned int Light;
+        extern unsigned long Light;
         extern int carryOut;
         extern int Head;
         extern int AccelX,AccelY,AccelZ;

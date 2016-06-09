@@ -24,7 +24,7 @@ char Timestamp[9];
 double Temp = 0.0;
 unsigned int Depth = 0;
 int Cond = 0;
-unsigned int Light = 0;
+unsigned long Light = 0;
 int Head = 0;
 int AccelX = 0,AccelY = 0,AccelZ = 0;
 int GyroX = 0,GyroY = 0,GyroZ = 0;
@@ -64,11 +64,13 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     // will disable the ethernet chip and allow for the SD card to be 
     // read from (addresses this bug http://forum.arduino.cc/index.php?topic=28763.0)
     pinMode(10, OUTPUT); // per SD install instructions (ethernet chip CS)
-    digitalWrite(10, HIGH); 
-    pinMode(53, OUTPUT);    // SS pin on arduino mega
-    pinMode(SD_CS, OUTPUT);
+    digitalWrite(10, HIGH); // de-assert chip select on ethernet chip (keeps spi lines clear)
+    pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
+    pinMode(SD_CS, OUTPUT); // ss pin for SD card on ethernet shield
     
     // don't enable data logging by default
+    // the states of these booleans dictate whether or not data is written to the
+    // SD card or serial port
     logData = false;
     sd_logData = false;
     app_logData = false;
@@ -118,53 +120,54 @@ void SeaSense::Initialize(){
     
     ADCSRA |= (1 << ADSC);  // Start A2D Conversions
     
-    Serial1.println("System Initialization...");
+    Serial1.println(F("System Initialization..."));
     
     // initialize the light sensor (only matters if using TSL230r sensor)
     light_sensor_init(_s0,_s1);
     
     // initialize the SD card
-    Serial1.print("\tSearching for SD card ...");
-   // if (!SD.begin(SD_CS))
+    // first search for the actual card
+    Serial1.print(F("\tSearching for SD card ..."));
     if (!card.init(SPI_HALF_SPEED, SD_CS)) 
-        Serial1.println(" card not found");
+        Serial1.println(F(" card not found"));
     else {
-        Serial1.println(" card found");
-        Serial1.print("\tInitializing SD card ...");
-        if (!SD.begin(SD_CS))
-            Serial1.println(" failed");
+        // if the card is present, enable it on the SPI interface
+        Serial1.println(F(" card found"));
+        Serial1.print(F("\tInitializing SD card ..."));
+        if (!(SD.begin(SD_CS)))
+            Serial1.println(F(" failed"));
         else
-            Serial1.println(" done");
+            Serial1.println(F(" done"));
     }
     
     
     // initialize the RTC
     if (! rtc.begin()) {
-        Serial1.println("\tError: Couldn't find RTC. Try a system reset");
+        Serial1.println(F("\tError: Couldn't find RTC. Try a system reset"));
         while(1); // wait for RTC to init (could cause an issue if no RTC connected)
     }
     if ((! rtc.isrunning()) & (RTC_AUTOSET == 1)) {
-        Serial1.println("\tRTC is NOT running!");
+        Serial1.println(F("\tRTC is NOT running!"));
         // following line sets the RTC to the date & time this sketch was compiled
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        Serial1.println("\tRTC Autoset");
+        Serial1.println(F("\tRTC Autoset"));
     }
     else if ((! rtc.isrunning()) & (RTC_AUTOSET == 0)) {
-        Serial1.println("\tRTC unconfigured - please use rtc_set to configure the RTC");
+        Serial1.println(F("\tRTC unconfigured - please use rtc_set to configure the RTC"));
     }
     else
-        Serial1.println("\tRTC successfully initialized");
+        Serial1.println(F("\tRTC successfully initialized"));
     
     newCli = true; // will write '>' for bt CLI if true
     init = true; // indicate that initilization is complete (not actually used)
     digitalWrite(_output,HIGH); // indicate config complete with LED on pin 13
     
     /* prompt users to enter a new command */
-    Serial1.print("\tType in ");
+    Serial1.print(F("\tType in "));
     Serial1.print((char)0x22); 
-    Serial1.print("help"); 
+    Serial1.print(F("help")); 
     Serial1.print((char)0x22); 
-    Serial1.println(" for a list of commands");
+    Serial1.println(F(" for a list of commands"));
 }
 
 /* BluetoothClient - reads in new characters from the bluetooth 
@@ -185,7 +188,7 @@ void SeaSense::BluetoothClient(){
                 _rxCmdSize = _i;
                 newCli = true;
                 /*COMMENT OUT FOR JOE*/
-                Serial1.print("\n\r"); // jump to a new line
+                Serial1.print(F("\n\r")); // jump to a new line
               break;
                 
             /* if the backspace key is pressed, remove the char and realign the index */
@@ -228,7 +231,7 @@ void SeaSense::BluetoothClient(){
         Serial1.print(cli_rxBuf);
         
         // if logging data for the android app, also include a delimiter
-        if(app_logData) Serial1.print(",");
+        if(app_logData) Serial1.print(F(","));
         
         // reset the new command boolean so that this segment of code doesn't repeat
         newCli = false;
@@ -237,8 +240,8 @@ void SeaSense::BluetoothClient(){
 }
 
 // lowest priority code - used for sending pre-gathered sensor data to
-// a serial log or file. This code should be run from the main loop of your
-// arduino sketch
+// a serial log or file and clearing the ADC for more interrupts.
+// This code should be run from the main loop of your arduino sketch
 void SeaSense::CollectData()
 {
     // note that light sensor is being read from TIMER1 ISR for better timing interval accuracy
@@ -257,37 +260,37 @@ ISR(TIMER1_COMPA_vect)
     
     // log data to SD card
     if(sd_logData & SDfile){
-      SDfile.print(Timestamp); SDfile.print(",");
-      SDfile.print(Temp); SDfile.print(",");
-      SDfile.print(Depth); SDfile.print(",");
-      SDfile.print(Cond); SDfile.print(",");
-      SDfile.print(Light); SDfile.print(",");
-      SDfile.print(Head); SDfile.print(",");
-      SDfile.print(AccelX); SDfile.print(",");
-      SDfile.print(AccelY); SDfile.print(",");
-      SDfile.print(AccelZ); SDfile.print(",");
-      SDfile.print(GyroX); SDfile.print(",");
-      SDfile.print(GyroY); SDfile.print(",");
-      SDfile.print(GyroZ); SDfile.print("\n\r");
+      SDfile.print(Timestamp); SDfile.print(F(","));
+      SDfile.print(Temp); SDfile.print(F(","));
+      SDfile.print(Depth); SDfile.print(F(","));
+      SDfile.print(Cond); SDfile.print(F(","));
+      SDfile.print(Light); SDfile.print(F(","));
+      SDfile.print(Head); SDfile.print(F(","));
+      SDfile.print(AccelX); SDfile.print(F(","));
+      SDfile.print(AccelY); SDfile.print(F(","));
+      SDfile.print(AccelZ); SDfile.print(F(","));
+      SDfile.print(GyroX); SDfile.print(F(","));
+      SDfile.print(GyroY); SDfile.print(F(","));
+      SDfile.print(GyroZ); SDfile.print(F("\n\r"));
       return;
     }
     else if(app_logData & !logData){
-      //Serial1.print(Timestamp); Serial1.print(",");
-      Serial.println("Logging data to app");
-      Serial1.print(Temp); Serial1.print(",");
-      Serial1.print(Depth); Serial1.print(",");
-      Serial1.print(Cond); Serial1.print(",");
-      Serial1.print(Light); Serial1.print(",");
-      Serial1.print(Head); Serial1.print(",");
-      Serial1.print(AccelX); Serial1.print(",");
-      Serial1.print(AccelY); Serial1.print(",");
-      Serial1.print(AccelZ); Serial1.print(",");
-      Serial1.print(GyroX); Serial1.print(",");
-      Serial1.print(GyroY); Serial1.print(",");
-      Serial1.print(GyroZ); Serial1.print(",");
-      //Serial1.print("U+1F4A9"); Serial1.print(",");
+      //Serial1.print(Timestamp); Serial1.print(F(","));
+      Serial.println(F("Logging data to app"));
+      Serial1.print(Temp); Serial1.print(F(","));
+      Serial1.print(Depth); Serial1.print(F(","));
+      Serial1.print(Cond); Serial1.print(F(","));
+      Serial1.print(Light); Serial1.print(F(","));
+      Serial1.print(Head); Serial1.print(F(","));
+      Serial1.print(AccelX); Serial1.print(F(","));
+      Serial1.print(AccelY); Serial1.print(F(","));
+      Serial1.print(AccelZ); Serial1.print(F(","));
+      Serial1.print(GyroX); Serial1.print(F(","));
+      Serial1.print(GyroY); Serial1.print(F(","));
+      Serial1.print(GyroZ); Serial1.print(F(","));
+      //Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
       count2++;
-      if (count2 == 50) {app_logData = false; count2=0; Serial1.print("U+1F4A9"); Serial1.print(",");}
+      if (count2 == 50) {app_logData = false; count2=0; Serial1.print(F("U+1F4A9")); Serial1.print(F(","));}
       return;
     } 
     
@@ -301,11 +304,11 @@ ISR(TIMER1_COMPA_vect)
     {
 
       if(logData & !app_logData){
-          Serial1.print(Timestamp); Serial1.print("\t");
-          Serial1.print(Temp); Serial1.print("\t");
-          Serial1.print(Depth); Serial1.print("\t");
-          Serial1.print(Cond); Serial1.print("\t");
-          Serial1.print(Light); Serial1.print("\t");
+          Serial1.print(Timestamp); Serial1.print(F("\t"));
+          Serial1.print(Temp); Serial1.print(F("\t"));
+          Serial1.print(Depth); Serial1.print(F("\t"));
+          Serial1.print(Cond); Serial1.print(F("\t"));
+          Serial1.print(Light); Serial1.print(F("\t"));
           Serial1.println(Head);
           return;
       } 
