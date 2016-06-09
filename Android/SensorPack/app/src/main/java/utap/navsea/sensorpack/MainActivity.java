@@ -29,6 +29,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import android.graphics.Color;
@@ -67,6 +68,7 @@ public class MainActivity  extends AppCompatActivity {
 	private static BluetoothSocket socket = null;
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
+	private SeekBar timeSlider = null;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -76,6 +78,7 @@ public class MainActivity  extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
+		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);
 		chart1 = (LineChart) findViewById(R.id.chart); //get the first chart
 		chart2 = (LineChart) findViewById(R.id.chart1); //get the second chart
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
@@ -106,6 +109,8 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
 				changeActivity(TempCondActivity.class); //Switches to TempCondActivity
+				/*for(String print : Bluetooth.downloadedData)
+					print2BT(print);*/ //uncomment to show the received data
 			}
 		});
 
@@ -117,6 +122,27 @@ public class MainActivity  extends AppCompatActivity {
 				if(socket!=null) {
 					displayCommands(); //Show list of clickable commands
 				}
+			}
+		});
+
+		timeSlider = (SeekBar)findViewById(R.id.time_slider);
+		timeSlider.setMax(360);
+		assert timeSlider != null;
+		timeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+				print2BT(String.valueOf(timeSlider.getProgress())+"\n");
+				spinCompass(compass, timeSlider.getProgress());
+			}
+
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+
+			}
+
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+
 			}
 		});
 	}
