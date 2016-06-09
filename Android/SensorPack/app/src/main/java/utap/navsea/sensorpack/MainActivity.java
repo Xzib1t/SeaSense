@@ -20,6 +20,7 @@ import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
 import android.view.View;
@@ -66,7 +67,6 @@ public class MainActivity  extends AppCompatActivity {
 	private static BluetoothSocket socket = null;
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
-	private ProgressBar spinner;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -76,26 +76,18 @@ public class MainActivity  extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		spinner = (ProgressBar)findViewById(R.id.progressBar1); //loading bar
-		spinner.setVisibility(View.INVISIBLE);
-
-        //ArrayList<String> downloadedData = new ArrayList<String>(); //onCreate Process by BlunoLibrary
-
-		//Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 		chart1 = (LineChart) findViewById(R.id.chart); //get the first chart
 		chart2 = (LineChart) findViewById(R.id.chart1); //get the second chart
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
-		//setSupportActionBar(toolbar);
-
-		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
-		mCommandAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
-		dialog = new Dialog(this);
-		dialogCommands = new Dialog(this);
+		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for BT devices
+		mCommandAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for commands
+		dialog = new Dialog(this); //Create dialog to hold BT device list
+		dialogCommands = new Dialog(this); //Create dialog to hold command options
 
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
 
-		fab = (FloatingActionButton) findViewById(R.id.fab);
+		fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -110,7 +102,7 @@ public class MainActivity  extends AppCompatActivity {
         });
 
 		assert fabRight != null;
-		fabRight.setOnClickListener(new View.OnClickListener() {
+		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
 			public void onClick(View view) {
 				changeActivity(TempCondActivity.class); //Switches to TempCondActivity
@@ -119,14 +111,11 @@ public class MainActivity  extends AppCompatActivity {
 
 		FloatingActionButton fabTC = (FloatingActionButton) findViewById(R.id.fabTC);
 		assert fabTC != null;
-		fabTC.setOnClickListener(new View.OnClickListener() {
+		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
 				if(socket!=null) {
-					//TODO fix spinner
-					//spinner.setVisibility(View.VISIBLE); //This doesn't display until click event exit
-					displayCommands();
-					//spinner.setVisibility(View.INVISIBLE);
+					displayCommands(); //Show list of clickable commands
 				}
 			}
 		});
@@ -134,7 +123,7 @@ public class MainActivity  extends AppCompatActivity {
 
 	/**
 	 * Send command to Bluno to start data transfer
-	 * Receive data, then graph
+	 * Receive data
 	 */
 	private void downloadData(){
 		try {
@@ -143,10 +132,7 @@ public class MainActivity  extends AppCompatActivity {
 				Bluetooth.sendCommand(outStream, "logapp");
 				InputStream inStream = socket.getInputStream();
 				Bluetooth.readData(inStream);
-				graphTest(chart1, convert2Entry(Bluetooth.getTemp()), "Temp", Color.RED);
-				chart1.invalidate(); //Refresh graph
-				graphTest(chart2, convert2Entry(Bluetooth.getLight()), "Light", Color.GREEN);
-				chart2.invalidate(); //refresh graph
+				//TODO update gyro and accel on this screen
 			}
 		} catch (IOException e) {
 			//TODO
@@ -186,7 +172,8 @@ public class MainActivity  extends AppCompatActivity {
 					if(socket!=null) {
 						OutputStream outStream = socket.getOutputStream();
 						if(position==13){
-							downloadData(); //if logapp was selected, download data
+							LoadingBar test = new LoadingBar();
+							test.execute();
 						}
 						else Bluetooth.sendCommand(outStream, mCommandAdapter.getItem(position));
 					}
@@ -200,31 +187,17 @@ public class MainActivity  extends AppCompatActivity {
 				}
 			}
 		});
+
 		dialogCommands.show();
-
-		mCommandAdapter.clear();
-
-		mCommandAdapter.add("help");
-		mCommandAdapter.add("#");
-		mCommandAdapter.add("test");
-		mCommandAdapter.add("rtc_get");
-		mCommandAdapter.add("rtc_set");
-		mCommandAdapter.add("sd_init");
-		mCommandAdapter.add("sd_ls");
-		mCommandAdapter.add("sd_cat");
-		mCommandAdapter.add("sd_dd");
-		mCommandAdapter.add("sd_append");
-		mCommandAdapter.add("sd_create");
-		mCommandAdapter.add("sd_del");
-		mCommandAdapter.add("log");
-		mCommandAdapter.add("logapp");
-		mCommandAdapter.add("logfile");
-		mCommandAdapter.add("reset");
+		loadCommandPopup(mCommandAdapter); //populates popup with options
 
 		ListView commandListView = (ListView)
 				dialogCommands.findViewById(R.id.command_list_display);
 		commandListView.setAdapter(mCommandAdapter);
 		commandListView.setClickable(true);
+
+		ProgressBar tempSpinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
+		tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while data isn't being downloaded
 	}
 
 	/**
@@ -415,6 +388,31 @@ public class MainActivity  extends AppCompatActivity {
 	}
 
 	/**
+	 * This method loads the command ArrayAdapter with the
+	 * options that the user can choose
+	 * @param mCommandAdapter
+	 */
+	private void loadCommandPopup(ArrayAdapter<String> mCommandAdapter){
+		mCommandAdapter.clear();
+		mCommandAdapter.add("help");
+		mCommandAdapter.add("#");
+		mCommandAdapter.add("test");
+		mCommandAdapter.add("rtc_get");
+		mCommandAdapter.add("rtc_set");
+		mCommandAdapter.add("sd_init");
+		mCommandAdapter.add("sd_ls");
+		mCommandAdapter.add("sd_cat");
+		mCommandAdapter.add("sd_dd");
+		mCommandAdapter.add("sd_append");
+		mCommandAdapter.add("sd_create");
+		mCommandAdapter.add("sd_del");
+		mCommandAdapter.add("log");
+		mCommandAdapter.add("logapp");
+		mCommandAdapter.add("logfile");
+		mCommandAdapter.add("reset");
+	}
+
+	/**
 	 * This method rotates the compass image to a desired angle
 	 * @param imageView
 	 * @param angle
@@ -432,6 +430,25 @@ public class MainActivity  extends AppCompatActivity {
 		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
 	}
 
+	class LoadingBar extends AsyncTask<Integer, Integer, String> {
+		private ProgressBar spinner;
+		@Override
+		protected void onPreExecute() {
+			spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
+			spinner.setVisibility(View.VISIBLE);
+		}
+		@Override
+		protected String doInBackground(Integer... params) {
+				downloadData();
+			return "done";
+		}
+		@Override
+		protected void onPostExecute(String result) {
+			spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
+			spinner.setVisibility(View.INVISIBLE);
+		}
+	}
+
 	/**
 	 * Closes the Bluetooth socket
 	 */
@@ -443,8 +460,6 @@ public class MainActivity  extends AppCompatActivity {
 		}
 		catch(IOException e){
 			//TODO
-			//Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
-			//.setAction("Action", null).show();
 		}
 	}
 }
