@@ -31,6 +31,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.PhoneNumberUtils;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -54,6 +55,7 @@ public class Bluetooth extends AppCompatActivity{
     //Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
     private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static BluetoothAdapter mBluetoothAdapter;
+    private static ArrayList<String> time = new ArrayList<String>();
     private static ArrayList<Float> temperature = new ArrayList<Float>();
     private static ArrayList<Float> depth = new ArrayList<Float>();
     private static ArrayList<Float> conductivity = new ArrayList<Float>();
@@ -152,6 +154,7 @@ public class Bluetooth extends AppCompatActivity{
 
     private static void resetBuffers(){
         downloadedData.clear();
+        time.clear();
         temperature.clear();
         depth.clear();
         conductivity.clear();
@@ -210,6 +213,10 @@ public class Bluetooth extends AppCompatActivity{
         });
     }
 
+    public static ArrayList<String> getTime(){
+        return time;
+    }
+
     public static ArrayList<Float> getTemp(){
         return temperature;
     }
@@ -228,6 +235,30 @@ public class Bluetooth extends AppCompatActivity{
 
     public static ArrayList<Float> getHeading(){
         return heading;
+    }
+
+    public static ArrayList<Float> getAccelX(){
+        return accelX;
+    }
+
+    public static ArrayList<Float> getAccelY(){
+        return accelY;
+    }
+
+    public static ArrayList<Float> getAccelZ(){
+        return accelZ;
+    }
+
+    public static ArrayList<Float> getGyroX(){
+        return gyroX;
+    }
+
+    public static ArrayList<Float> getGyroY(){
+        return gyroY;
+    }
+
+    public static ArrayList<Float> getGyroZ(){
+        return gyroZ;
     }
 
     /**
@@ -652,81 +683,90 @@ public class Bluetooth extends AppCompatActivity{
         }
 
         for(String splitVal : buffer.split(",")) {
-            if (!(splitVal.equals("logapp" + '\n' + '\r' + '>'))) { //ignore the command data
+            String[] newlineSplit = splitVal.split("\\n?\\r");
+            if (!(isFloat(splitVal) && isTime(buffer))){ //ignore the command data
                 if(splitVal.equals("U+1F4A9")) return true; //check for the eof
             }
+            if(newlineSplit[newlineSplit.length-1].equals("U+1F4A9")) return true;
         }
 
         return false;
     }
 
-    private static void parseData(String input){
+    private static void parseData(String input) {
         int dataType = 0;
         int curIndex = 0;
         String eof = "U+1F4A9";
         ArrayList<String> parsedData = new ArrayList<String>();
 
-        for(String splitVal : input.split(",")){
-            if(!(splitVal.equals("logapp" + '\n' + '\r' + '>'))) { //ignore the command data
+        for (String splitVal : input.split(",")) {
+            if (isFloat(splitVal) || isTime(splitVal)) { //Check if it's data we actually want
                 parsedData.add(splitVal);
                 switch (dataType) {
                     case 0:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            temperature.add(Float.parseFloat(parsedData.get(curIndex)));
+                            String buffer[] = parsedData.get(curIndex).split("\\n?\\r"); //ignore newlines and carriage returns
+                            time.add(buffer[buffer.length - 1]); //Grab the time value and ignore the rest
+                            if (buffer.length >= 2 && isFloat(buffer[buffer.length - 2])) {//>=3) {
+                                gyroZ.add(Float.parseFloat(buffer[buffer.length - 2]));
+                            }
                         }
                         break;
                     case 1:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            depth.add(Float.parseFloat(parsedData.get(curIndex)));
+                            temperature.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
                     case 2:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            conductivity.add(Float.parseFloat(parsedData.get(curIndex)));
+                            depth.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
                     case 3:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            light.add(Float.parseFloat(parsedData.get(curIndex)));
+                            conductivity.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
-
                         break;
                     case 4:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            heading.add(Float.parseFloat(parsedData.get(curIndex)));
-                            //spinCompass(compass, Float.parseFloat(parsedData.get(curIndex)));
+                            light.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
                     case 5:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            accelX.add(Float.parseFloat(parsedData.get(curIndex)));
+                            heading.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
                     case 6:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            accelY.add(Float.parseFloat(parsedData.get(curIndex)));
+                            accelX.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
                     case 7:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            accelZ.add(Float.parseFloat(parsedData.get(curIndex)));
+                            accelY.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
                     case 8:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            gyroX.add(Float.parseFloat(parsedData.get(curIndex)));
+                            accelZ.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
                     case 9:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            gyroY.add(Float.parseFloat(parsedData.get(curIndex)));
+                            gyroX.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
                     case 10:
                         if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                            gyroZ.add(Float.parseFloat(parsedData.get(curIndex)));
+                            gyroY.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
+                    //case 11: //THIS NEEDS TO BE UNCOMMENTED FOR REGULAR LOGAPP TO WORK
+                    //    if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                    //        gyroZ.add(Float.parseFloat(parsedData.get(curIndex)));
+                    //    }
+                    //    break;
                     default:
 
                         break;
@@ -736,6 +776,24 @@ public class Bluetooth extends AppCompatActivity{
                 if (dataType > 10) dataType = 0; //reset data counter
             }
         }
+    }
+
+    public static boolean isFloat(String string)
+    {
+        try {
+            Float.parseFloat(string);
+        }
+        catch(NumberFormatException e) {
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean isTime(String string)
+    {
+        String[] check = string.split(":");
+        if(isFloat(check[check.length-1])) return true; //The last chunk of the time string will be a number (like the 11 in 12:13:11)
+        else return false;
     }
 
     private void print2BT(String theString){

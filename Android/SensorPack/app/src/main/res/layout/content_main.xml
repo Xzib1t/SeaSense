@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,15 +7,45 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
+    android:orientation="vertical"
+    android:weightSum="6"
     tools:context="utap.navsea.sensorpack.MainActivity"
     tools:showIn="@layout/activity_main">
+
+    <SeekBar
+        android:id="@+id/time_slider"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:id="@+id/scrollView"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/serialReceivedText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="20" />
+    </ScrollView>
+
+    <ImageView
+        android:id="@+id/seaperch"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:src="@drawable/arrow_test"
+        android:paddingBottom="20dp"/>
 
     <ImageView
         android:id="@+id/compass"
         android:layout_width="wrap_content"
-        android:layout_alignParentBottom = "true"
-        android:layout_height="300dp"
-        android:src="@drawable/compass"
-        android:layout_weight="0.5"
-        />
-</RelativeLayout>
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:src="@drawable/compass" />
+        <!--compass picture from:
+        https://upload.wikimedia.org/wikipedia/commons/8/8e/Compass_Card.png-->
+
+</LinearLayout>

@@ -48,6 +48,7 @@ import java.util.UUID;
 public class MainActivity  extends AppCompatActivity {
 	private TextView serialReceivedText;
 	private ImageView compass = null;
+	private ImageView seaperch = null;
 	private ArrayAdapter<String> mArrayAdapter;
 	private ArrayAdapter<String> mCommandAdapter;
 	private Dialog dialog;
@@ -67,11 +68,11 @@ public class MainActivity  extends AppCompatActivity {
 
 		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
+		seaperch = (ImageView) findViewById(R.id.seaperch); //get seaperch
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for BT devices
 		mCommandAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for commands
 		dialog = new Dialog(this); //Create dialog to hold BT device list
 		dialogCommands = new Dialog(this); //Create dialog to hold command options
-
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
 
@@ -95,7 +96,7 @@ public class MainActivity  extends AppCompatActivity {
 			public void onClick(View view) {
 				changeActivity(TempCondActivity.class); //Switches to TempCondActivity
 				/*for(String print : Bluetooth.downloadedData)
-					print2BT(print);*/ //uncomment to show the received data
+					print2BT(print); //uncomment to show the received data*/
 			}
 		});
 
@@ -115,11 +116,11 @@ public class MainActivity  extends AppCompatActivity {
 		timeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-				if(!Bluetooth.getHeading().isEmpty()) { //If we have heading data
+				if(!Bluetooth.getHeading().isEmpty()) { //If we have heading data we also have accelerometer data
 					controlCompass(Bluetooth.getHeading(), timeSlider); //Show heading corresponding to time
-				}
-				else{
-					//TODO
+
+					controlSeaperch(Bluetooth.getGyroX(), Bluetooth.getGyroY(),
+							Bluetooth.getGyroZ(), timeSlider);
 				}
 			}
 
@@ -143,10 +144,9 @@ public class MainActivity  extends AppCompatActivity {
 		try {
 			if (socket != null) {
 				OutputStream outStream = socket.getOutputStream();
-				Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+				Bluetooth.sendCommand(outStream, "sd_dd");//"logapp"); //Send logapp command to start data transfer
 				InputStream inStream = socket.getInputStream();
 				Bluetooth.readData(inStream);
-				//TODO update gyro and accel on this screen
 			}
 		} catch (IOException e) {
 			//TODO
@@ -185,9 +185,9 @@ public class MainActivity  extends AppCompatActivity {
 				try {
 					if(socket!=null) {
 						OutputStream outStream = socket.getOutputStream();
-						if(position==13){
-							LoadingBar test = new LoadingBar();
-							test.execute();
+						if(position==13 || position==8){ //if logapp or sd_dd were pressed
+							LoadingBar Download = new LoadingBar();
+							Download.execute();
 						}
 						else Bluetooth.sendCommand(outStream, mCommandAdapter.getItem(position));
 					}
@@ -326,6 +326,20 @@ public class MainActivity  extends AppCompatActivity {
 	}
 
 	/**
+	 * This method rotates an image to angles corresponding to
+	 * the accelerometer data
+	 * @param imageView
+	 * @param x
+	 * @param y
+	 * @param z
+	 */
+	private void rotateSeaperch(ImageView imageView, float x, float y, float z){
+		imageView.setRotationX(x);
+		imageView.setRotation(y);
+		imageView.setRotationY(z);
+	}
+
+	/**
 	 * Scales the seekbar to the size of heading data array
 	 * Rotates the compass to the value correspoding to a time on the
 	 * seekbar and prints this value to the screen
@@ -334,9 +348,22 @@ public class MainActivity  extends AppCompatActivity {
 	 */
 	private void controlCompass(ArrayList<Float> heading, SeekBar slider){
 		if(!heading.isEmpty()) //If we have heading data
-			slider.setMax(heading.size()); //Scale bar to size of heading data array
-		print2BT(String.valueOf(heading.get(slider.getProgress()))); //
+			slider.setMax(heading.size()-1); //Scale bar to size of heading data array
+		print2BT(String.valueOf(heading.get(slider.getProgress())) + "\n");
 		spinCompass(compass, heading.get(slider.getProgress()));
+	}
+
+	/**
+	 * Rotates the seaperch to the values correspoding to a time on the
+	 * @param accelX
+	 * @param accelY
+	 * @param accelZ
+	 * @param slider
+	 */
+	private void controlSeaperch(ArrayList<Float> accelX, ArrayList<Float> accelY,
+								 ArrayList<Float> accelZ, SeekBar slider){
+		rotateSeaperch(seaperch, accelX.get(slider.getProgress()),
+				accelY.get(slider.getProgress()), accelZ.get(slider.getProgress()));
 	}
 
 	/**
