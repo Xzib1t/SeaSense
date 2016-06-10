@@ -32,32 +32,20 @@ import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import android.graphics.Color;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.YAxis;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import android.widget.ImageView;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 
 public class MainActivity  extends AppCompatActivity {
 	private TextView serialReceivedText;
-	public LineChart chart1 = null;
-	public LineChart chart2 = null;
 	public ImageView compass = null;
 	private float angle = 0;
 	private static ArrayAdapter<String> mArrayAdapter;
@@ -79,8 +67,6 @@ public class MainActivity  extends AppCompatActivity {
 		setContentView(R.layout.activity_main);
 
 		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);
-		chart1 = (LineChart) findViewById(R.id.chart); //get the first chart
-		chart2 = (LineChart) findViewById(R.id.chart1); //get the second chart
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for BT devices
 		mCommandAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for commands
@@ -301,116 +287,6 @@ public class MainActivity  extends AppCompatActivity {
 			socket = mBluetoothAdapter.createRfcommSocketToServiceRecord(uuid);
 			socket.connect();
 		} catch (IOException e) { }
-	}
-
-	/**
-	 * This method converts a Float array to an ArrayList of entries.
-	 * This is done so that the data is formatted for graphing using the
-	 * MPAndroidChart libraries.
-	 * This method is called in the conver2Entry() method.
-	 *
-	 * @param data
-	 * @return entries
-     */
-	private ArrayList<Entry> loadArray(Float[] data){
-		ArrayList<Entry> entries = new ArrayList<>(); //figure out how to index values
-		for(int i=0; i<data.length; i++){
-			entries.add(i, new Entry(data[i], i));
-		}
-		return entries;
-	}
-
-	/**
-	 * This method converts an ArrayList of Floats to an ArrayList of entries.
-	 * This is done so that the data is formatted for graphing using the
-	 * MPAndroidChart libraries.
-	 * @param input
-	 * @return
-	 */
-	private ArrayList<Entry> convert2Entry(ArrayList<Float> input){
-		Float[] floatArray = input.toArray(new Float[input.size()]);
-		ArrayList<Entry> entryArray = loadArray(floatArray);
-		return entryArray;
-	}
-
-	/**
-	 * This method graphs an input ArrayList of entries, sets the data set title,
-	 * and selects the line color for the data.
-	 * @param chart
-	 * @param yData
-	 * @param dataLabel
-     * @param color
-     */
-	private void graphTest(LineChart chart, ArrayList<Entry> yData, String dataLabel, int color){
-		if(yData != null) {
-			ArrayList<Entry> tempC = yData;//new ArrayList<Entry>();
-
-			LineDataSet setTempC = new LineDataSet(tempC, dataLabel);
-			setTempC.setAxisDependency(YAxis.AxisDependency.LEFT);
-			setTempC.setColor(color);
-
-			formatChart(chart); //colors, lines...etc
-
-			ArrayList<ILineDataSet> dataSets = new ArrayList<ILineDataSet>();
-			dataSets.add(setTempC);
-
-			ArrayList xVals = setupXaxis(tempC); //Scale x axis to incoming data
-
-			ArrayList<String> yVals = new ArrayList<String>();
-			yVals.add("Data");
-
-			LineData data = new LineData(xVals, dataSets);
-			chart.setData(data);
-			chart.invalidate(); // refresh
-		}
-	}
-
-	/**
-	 * This method formats the X axis appropriately for incoming data
-	 * @param tempC
-	 * @return
-     */
-	private ArrayList<String> setupXaxis(ArrayList<Entry> tempC){
-		ArrayList<String> xVals = new ArrayList<String>();
-		String[] tempXvals = new String[tempC.size()];
-
-		for(int i=0; i<tempC.size(); i++) {
-			tempXvals[i] = Integer.toString(i);
-		}
-		for(int j=0; j<tempXvals.length; j++){
-			xVals.add(tempXvals[j]);
-		}
-		return xVals;
-	}
-
-	/**
-	 * This method takes care of the basic formatting for
-	 * the chart that data will be graphed to.
-	 * @param chart
-     */
-	private void formatChart(LineChart chart){
-		chart.setEnabled(true);
-		chart.setTouchEnabled(true);
-		chart.setDescription("Data over 24 hours");
-
-		XAxis xAxis = chart.getXAxis();
-		xAxis.setEnabled(true);
-		xAxis.setDrawAxisLine(true);
-		xAxis.setDrawGridLines(true);
-		xAxis.setDrawLabels(true);
-		xAxis.setGridColor(Color.BLACK);
-		xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-		xAxis.setTextSize(10f);
-		xAxis.setTextColor(Color.BLACK);
-
-		YAxis leftAxis = chart.getAxisLeft();
-		leftAxis.setTextColor(Color.BLACK);
-		leftAxis.setAxisLineColor(Color.BLACK);
-		leftAxis.setEnabled(true);
-
-		chart.setDrawGridBackground(true);
-		chart.setDrawBorders(true);
-		chart.setBorderColor(Color.BLACK);
 	}
 
 	/**
