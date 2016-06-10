@@ -1,4 +1,6 @@
-// ensure this library description is only included once
+// Created by Georges Gauthier - glgauthier@wpi.edu
+// Last updated June 2016
+
 #ifndef SeaSense_h
 #define SeaSense_h
 
@@ -9,6 +11,8 @@
 #include "SD.h"
 #include "Cli.h"
 #include "dataCollection.h"
+#include "Adafruit_Sensor.h"
+#include "Adafruit_HMC5883_U.h"
 #include "avr/wdt.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>

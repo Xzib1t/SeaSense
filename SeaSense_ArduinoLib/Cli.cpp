@@ -377,11 +377,11 @@ void cli_log_file(int argc, char *argv[])
 {
     sd_logData = !sd_logData;
     if(sd_logData){ // if data logging is toggled to on..
-        char filename[13];
-        strncat(filename,newFile(0),13);
+        char* filename = newFile(0);
         SDfile = SD.open(filename,FILE_WRITE);
         SDfile.println(F("Time,Temp,Depth,Cond,Light,Head,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ"));
         Serial1.print(F("Logging data to file ")); Serial1.println(filename);
+        free(filename);
     } else { // if data logging is toggled to off...
         //SDfile.print((char)0xF0);
         //SDfile.print((char)0x9F);
@@ -477,7 +477,7 @@ void dumpCSV(File dir, int numTabs)
 // returns a pointer to a new 8.3 filename containing YYMMDD and a number (00-99)
 char* newFile(int filenum){
         DateTime now = rtc.now();
-        char filename[13];
+        char* filename = (char*)malloc(sizeof(char)*13);
         boolean exists = true;
         while(exists == true){
              sprintf(filename,"%02d%02d%02d%02d.csv",now.year()-2000,now.month(),now.day(),filenum);

@@ -9,10 +9,13 @@
 #include "SD.h"
 #include "Cli.h"
 #include "dataCollection.h"
+#include "Adafruit_Sensor.h"
+#include "Adafruit_HMC5883_U.h"
 #include "avr/wdt.h" 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <string.h>
+
 
 // global vars (defined in globals.h)
 boolean RTC_AUTOSET;
@@ -29,6 +32,7 @@ int Head = 0;
 int AccelX = 0,AccelY = 0,AccelZ = 0;
 int GyroX = 0,GyroY = 0,GyroZ = 0;
 File SDfile;
+Adafruit_HMC5883_Unified mag;
 
 char cli_rxBuf [MAX_INPUT_SIZE];
 int count; // used in timer1 interrupt
@@ -144,7 +148,7 @@ void SeaSense::Initialize(){
     // initialize the RTC
     if (! rtc.begin()) {
         Serial1.println(F("\tError: Couldn't find RTC. Try a system reset"));
-        while(1); // wait for RTC to init (could cause an issue if no RTC connected)
+        //while(1); // wait for RTC to init (could cause an issue if no RTC connected)
     }
     if ((! rtc.isrunning()) & (RTC_AUTOSET == 1)) {
         Serial1.println(F("\tRTC is NOT running!"));
@@ -157,6 +161,15 @@ void SeaSense::Initialize(){
     }
     else
         Serial1.println(F("\tRTC successfully initialized"));
+    
+    /* Initialise the magnetometer*/
+    mag = Adafruit_HMC5883_Unified(12345); // see globals.h
+    
+    if(!mag.begin())
+    {
+        Serial1.println(F("\tNo HMC5883 detected ... Check your wiring!"));
+        //while(1);
+    } else Serial1.println(F("\tHMC5883 successfully initialized"));
     
     newCli = true; // will write '>' for bt CLI if true
     init = true; // indicate that initilization is complete (not actually used)
@@ -247,6 +260,7 @@ void SeaSense::CollectData()
     // note that light sensor is being read from TIMER1 ISR for better timing interval accuracy
     getTime();
     getADCreadings();
+    getMag();
     
     return;
 }

@@ -1,4 +1,5 @@
 // Created by Georges Gauthier - glgauthier@wpi.edu
+// Last updated June 2016
 
 #include "Arduino.h"
 #include "SeaSense.h"
@@ -63,6 +64,30 @@ void getADCreadings(){
     ADCSRA |= (1 << ADSC); // restart A2D Conversions
 }
 
+void getMag(){
+  /* Get a new sensor event */ 
+    float heading;
+    
+    sensors_event_t event; 
+    mag.getEvent(&event);
+    GyroX = event.magnetic.x;
+    GyroY = event.magnetic.y;
+    GyroZ = event.magnetic.z;
+    heading = atan2(event.magnetic.y, event.magnetic.x);
+    heading += DECLINATION_ANGLE;
+    // Correct for when signs are reversed.
+      if(heading < 0)
+        heading += 2*PI;
+
+      // Check for wrap due to addition of declination.
+      if(heading > 2*PI)
+        heading -= 2*PI;
+    
+     // Convert radians to degrees for readability.
+     Head = heading * 180/M_PI; 
+
+    return;
+}
 
 // used for scaling light sensor readings
 void light_sensitivity(int scale, int s0, int s1){

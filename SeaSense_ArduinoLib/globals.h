@@ -1,3 +1,6 @@
+// Created by Georges Gauthier - glgauthier@wpi.edu
+// Last updated June 2016
+
 #ifndef HEADER_GLOBALS
  #define HEADER_GLOBALS
         #include "RTClib.h"
@@ -7,11 +10,17 @@
         #include "SD.h"
         extern File SDfile;
 
+        #include "Adafruit_Sensor.h"
+        #include "Adafruit_HMC5883_U.h"
+        extern Adafruit_HMC5883_Unified mag;
+
         #define MAX_INPUT_SIZE 80
         #define MAX_CLI_ARGV 10
         #define SD_CS 4
         #define NUM_ADC_CHANNELS 3
         #define ADC_BUFFER_SIZE 10
+        /* http://www.magnetic-declination.com/ */
+        #define DECLINATION_ANGLE 0.2516f 
 
         /*Data values for writing to the SD card/serial log*/
         extern boolean logData;

@@ -11,3 +11,8 @@ Sparkfun part: https://www.sparkfun.com/products/12708
 
 ** Bluetooth Module
 https://learn.sparkfun.com/tutorials/using-the-bluesmirf
+
+** Triple Axis Accelerometer
+https://www.adafruit.com/product/1231
+
+** 
