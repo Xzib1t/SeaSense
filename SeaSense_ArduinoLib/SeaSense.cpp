@@ -4,13 +4,14 @@
 #include "Arduino.h"
 #include "globals.h"
 #include "SeaSense.h"
-#include "RTClib.h"
+//#include "RTClib.h"
 #include "SPI.h"
-#include "SD.h"
+//#include "SD.h"
 #include "Cli.h"
 #include "dataCollection.h"
-#include "Adafruit_Sensor.h"
-#include "Adafruit_HMC5883_U.h"
+//#include "Adafruit_Sensor.h"
+//#include "Adafruit_HMC5883_U.h"
+//#include "Adafruit_ADXL345_U.h"
 #include "avr/wdt.h" 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -29,10 +30,11 @@ unsigned int Depth = 0;
 int Cond = 0;
 unsigned long Light = 0;
 int Head = 0;
-int AccelX = 0,AccelY = 0,AccelZ = 0;
-int GyroX = 0,GyroY = 0,GyroZ = 0;
+int AccelX = 0,AccelY = 0,AccelZ = 0; // units of m/s^2
+int GyroX = 0,GyroY = 0,GyroZ = 0; // units of microTeslas
 File SDfile;
 Adafruit_HMC5883_Unified mag;
+Adafruit_ADXL345_Unified accel;
 
 char cli_rxBuf [MAX_INPUT_SIZE];
 int count; // used in timer1 interrupt
@@ -162,14 +164,30 @@ void SeaSense::Initialize(){
     else
         Serial1.println(F("\tRTC successfully initialized"));
     
-    /* Initialise the magnetometer*/
+    /* Initialize the magnetometer*/
     mag = Adafruit_HMC5883_Unified(12345); // see globals.h
-    
     if(!mag.begin())
     {
         Serial1.println(F("\tNo HMC5883 detected ... Check your wiring!"));
         //while(1);
     } else Serial1.println(F("\tHMC5883 successfully initialized"));
+    
+    /* Initialize the accelerometer */
+    accel = Adafruit_ADXL345_Unified(23456); // see globals.h
+    if(!accel.begin())
+    {
+        Serial1.println(F("\tNo ADXL345 detected ... Check your wiring!"));
+        //while(1);
+    } else {
+        Serial1.println(F("\tADXL345 successfully initialized with 4G range"));
+        accel.setRange(ADXL345_RANGE_4_G);
+    }
+    
+    /* Initialize the gyroscope */
+    Serial1.print(F("\tInitializing gyroscope ..."));
+    setupL3G4200D(2000); // Configure L3G4200  - 250, 500 or 2000 deg/sec
+    delay(1500); //wait for the sensor to be ready 
+    Serial1.println(F(" done"));
     
     newCli = true; // will write '>' for bt CLI if true
     init = true; // indicate that initilization is complete (not actually used)
@@ -244,7 +262,7 @@ void SeaSense::BluetoothClient(){
         Serial1.print(cli_rxBuf);
         
         // if logging data for the android app, also include a delimiter
-        if(app_logData) Serial1.print(F(","));
+        //if(app_logData) Serial1.print(F(","));
         
         // reset the new command boolean so that this segment of code doesn't repeat
         newCli = false;
@@ -261,6 +279,8 @@ void SeaSense::CollectData()
     getTime();
     getADCreadings();
     getMag();
+    getAccel();
+    getGyro();
     
     return;
 }
@@ -289,8 +309,11 @@ ISR(TIMER1_COMPA_vect)
       return;
     }
     else if(app_logData & !logData){
-      //Serial1.print(Timestamp); Serial1.print(F(","));
+      count2++;
+      if (count2 == 1) Serial1.print("Temperature"); Serial1.print("\n\r");
+        
       Serial.println(F("Logging data to app"));
+      Serial1.print(Timestamp); Serial1.print(F(","));
       Serial1.print(Temp); Serial1.print(F(","));
       Serial1.print(Depth); Serial1.print(F(","));
       Serial1.print(Cond); Serial1.print(F(","));
@@ -303,7 +326,7 @@ ISR(TIMER1_COMPA_vect)
       Serial1.print(GyroY); Serial1.print(F(","));
       Serial1.print(GyroZ); Serial1.print(F(","));
       //Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
-      count2++;
+      
       if (count2 == 50) {app_logData = false; count2=0; Serial1.print(F("U+1F4A9")); Serial1.print(F(","));}
       return;
     } 

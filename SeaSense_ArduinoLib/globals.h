@@ -13,7 +13,10 @@
         #include "Adafruit_Sensor.h"
         #include "Adafruit_HMC5883_U.h"
         extern Adafruit_HMC5883_Unified mag;
-
+        
+        #include "Adafruit_ADXL345_U.h"
+        extern Adafruit_ADXL345_Unified accel;
+        
         #define MAX_INPUT_SIZE 80
         #define MAX_CLI_ARGV 10
         #define SD_CS 4
@@ -21,7 +24,12 @@
         #define ADC_BUFFER_SIZE 10
         /* http://www.magnetic-declination.com/ */
         #define DECLINATION_ANGLE 0.2516f 
-
+        #define CTRL_REG1 0x20
+        #define CTRL_REG2 0x21
+        #define CTRL_REG3 0x22
+        #define CTRL_REG4 0x23
+        #define CTRL_REG5 0x24
+        #define L3G4200D_ADDRESS 0x69 
         /*Data values for writing to the SD card/serial log*/
         extern boolean logData;
         extern boolean sd_logData;

@@ -6,13 +6,14 @@
 
 #include "Arduino.h"
 #include "globals.h"
-#include "RTClib.h"
+//#include "RTClib.h"
 #include "SPI.h"
-#include "SD.h"
+//#include "SD.h"
 #include "Cli.h"
 #include "dataCollection.h"
-#include "Adafruit_Sensor.h"
-#include "Adafruit_HMC5883_U.h"
+//#include "Adafruit_Sensor.h"
+//#include "Adafruit_HMC5883_U.h"
+//#include "Adafruit_ADXL345_U.h"
 #include "avr/wdt.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>

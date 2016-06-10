@@ -207,6 +207,9 @@ void cli_sd_init(int argc, char *argv[])
         Serial1.print(F("Error: currently writing to SD card!"));
         return;
     }
+    pinMode(10, OUTPUT); // per SD install instructions (ethernet chip CS)
+    digitalWrite(10, HIGH); // de-assert chip select on ethernet chip (keeps spi lines clear)
+    pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
     
     Serial1.println(F("\tToggling SD card ChipSelect"));
     digitalWrite(SD_CS,HIGH);
