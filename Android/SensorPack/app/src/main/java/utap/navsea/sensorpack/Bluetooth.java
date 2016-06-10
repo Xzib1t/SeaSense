@@ -54,7 +54,6 @@ public class Bluetooth extends AppCompatActivity{
     //Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
     private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static BluetoothAdapter mBluetoothAdapter;
-
     private static ArrayList<Float> temperature = new ArrayList<Float>();
     private static ArrayList<Float> depth = new ArrayList<Float>();
     private static ArrayList<Float> conductivity = new ArrayList<Float>();
@@ -225,6 +224,10 @@ public class Bluetooth extends AppCompatActivity{
 
     public static ArrayList<Float> getDepth(){
         return depth;
+    }
+
+    public static ArrayList<Float> getHeading(){
+        return heading;
     }
 
     /**

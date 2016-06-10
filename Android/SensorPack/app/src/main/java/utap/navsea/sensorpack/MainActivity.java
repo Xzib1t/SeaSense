@@ -41,19 +41,18 @@ import android.widget.ImageView;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 
 public class MainActivity  extends AppCompatActivity {
 	private TextView serialReceivedText;
-	public ImageView compass = null;
-	private float angle = 0;
-	private static ArrayAdapter<String> mArrayAdapter;
-	private static ArrayAdapter<String> mCommandAdapter;
-	private static BluetoothAdapter mBluetoothAdapter;
+	private ImageView compass = null;
+	private ArrayAdapter<String> mArrayAdapter;
+	private ArrayAdapter<String> mCommandAdapter;
 	private Dialog dialog;
 	private Dialog dialogCommands;
-	private static BluetoothSocket socket = null;
+	private BluetoothSocket socket = null;
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
 	private SeekBar timeSlider = null;
@@ -112,13 +111,16 @@ public class MainActivity  extends AppCompatActivity {
 		});
 
 		timeSlider = (SeekBar)findViewById(R.id.time_slider);
-		timeSlider.setMax(360);
 		assert timeSlider != null;
 		timeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-				print2BT(String.valueOf(timeSlider.getProgress())+"\n");
-				spinCompass(compass, timeSlider.getProgress());
+				if(!Bluetooth.getHeading().isEmpty()) { //If we have heading data
+					controlCompass(Bluetooth.getHeading(), timeSlider); //Show heading corresponding to time
+				}
+				else{
+					//TODO
+				}
 			}
 
 			@Override
@@ -217,7 +219,7 @@ public class MainActivity  extends AppCompatActivity {
 	 */
 	private void setupBT(){
 		int REQUEST_ENABLE_BT = 1;
-		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+		BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
 		if (!mBluetoothAdapter.isEnabled()) {
 			Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -321,6 +323,20 @@ public class MainActivity  extends AppCompatActivity {
      */
 	private void spinCompass(ImageView imageView, float angle){
 		imageView.setRotation(angle);
+	}
+
+	/**
+	 * Scales the seekbar to the size of heading data array
+	 * Rotates the compass to the value correspoding to a time on the
+	 * seekbar and prints this value to the screen
+	 * @param heading
+	 * @param slider
+	 */
+	private void controlCompass(ArrayList<Float> heading, SeekBar slider){
+		if(!heading.isEmpty()) //If we have heading data
+			slider.setMax(heading.size()); //Scale bar to size of heading data array
+		print2BT(String.valueOf(heading.get(slider.getProgress()))); //
+		spinCompass(compass, heading.get(slider.getProgress()));
 	}
 
 	/**
