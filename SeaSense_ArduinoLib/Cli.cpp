@@ -9,7 +9,7 @@
 // input text and number of args from a new command line entry
 static int cli_argc;
 static char* cli_argv[MAX_CLI_ARGV]; //see globals.h
- 
+
 /* Create a type for each CLI command. */
 struct CLI_CMD
 {
@@ -54,6 +54,7 @@ void printDirectory(File dir, int numTabs);
 char* newFile(int filenum);
 void dumpCSV(File dir, int numTabs); 
 bool isCSV(char* filename);
+void rmSubFiles(File dir);
 
 // Generate the list of CLI commands. 
 //      note that converting "text like this" to a char* is a
@@ -215,7 +216,6 @@ void cli_sd_init(int argc, char *argv[])
     digitalWrite(SD_CS,HIGH);
     SPI.end();
     delay(50);
-    //digitalWrite(SD_CS,HIGH);
     
     // initialize the SD card
     // first search for the actual card
@@ -270,7 +270,7 @@ void cli_sd_cat(int argc, char *argv[])
    }
     return;
 }
- 
+
 void cli_sd_dd(int argc, char *argv[])
 {
     if(sd_logData){
@@ -298,6 +298,7 @@ void cli_sd_append(int argc, char *argv[])
     File currentFile;
     currentFile = SD.open(argv[1],FILE_WRITE);
     if(currentFile){
+        Serial1.print(F("Writing to file ")); Serial1.println(argv[1]);
         Serial1.print(F("Writing to file ")); Serial1.println(argv[1]);
         int i;
         for(i=1;i<argc;i++)
@@ -343,8 +344,24 @@ void cli_sd_del(int argc, char *argv[]) {
         return;
     }
     if(SD.exists(argv[1])){
-        SD.remove(argv[1]);
-        Serial1.print(F("Removed file ")); Serial1.println(argv[1]);
+        File currentFile; // need to do this to use .isDirectory()
+        currentFile = SD.open(argv[1]);
+        
+        if(currentFile.isDirectory()){
+            rmSubFiles(currentFile);
+            currentFile.close();
+            char* dir = (char*)calloc(10,sizeof(char));
+            strcpy(dir,argv[1]);// strcat(dir,"/");
+            Serial1.print(F("Removing dir: ")); Serial1.println(dir);
+            if(!SD.rmdir(dir)) Serial1.println(F("Error: dir must be empty"));
+            free(dir);
+        }
+        
+        else{
+            currentFile.close();
+            SD.remove(argv[1]);
+            Serial1.print(F("Removed file ")); Serial1.println(argv[1]);
+        }
     } else
         Serial1.println(F("Error: given file doesn't exist"));
     return;
@@ -380,11 +397,28 @@ void cli_log_file(int argc, char *argv[])
 {
     sd_logData = !sd_logData;
     if(sd_logData){ // if data logging is toggled to on..
+        DateTime now = rtc.now();
+        char* fullpath = (char*)calloc(24,sizeof(char));
+        char* dir = (char*)calloc(10,sizeof(char));
+        sprintf(dir,"%04d%02d%02d/",now.year(),now.month(),now.day());
         char* filename = newFile(0);
-        SDfile = SD.open(filename,FILE_WRITE);
+        if (SD.exists(dir)){ 
+            fullpath = strcat(fullpath,dir);
+            fullpath = strcat(fullpath,filename);
+        }
+        else{
+            SD.mkdir(dir);
+            Serial1.print(F("Created directory ")); Serial1.println(dir);
+            fullpath = strcat(fullpath,dir);
+            fullpath = strcat(fullpath,filename);
+        }
+        
+        SDfile = SD.open(fullpath,FILE_WRITE);
         SDfile.println(F("Time,Temp,Depth,Cond,Light,Head,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ"));
-        Serial1.print(F("Logging data to file ")); Serial1.println(filename);
+        Serial1.print(F("Logging data to ")); Serial1.println(fullpath);
         free(filename);
+        free(dir);
+        free(fullpath);
     } else { // if data logging is toggled to off...
         //SDfile.print((char)0xF0);
         //SDfile.print((char)0x9F);
@@ -413,6 +447,7 @@ void cli_wdt_reset(int argc, char *argv[]) {
     while(1); // eat processor cycles until the wdt overflows
 }
 
+// prints out all files and directories on the SD card to the serial monitor
 void printDirectory(File dir, int numTabs) {
     dir.seek(0); // fix for sd_ls showing nothing after modifying files
     while (true) {
@@ -441,7 +476,7 @@ void printDirectory(File dir, int numTabs) {
 // CSV files stored in the directory
 void dumpCSV(File dir, int numTabs)
 {
-    char *fileList;
+    char *fullfile = (char*)calloc(24,sizeof(char));
     
     dir.seek(0); // fix for sd_ls showing nothing after modifying files
     while (true) {
@@ -456,11 +491,14 @@ void dumpCSV(File dir, int numTabs)
             if(strchr(entry.name(),'~') == 0){ // don't count INDEXE~1 as a filename
                 if(isCSV(entry.name())) // only return .csv files
                 {
+                    strcpy(fullfile,dir.name());
+                    strcat(fullfile,"/");
+                    strcat(fullfile,entry.name());
                     Serial1.print(F("File ")); 
-                    Serial1.print(entry.name());
+                    Serial1.print(fullfile);
                     Serial1.print(F(":\n\r"));
                     File currentFile;
-                    currentFile = SD.open(entry.name());
+                    currentFile = SD.open(fullfile);
                     if (currentFile){
                         // read from the file until there's nothing else in it:
                         while (currentFile.available()) {
@@ -473,6 +511,7 @@ void dumpCSV(File dir, int numTabs)
         }
         entry.close();
   }
+    free(fullfile);
     return;
 }
 
@@ -483,12 +522,8 @@ char* newFile(int filenum){
         char* filename = (char*)malloc(sizeof(char)*13);
         boolean exists = true;
         while(exists == true){
-             sprintf(filename,"%02d%02d%02d%02d.csv",now.year()-2000,now.month(),now.day(),filenum);
-             if(SD.exists(filename)){
-                 filenum++;
-             } else {
-                 exists = false;
-             }
+             sprintf(filename,"%02d:%02d:%02d.csv",now.hour(),now.minute(),now.second());
+             exists = false;
         }
         return filename;
 }
@@ -500,4 +535,27 @@ bool isCSV(char* filename) {
   } else {
     return false;
   }
+}
+
+// rmSubFiles - deletes all files within the given directory
+void rmSubFiles(File dir)
+{
+    char *fullfile = (char*)calloc(24,sizeof(char));
+    dir.seek(0);
+    while (true) {
+        File entry =  dir.openNextFile();
+        if (! entry) { // no more files
+          break;
+        }
+        
+        strcpy(fullfile,dir.name());
+        strcat(fullfile,"/");
+        strcat(fullfile,entry.name());
+        Serial1.print(F("Removing file ")); 
+        Serial1.println(fullfile);
+        entry.close();
+        if(!SD.remove(fullfile)) Serial1.println(F("Error: must delete sub-directories first"));
+    }
+    free(fullfile);
+    return;
 }

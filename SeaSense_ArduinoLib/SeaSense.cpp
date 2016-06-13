@@ -331,6 +331,7 @@ ISR(TIMER1_COMPA_vect)
       return;
     } 
     
+    else if (!app_logData) count2 = 0;
     // keep a rolling count of the number of interrupts triggered
     if(count<9) 
       count++;
