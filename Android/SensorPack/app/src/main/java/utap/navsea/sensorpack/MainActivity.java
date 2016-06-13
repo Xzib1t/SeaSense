@@ -231,6 +231,10 @@ public class MainActivity  extends AppCompatActivity {
 
 	/**
 	 * This method gets paired devices and stores them
+	 *
+	 * Much of this method was taken from:
+	 * https://developer.android.com/guide/topics/connectivity/bluetooth.html
+	 * Modifications were made to conform to the specifications of this app
 	 */
 	private void setupBT(){
 		int REQUEST_ENABLE_BT = 1;
@@ -277,6 +281,9 @@ public class MainActivity  extends AppCompatActivity {
 		dialog.show();
 		ProgressBar tempSpinner = (ProgressBar)dialog.findViewById(R.id.progressBar);
 		tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while we aren't connecting
+		Snackbar.make(dialog.findViewById(R.id.device_list_display),
+				"Paired Bluetooth devices", Snackbar.LENGTH_LONG)
+				.setAction("Action", null).show();
 
 		ListView lv = (ListView) dialog.findViewById(R.id.device_list_display);
 		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.device_list_popup));
@@ -288,7 +295,6 @@ public class MainActivity  extends AppCompatActivity {
 					address = temp; //Only get address, discard name
 				}
 				BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
-				//connect2device(device);
 				new ConnectTask().execute(device);
 			}
 		});
@@ -402,8 +408,8 @@ public class MainActivity  extends AppCompatActivity {
 	}
 
 	/**
-	 * This class handles downloading data in the background while displaying
-	 * a loading bar.
+	 * This class handles connecting to a Bluetooth device in the background
+	 * while displaying a loading bar.
 	 */
 	class ConnectTask extends AsyncTask<BluetoothDevice, Integer, String> {
 		private ProgressBar spinner;
@@ -444,6 +450,10 @@ public class MainActivity  extends AppCompatActivity {
 		protected void onPreExecute() {
 			spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
 			spinner.setVisibility(View.VISIBLE);
+
+			Snackbar.make(dialogCommands.findViewById(R.id.command_list_display),
+					"Downloading data", Snackbar.LENGTH_LONG)
+					.setAction("Action", null).show();
 		}
 		@Override
 		protected String doInBackground(Integer... params) {

@@ -32,10 +32,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -44,7 +41,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Set;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
@@ -72,51 +68,6 @@ public class Bluetooth extends AppCompatActivity{
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth);
-
-        Button buttonList = (Button) findViewById(R.id.button_list);
-        buttonList.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                mArrayAdapter.clear();
-                setupBT();
-
-                ListView newDevicesListView = (ListView)
-                        findViewById(R.id.device_display);
-
-                newDevicesListView.setAdapter(mArrayAdapter);
-                newDevicesListView.setClickable(true);
-            }
-        });
-
-        getDevice();
-        mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list);
-
-        Button buttonRead = (Button) findViewById(R.id.button_read);
-        buttonRead.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                try {
-                    if(socket!=null) {
-                        InputStream inStream = socket.getInputStream();
-                        //readData(inStream);
-                    }
-                } catch (IOException e) {
-                    //TODO
-                }
-            }
-        });
-
-        Button buttonWrite = (Button) findViewById(R.id.button_write);
-        buttonWrite.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                try {
-                    if(socket!=null) {
-                        OutputStream outStream = socket.getOutputStream();
-                        sendCommand(outStream, "logapp");
-                    }
-                } catch (IOException e) {
-                    //TODO
-                }
-            }
-        });
     }
 
     /**
@@ -165,51 +116,6 @@ public class Bluetooth extends AppCompatActivity{
         gyroX.clear();
         gyroY.clear();
         gyroZ.clear();
-    }
-
-    private void printAllData(){
-        //print2BT(downloadedStrings + "\n");
-        print2BT("Temperature: " + temperature.toString() + "\n");
-        print2BT("Depth: " + depth.toString() + "\n");
-        print2BT("Conductivity: " + conductivity.toString() + "\n");
-        print2BT("Light: " + light.toString() + "\n");
-        print2BT("Heading: " + heading.toString() + "\n");
-        print2BT("Accelerometer X: " + accelX.toString() + "\n");
-        print2BT("Accelerometer Y: " + accelY.toString() + "\n");
-        print2BT("Accelerometer Z: " + accelZ.toString() + "\n");
-        print2BT("Gyroscope X: " + gyroX.toString() + "\n");
-        print2BT("Gyroscope Y: " + gyroY.toString() + "\n");
-        print2BT("Gyroscope Z: " + gyroZ.toString());
-    }
-
-    public static void connect2device(BluetoothDevice mBluetoothAdapter) {
-        socket = null;
-        try {
-            socket = mBluetoothAdapter.createRfcommSocketToServiceRecord(uuid);
-            socket.connect();
-        } catch (IOException e) { }
-    }
-
-    /**
-     * Some of the contents of this method are found at:
-     * http://stackoverflow.com/questions/9596663/how-to-make-items-clickable-in-list-view
-     * Modifications were made to conform to the specifications of this app
-     */
-    private void getDevice(){
-        ListView lv = (ListView) findViewById(R.id.device_display);
-        lv.setAdapter(new ArrayAdapter<String> (this, R.layout.activity_bluetooth));
-        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            public void onItemClick(AdapterView<?> arg, View view, int position, long id) {
-                String address = (String) ((TextView) view).getText();
-                for(String temp : address.split("\n")) {
-                    address = temp; //Only get address, discard name
-                }
-                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-
-                connect2device(device);
-            }
-
-        });
     }
 
     public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}
@@ -678,6 +584,11 @@ public class Bluetooth extends AppCompatActivity{
         }
     }
 
+    /**
+     * This method checks whether or not the eof has been reached
+     * @param inputString
+     * @return
+     */
     private static boolean check4eof(ArrayList<String> inputString){
         String buffer = "";
 
@@ -786,6 +697,11 @@ public class Bluetooth extends AppCompatActivity{
         }
     }
 
+    /**
+     * This method checks if the input string is a float
+     * @param string
+     * @return
+     */
     public static boolean isFloat(String string)
     {
         try {
@@ -797,42 +713,16 @@ public class Bluetooth extends AppCompatActivity{
         return true;
     }
 
+    /**
+     * This method checks if the input string contains time data
+     * @param string
+     * @return
+     */
     public static boolean isTime(String string)
     {
         String[] check = string.split(":");
         if(isFloat(check[check.length-1])) return true; //The last chunk of the time string will be a number (like the 11 in 12:13:11)
         else return false;
-    }
-
-    private void print2BT(String theString){
-        TextView bluetoothLog = (TextView) findViewById(R.id.bluetooth_log);
-        bluetoothLog.append(theString);	//append the text into the EditText
-        ((ScrollView)bluetoothLog.getParent()).fullScroll(View.FOCUS_DOWN);
-    }
-
-    /**
-     * Much of this method was taken from:
-     * https://developer.android.com/guide/topics/connectivity/bluetooth.html
-     * Modifications were made to conform to the specifications of this app
-     */
-    private void setupBT(){
-        int REQUEST_ENABLE_BT = 1;
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-        // If there are paired devices
-        if (pairedDevices.size() > 0) {
-            // Loop through paired devices
-            for (BluetoothDevice device : pairedDevices) {
-                // Add the name and address to an array adapter to show in a ListView
-                mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
-            }
-        }
     }
 
     /**
