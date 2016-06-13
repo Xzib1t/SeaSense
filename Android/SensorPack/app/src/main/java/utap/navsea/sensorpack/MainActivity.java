@@ -51,9 +51,9 @@ public class MainActivity  extends AppCompatActivity {
 	private ImageView seaperch = null;
 	private ArrayAdapter<String> mArrayAdapter;
 	private ArrayAdapter<String> mCommandAdapter;
+	private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
 	private Dialog dialog;
 	private Dialog dialogCommands;
-	private BluetoothSocket socket = null;
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
 	private SeekBar timeSlider = null;
@@ -81,8 +81,6 @@ public class MainActivity  extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Getting BT device list", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
 				getDevice();
 				displayList();
 				fab.setVisibility(View.INVISIBLE); //Hide fab when we're done connecting
@@ -105,9 +103,7 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
-				if(socket!=null) {
-					displayCommands(); //Show list of clickable commands
-				}
+				displayCommands(); //Show list of clickable commands
 			}
 		});
 
@@ -204,7 +200,7 @@ public class MainActivity  extends AppCompatActivity {
 						OutputStream outStream = socket.getOutputStream();
 						if(position==13 || position==8){ //if logapp or sd_dd were pressed
 							LoadingBar Download = new LoadingBar();
-							if(position==13) Download.mode = "log_app";
+							if(position==13) Download.mode = "logapp";
 							if(position==8) Download.mode = "sd_dd";
 							Download.execute();
 						}
@@ -289,8 +285,13 @@ public class MainActivity  extends AppCompatActivity {
 					address = temp; //Only get address, discard name
 				}
 				BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
-
 				connect2device(device);
+
+				if(socket!=null) //Check if we're connected after an attempt
+					Snackbar.make(view, "Connected", Snackbar.LENGTH_LONG)
+							.setAction("Action", null).show();
+				else Snackbar.make(view, "Connection attempt failed", Snackbar.LENGTH_LONG)
+						.setAction("Action", null).show();
 			}
 		});
 
@@ -303,11 +304,21 @@ public class MainActivity  extends AppCompatActivity {
 	 * @param mBluetoothAdapter
      */
 	private void connect2device(BluetoothDevice mBluetoothAdapter) {
-		socket = null;
+		if(socket!=null){
+			try{
+				socket.close(); //try to clear the socket
+			}
+			catch(IOException e){
+				socket = null;
+			}
+		}
 		try {
 			socket = mBluetoothAdapter.createRfcommSocketToServiceRecord(uuid);
 			socket.connect();
-		} catch (IOException e) { }
+			Bluetooth.saveSocket(socket); //store socket
+		} catch (IOException e) {
+			socket = null; //reset socket if the connection fails
+		}
 	}
 
 	/**
@@ -380,7 +391,7 @@ public class MainActivity  extends AppCompatActivity {
 	private void controlSeaperch(ArrayList<Float> accelX, ArrayList<Float> accelY,
 								 ArrayList<Float> accelZ, SeekBar slider){
 		if(!accelX.isEmpty()) //If we have data
-			slider.setMax(accelX.size()-1); //Scale bar to size of data array
+			slider.setMax(accelZ.size()-1); //Scale bar to size of data array
 		rotateSeaperch(seaperch, accelX.get(slider.getProgress()),
 				accelY.get(slider.getProgress()), accelZ.get(slider.getProgress()));
 	}
@@ -408,8 +419,8 @@ public class MainActivity  extends AppCompatActivity {
 		}
 		@Override
 		protected String doInBackground(Integer... params) {
-			if(mode.equals("log_app")) {
-				downloadRtData();
+			if(mode.equals("logapp")) {
+				downloadRtData(); //TODO fix occasional download dropping
 			}
 			if(mode.equals("sd_dd")){
 				downloadSdDump();

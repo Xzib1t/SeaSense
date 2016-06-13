@@ -31,7 +31,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.telephony.PhoneNumberUtils;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -212,6 +211,10 @@ public class Bluetooth extends AppCompatActivity{
 
         });
     }
+
+    public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}
+
+    public static BluetoothSocket getSocket() {return socket;}
 
     public static ArrayList<String> getTime(){
         return time;
