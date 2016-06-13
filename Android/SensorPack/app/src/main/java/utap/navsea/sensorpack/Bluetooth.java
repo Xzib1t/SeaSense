@@ -1,9 +1,8 @@
 /*
  * Copyright 2016 Joseph Maestri
  *
- * The methods in this file were either taken directly/almost directly from:
+ * The following link was frequently consulted in the creation of this file:
  * https://developer.android.com/guide/topics/connectivity/bluetooth.html
- * or created using the information from the above guide
  *
  * https://github.com/prefanatic/BME-363-Lab was also consulted in the creation
  * of this file
@@ -31,10 +30,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.ScrollView;
-import android.widget.TextView;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
