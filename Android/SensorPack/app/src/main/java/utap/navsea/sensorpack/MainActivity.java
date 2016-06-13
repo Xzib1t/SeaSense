@@ -199,7 +199,7 @@ public class MainActivity  extends AppCompatActivity {
 					if(socket!=null) {
 						OutputStream outStream = socket.getOutputStream();
 						if(position==13 || position==8){ //if logapp or sd_dd were pressed
-							LoadingBar Download = new LoadingBar();
+							DownloadTask Download = new DownloadTask();
 							if(position==13) Download.mode = "logapp";
 							if(position==8) Download.mode = "sd_dd";
 							Download.execute();
@@ -274,6 +274,9 @@ public class MainActivity  extends AppCompatActivity {
 		dialog.setContentView(R.layout.device_list_popup);
 		dialog.setCancelable(true);
 		dialog.setTitle("Bluetooth Devices");
+		dialog.show();
+		ProgressBar tempSpinner = (ProgressBar)dialog.findViewById(R.id.progressBar);
+		tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while we aren't connecting
 
 		ListView lv = (ListView) dialog.findViewById(R.id.device_list_display);
 		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.device_list_popup));
@@ -285,17 +288,10 @@ public class MainActivity  extends AppCompatActivity {
 					address = temp; //Only get address, discard name
 				}
 				BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
-				connect2device(device);
-
-				if(socket!=null) //Check if we're connected after an attempt
-					Snackbar.make(view, "Connected", Snackbar.LENGTH_LONG)
-							.setAction("Action", null).show();
-				else Snackbar.make(view, "Connection attempt failed", Snackbar.LENGTH_LONG)
-						.setAction("Action", null).show();
+				//connect2device(device);
+				new ConnectTask().execute(device);
 			}
 		});
-
-		dialog.show();
 	}
 
 	/**
@@ -409,7 +405,39 @@ public class MainActivity  extends AppCompatActivity {
 	 * This class handles downloading data in the background while displaying
 	 * a loading bar.
 	 */
-	class LoadingBar extends AsyncTask<Integer, Integer, String> {
+	class ConnectTask extends AsyncTask<BluetoothDevice, Integer, String> {
+		private ProgressBar spinner;
+
+		@Override
+		protected void onPreExecute() {
+			spinner = (ProgressBar)dialog.findViewById(R.id.progressBar);
+			spinner.setVisibility(View.VISIBLE);
+		}
+		@Override
+		protected String doInBackground(BluetoothDevice...deviceArr) {
+			BluetoothDevice device = deviceArr[0];
+			connect2device(device);
+			return "done";
+		}
+		@Override
+		protected void onPostExecute(String result) {
+			spinner = (ProgressBar)dialog.findViewById(R.id.progressBar);
+			spinner.setVisibility(View.INVISIBLE);
+
+			if(socket!=null) //Check if we're connected after an attempt
+				Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connected", Snackbar.LENGTH_LONG)
+						.setAction("Action", null).show();
+
+			else Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connection attempt failed", Snackbar.LENGTH_LONG)
+					.setAction("Action", null).show();
+		}
+	}
+
+	/**
+	 * This class handles downloading data in the background while displaying
+	 * a loading bar.
+	 */
+	class DownloadTask extends AsyncTask<Integer, Integer, String> {
 		private ProgressBar spinner;
 		public String mode = "";
 		@Override
