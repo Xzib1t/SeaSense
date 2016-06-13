@@ -97,7 +97,7 @@ public class Bluetooth extends AppCompatActivity{
                 try {
                     if(socket!=null) {
                         InputStream inStream = socket.getInputStream();
-                        readData(inStream);
+                        //readData(inStream);
                     }
                 } catch (IOException e) {
                     //TODO
@@ -125,7 +125,7 @@ public class Bluetooth extends AppCompatActivity{
      * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
      * Modifications were made to conform to the specifications of this app
      */
-    public static void readData(InputStream inStream) {
+    public static void readData(InputStream inStream, int distinctDataPoints) {
         try {
             boolean eofFound = false;
             String downloadedStrings = new String();
@@ -143,7 +143,7 @@ public class Bluetooth extends AppCompatActivity{
                     for (String printStr : downloadedData) {
                         downloadedStrings = downloadedStrings.concat(printStr);
                     }
-                    parseData(downloadedStrings);
+                    parseData(downloadedStrings, distinctDataPoints);
                     eofFound = true;
                 }
             }
@@ -693,7 +693,12 @@ public class Bluetooth extends AppCompatActivity{
         return false;
     }
 
-    private static void parseData(String input) {
+    /**
+     * Parses the CSV data
+     * @param input
+     * @param distinctDataPoints this is the number of distinctly separated data points in the file
+     */
+    private static void parseData(String input, int distinctDataPoints) {
         int dataType = 0;
         int curIndex = 0;
         String eof = "U+1F4A9";
@@ -762,18 +767,18 @@ public class Bluetooth extends AppCompatActivity{
                             gyroY.add(Float.parseFloat(parsedData.get(curIndex)));
                         }
                         break;
-                    //case 11: //THIS NEEDS TO BE UNCOMMENTED FOR REGULAR LOGAPP TO WORK
-                    //    if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
-                    //        gyroZ.add(Float.parseFloat(parsedData.get(curIndex)));
-                    //    }
-                    //    break;
+                    case 11: //This case will never be reached if distinctDataPoints<12
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            gyroZ.add(Float.parseFloat(parsedData.get(curIndex)));
+                        }
+                        break;
                     default:
 
                         break;
                 }
                 curIndex++;
                 dataType++;
-                if (dataType > 10) dataType = 0; //reset data counter
+                if (dataType > (distinctDataPoints-1)) dataType = 0; //reset data counter after last datapoint is filled
             }
         }
     }

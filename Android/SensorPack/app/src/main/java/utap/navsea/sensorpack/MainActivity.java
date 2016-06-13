@@ -140,13 +140,30 @@ public class MainActivity  extends AppCompatActivity {
 	 * Send command to Bluno to start data transfer
 	 * Receive data
 	 */
-	private void downloadData(){
+	private void downloadRtData(){
 		try {
 			if (socket != null) {
 				OutputStream outStream = socket.getOutputStream();
-				Bluetooth.sendCommand(outStream, "sd_dd");//"logapp"); //Send logapp command to start data transfer
+				Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
 				InputStream inStream = socket.getInputStream();
-				Bluetooth.readData(inStream);
+				Bluetooth.readData(inStream, 12);
+			}
+		} catch (IOException e) {
+			//TODO
+		}
+	}
+
+	/**
+	 * Send command to Bluno to start data transfer of SD card csv files
+	 * Receive data
+	 */
+	private void downloadSdDump(){
+		try {
+			if (socket != null) {
+				OutputStream outStream = socket.getOutputStream();
+				Bluetooth.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
+				InputStream inStream = socket.getInputStream();
+				Bluetooth.readData(inStream, 11);
 			}
 		} catch (IOException e) {
 			//TODO
@@ -187,6 +204,8 @@ public class MainActivity  extends AppCompatActivity {
 						OutputStream outStream = socket.getOutputStream();
 						if(position==13 || position==8){ //if logapp or sd_dd were pressed
 							LoadingBar Download = new LoadingBar();
+							if(position==13) Download.mode = "log_app";
+							if(position==8) Download.mode = "sd_dd";
 							Download.execute();
 						}
 						else Bluetooth.sendCommand(outStream, mCommandAdapter.getItem(position));
@@ -347,8 +366,6 @@ public class MainActivity  extends AppCompatActivity {
 	 * @param slider
 	 */
 	private void controlCompass(ArrayList<Float> heading, SeekBar slider){
-		if(!heading.isEmpty()) //If we have heading data
-			slider.setMax(heading.size()-1); //Scale bar to size of heading data array
 		print2BT(String.valueOf(heading.get(slider.getProgress())) + "\n");
 		spinCompass(compass, heading.get(slider.getProgress()));
 	}
@@ -362,6 +379,8 @@ public class MainActivity  extends AppCompatActivity {
 	 */
 	private void controlSeaperch(ArrayList<Float> accelX, ArrayList<Float> accelY,
 								 ArrayList<Float> accelZ, SeekBar slider){
+		if(!accelX.isEmpty()) //If we have data
+			slider.setMax(accelX.size()-1); //Scale bar to size of data array
 		rotateSeaperch(seaperch, accelX.get(slider.getProgress()),
 				accelY.get(slider.getProgress()), accelZ.get(slider.getProgress()));
 	}
@@ -375,8 +394,13 @@ public class MainActivity  extends AppCompatActivity {
 		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
 	}
 
+	/**
+	 * This class handles downloading data in the background while displaying
+	 * a loading bar.
+	 */
 	class LoadingBar extends AsyncTask<Integer, Integer, String> {
 		private ProgressBar spinner;
+		public String mode = "";
 		@Override
 		protected void onPreExecute() {
 			spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
@@ -384,7 +408,12 @@ public class MainActivity  extends AppCompatActivity {
 		}
 		@Override
 		protected String doInBackground(Integer... params) {
-				downloadData();
+			if(mode.equals("log_app")) {
+				downloadRtData();
+			}
+			if(mode.equals("sd_dd")){
+				downloadSdDump();
+			}
 			return "done";
 		}
 		@Override
