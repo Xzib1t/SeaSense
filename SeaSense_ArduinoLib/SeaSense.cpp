@@ -4,14 +4,9 @@
 #include "Arduino.h"
 #include "globals.h"
 #include "SeaSense.h"
-//#include "RTClib.h"
 #include "SPI.h"
-//#include "SD.h"
 #include "Cli.h"
 #include "dataCollection.h"
-//#include "Adafruit_Sensor.h"
-//#include "Adafruit_HMC5883_U.h"
-//#include "Adafruit_ADXL345_U.h"
 #include "avr/wdt.h" 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -35,6 +30,7 @@ int GyroX = 0,GyroY = 0,GyroZ = 0; // units of microTeslas
 File SDfile;
 Adafruit_HMC5883_Unified mag;
 Adafruit_ADXL345_Unified accel;
+Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
 char cli_rxBuf [MAX_INPUT_SIZE];
 int count; // used in timer1 interrupt
@@ -90,6 +86,16 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
 * - initializes the SD card and RTC
 */ 
 void SeaSense::Initialize(){
+    /* Initialize the display */
+    digitalWrite(7,LOW);
+    display.begin(SSD1306_SWITCHCAPVCC);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0,0);
+    display.print("System init . . .\n");
+    display.display();
+    digitalWrite(7,HIGH);
     
     /* Perform all critical init with interrupts disabled */
     cli(); // disable global interrupts
@@ -186,8 +192,15 @@ void SeaSense::Initialize(){
     /* Initialize the gyroscope */
     Serial1.print(F("\tInitializing gyroscope ..."));
     setupL3G4200D(2000); // Configure L3G4200  - 250, 500 or 2000 deg/sec
-    delay(1500); //wait for the sensor to be ready 
+    //delay(1500); //wait for the sensor to be ready 
     Serial1.println(F(" done"));
+    
+    digitalWrite(4,HIGH);
+    digitalWrite(7,LOW);
+    display.print("done!\n");
+    display.display();
+    digitalWrite(4,LOW);
+    digitalWrite(7,HIGH);
     
     newCli = true; // will write '>' for bt CLI if true
     init = true; // indicate that initilization is complete (not actually used)
@@ -349,7 +362,17 @@ ISR(TIMER1_COMPA_vect)
           Serial1.print(Light); Serial1.print(F("\t"));
           Serial1.println(Head);
           return;
-      } 
+      }
+        digitalWrite(4,HIGH);
+        digitalWrite(7,LOW);
+        display.clearDisplay();
+        display.setTextSize(2);
+        display.setTextColor(WHITE);
+        display.setCursor(16,26);
+        display.print(Timestamp);
+        display.display();
+        digitalWrite(7,HIGH);
+        digitalWrite(4,LOW);
     }
 }
 

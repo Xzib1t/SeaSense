@@ -17,6 +17,13 @@
         #include "Adafruit_ADXL345_U.h"
         extern Adafruit_ADXL345_Unified accel;
         
+        #include "Adafruit_GFX.h"
+        #include "Adafruit_SSD1306.h"
+        #if (SSD1306_LCDHEIGHT != 64)
+        #error("Height incorrect, please fix Adafruit_SSD1306.h!");
+        #endif
+        extern Adafruit_SSD1306 display;
+
         #define MAX_INPUT_SIZE 80
         #define MAX_CLI_ARGV 10
         #define SD_CS 4
@@ -30,6 +37,13 @@
         #define CTRL_REG4 0x23
         #define CTRL_REG5 0x24
         #define L3G4200D_ADDRESS 0x69 
+        /* OLED Display */
+        #define OLED_MOSI  6    //D1
+        #define OLED_CLK   5    //D0
+        #define OLED_DC    11   //DC
+        #define OLED_CS    7    //CS
+        #define OLED_RESET 13   //RES
+
         /*Data values for writing to the SD card/serial log*/
         extern boolean logData;
         extern boolean sd_logData;
