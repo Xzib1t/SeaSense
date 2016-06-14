@@ -45,6 +45,7 @@
         #define OLED_RESET 13   //RES
 
         /*Data values for writing to the SD card/serial log*/
+        extern boolean noSD;
         extern boolean logData;
         extern boolean sd_logData;
         extern boolean app_logData;
@@ -54,7 +55,7 @@
         extern int Cond;
         extern unsigned long Light;
         extern int carryOut;
-        extern int Head;
+        extern int Head,dx,dy;
         extern int AccelX,AccelY,AccelZ;
         extern int GyroX,GyroY,GyroZ;
         extern int adcBuf[ADC_BUFFER_SIZE];

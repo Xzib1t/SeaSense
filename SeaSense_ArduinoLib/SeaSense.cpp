@@ -7,6 +7,7 @@
 #include "SPI.h"
 #include "Cli.h"
 #include "dataCollection.h"
+#include "display.h"
 #include "avr/wdt.h" 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -18,6 +19,7 @@ boolean RTC_AUTOSET;
 boolean logData; 
 boolean sd_logData;
 boolean app_logData;
+boolean noSD;
 RTC_DS1307 rtc;
 char Timestamp[9];
 double Temp = 0.0;
@@ -76,6 +78,7 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     logData = false;
     sd_logData = false;
     app_logData = false;
+    noSD = true;
 }
 
 /* Initialize - used to configure all I/O and ISRs
@@ -148,8 +151,10 @@ void SeaSense::Initialize(){
         Serial1.print(F("\tInitializing SD card ..."));
         if (!(SD.begin(SD_CS)))
             Serial1.println(F(" failed"));
-        else
+        else{
             Serial1.println(F(" done"));
+            noSD = false;
+        }
     }
     
     
@@ -319,7 +324,7 @@ ISR(TIMER1_COMPA_vect)
       SDfile.print(GyroX); SDfile.print(F(","));
       SDfile.print(GyroY); SDfile.print(F(","));
       SDfile.print(GyroZ); SDfile.print(F("\n\r"));
-      return;
+      //return;
     }
     else if(app_logData & !logData){
       count2++;
@@ -341,7 +346,7 @@ ISR(TIMER1_COMPA_vect)
       //Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
       
       if (count2 == 50) {app_logData = false; count2=0; Serial1.print(F("U+1F4A9")); Serial1.print(F(","));}
-      return;
+      //return;
     } 
     
     else if (!app_logData) count2 = 0;
@@ -361,15 +366,30 @@ ISR(TIMER1_COMPA_vect)
           Serial1.print(Cond); Serial1.print(F("\t"));
           Serial1.print(Light); Serial1.print(F("\t"));
           Serial1.println(Head);
-          return;
+          //return;
       }
         digitalWrite(4,HIGH);
         digitalWrite(7,LOW);
         display.clearDisplay();
-        display.setTextSize(2);
+        display.setTextSize(1);
         display.setTextColor(WHITE);
-        display.setCursor(16,26);
+        display.setCursor(40,2);
         display.print(Timestamp);
+        display.setCursor(8,20);
+        display.print(Temp);
+        display.setCursor(95,20);
+        display.print(Light);
+        display.setCursor(115,48);
+        display.print("lx");
+        display.setCursor(24,48);
+        display.print("C");
+        drawArrow(Head);
+        if (noSD) // if no SD card is available, indicate so
+            display.drawBitmap(0, 0, dispNoCard, 128, 64, WHITE);
+        else if(app_logData | logData | sd_logData)
+            display.drawBitmap(0, 0, dispCardWrite, 128, 64, WHITE);
+        else
+            display.drawBitmap(0, 0, dispCard, 128, 64, WHITE);
         display.display();
         digitalWrite(7,HIGH);
         digitalWrite(4,LOW);

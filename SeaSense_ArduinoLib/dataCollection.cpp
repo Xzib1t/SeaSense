@@ -32,7 +32,7 @@ void light_sensor_init(int light_s0, int light_s1){
 
 // read a new value from the hardware counter to global var Light
 void getLight() {
-    Light = 65535 * carryOut + TCNT5;
+    Light = (65535 * carryOut + TCNT5)/10;
     TCNT5 = 0;
     carryOut = 0;
 }
@@ -71,6 +71,7 @@ void getMag(){
     
     sensors_event_t event; 
     mag.getEvent(&event);
+    
     heading = atan2(event.magnetic.y, event.magnetic.x);
     heading += DECLINATION_ANGLE;
     // Correct for when signs are reversed.
@@ -81,6 +82,10 @@ void getMag(){
       if(heading > 2*PI)
         heading -= 2*PI;
     
+      // arrow position for compass
+     dx = (12 * cos((heading-90)*3.14/180)) + 63;    // calculate X position
+     dy = (12 * sin((heading-90)*3.14/180)) + 42;    // calculate Y position
+
      // Convert radians to degrees for readability.
      Head = heading * 180/M_PI; 
 

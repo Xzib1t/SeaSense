@@ -9,6 +9,7 @@
 #include "SPI.h"
 #include "Cli.h"
 #include "dataCollection.h"
+#include "display.h"
 #include "avr/wdt.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
