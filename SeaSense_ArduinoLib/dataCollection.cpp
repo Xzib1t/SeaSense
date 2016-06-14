@@ -40,12 +40,16 @@ void getLight() {
 // cycle through the adc buffer, come up with an average val for each sensor, and
 // process said val to its final form
 void getADCreadings(){
+    if(!adc_ready) return;
+    
+    cli(); // globally disable interrupts while the ADC registers are being modified
     int i = 0;
-    int avg = 0;
+    unsigned long long avg = 0;
     
     // cycle through the ADC buffer and get an average for each channel
     for(i = 0; i < ADC_BUFFER_SIZE; i++){
         avg+=adcBuf[i];
+        adcBuf[i] = 0;
     }
     avg = avg/ADC_BUFFER_SIZE;
     
@@ -61,8 +65,8 @@ void getADCreadings(){
             break;
     }
     
-    cli(); // globally disable interrupts while the ADC registers are being modified
     resetADC(); // configure the ADC for a new set of readings
+    adc_ready = false;
     sei(); // re-enable interrupts
     ADCSRA |= (1 << ADSC); // restart A2D Conversions
 }

@@ -20,6 +20,7 @@ boolean logData;
 boolean sd_logData;
 boolean app_logData;
 boolean noSD;
+boolean adc_ready;
 RTC_DS1307 rtc;
 char Timestamp[9];
 double Temp = 0.0;
@@ -72,6 +73,11 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
     pinMode(SD_CS, OUTPUT); // ss pin for SD card on ethernet shield
     
+    pinMode(A10,INPUT);
+    pinMode(A11,INPUT);
+    pinMode(A12,INPUT);
+    pinMode(A13,INPUT);
+    
     // don't enable data logging by default
     // the states of these booleans dictate whether or not data is written to the
     // SD card or serial port
@@ -80,6 +86,7 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     sd_logData = false;
     app_logData = false;
     noSD = true;
+    adc_ready = false;
 }
 
 /* Initialize - used to configure all I/O and ISRs
@@ -127,10 +134,10 @@ void SeaSense::Initialize(){
     ADMUX |= ((1 << REFS0)|(1 << ADLAR)|(1 << MUX1));
     ADCSRB |= (1 << MUX5);
     
-    // ADC status register
+    // ADC status register - DATASHEET PG 285
     // enable ADC (ADEN), enable ADC interrupt (ADIE) 
-    // clear ADPSx prescale and set to 250kHz samp rate
-    ADCSRA |= ((1 << ADEN)|(1 << ADIE)|(1 << ADPS2)|(1 << ADPS1));
+    // clear ADPSx prescale and set to 125kHz samp rate (0.000104 sec per 10 samps)
+    ADCSRA |= ((1 << ADEN)|(1 << ADIE)|(1 << ADPS2)|(1 << ADPS1)|(1 << ADPS0));
     
     sei(); // enable global interrupts:
     
@@ -433,6 +440,8 @@ ISR(ADC_vect){
         // increment to next buffer position
         adc_pos++;       
         ADCSRA |= (1 << ADSC); // Start A2D Conversions (ONLY IF BUFFER ISN'T FULL)
-    } 
+    } else {
+        adc_ready = true;
+    }
 }
  

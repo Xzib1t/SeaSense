@@ -38,7 +38,8 @@ void drawArrow(int degrees){
         y_to = -1*(sqrt((16*16)-(x_t * x_t)));
     }
 
-    display.drawLine(x+x_to, y+y_to, 63, 42, WHITE);
+   // display.drawLine(x+x_to, y+y_to, 63, 42, WHITE);
+    display.drawLine(63, 42, x-x_to, y-y_to, WHITE);
 }
 
 void drawBatInd(){

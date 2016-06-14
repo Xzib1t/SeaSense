@@ -28,7 +28,7 @@
         #define MAX_CLI_ARGV 10
         #define SD_CS 4
         #define NUM_ADC_CHANNELS 4
-        #define ADC_BUFFER_SIZE 10
+        #define ADC_BUFFER_SIZE 100
         /* http://www.magnetic-declination.com/ */
         #define DECLINATION_ANGLE 0.2516f 
         #define CTRL_REG1 0x20
@@ -60,6 +60,7 @@
         extern int GyroX,GyroY,GyroZ;
         extern int adcBuf[ADC_BUFFER_SIZE];
         extern byte adc_channel, adc_pos;
+        extern boolean adc_ready;
         extern int vBat;
         
 #endif
