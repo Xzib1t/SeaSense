@@ -23,6 +23,7 @@ import android.bluetooth.BluetoothSocket;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -66,7 +67,10 @@ public class MainActivity  extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);
+		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText); //TODO change this to clock_display
+		serialReceivedText.setTextSize(80f); //Set font size for clock
+		serialReceivedText.setGravity(Gravity.CENTER_HORIZONTAL); //This is done here because wrap_content was used for the height
+
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
 		seaperch = (ImageView) findViewById(R.id.seaperch); //get seaperch
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for BT devices
@@ -75,7 +79,6 @@ public class MainActivity  extends AppCompatActivity {
 		dialogCommands = new Dialog(this); //Create dialog to hold command options
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
-
 		fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
@@ -86,15 +89,13 @@ public class MainActivity  extends AppCompatActivity {
 				fab.setVisibility(View.INVISIBLE); //Hide fab when we're done connecting
 				fabRight.setVisibility(View.VISIBLE); //Show our navigational fab
 			}
-        });
+		});
 
 		assert fabRight != null;
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
 			public void onClick(View view) {
 				changeActivity(TempCondActivity.class); //Switches to TempCondActivity
-				/*for(String print : Bluetooth.downloadedData)
-					print2BT(print); //uncomment to show the received data*/
 			}
 		});
 
@@ -117,6 +118,8 @@ public class MainActivity  extends AppCompatActivity {
 
 					controlSeaperch(Bluetooth.getGyroX(), Bluetooth.getGyroY(),
 							Bluetooth.getGyroZ(), timeSlider);
+
+					controlClock(Bluetooth.getTime(), timeSlider);
 				}
 			}
 
@@ -199,7 +202,7 @@ public class MainActivity  extends AppCompatActivity {
 					if(socket!=null) {
 						OutputStream outStream = socket.getOutputStream();
 						if(position==13 || position==8){ //if logapp or sd_dd were pressed
-							DownloadTask Download = new DownloadTask();
+							DownloadTask Download = new DownloadTask();  //TODO make these tasks stop if dialog is destroyed
 							if(position==13) Download.mode = "logapp";
 							if(position==8) Download.mode = "sd_dd";
 							Download.execute();
@@ -379,23 +382,47 @@ public class MainActivity  extends AppCompatActivity {
 	 * @param slider
 	 */
 	private void controlCompass(ArrayList<Float> heading, SeekBar slider){
-		print2BT(String.valueOf(heading.get(slider.getProgress())) + "\n");
-		spinCompass(compass, heading.get(slider.getProgress()));
+		if(!heading.isEmpty() && !(slider.getProgress()>=heading.size())) { //If we have data
+			spinCompass(compass, heading.get(slider.getProgress()));
+		}
 	}
 
 	/**
 	 * Rotates the seaperch to the values correspoding to a time on the
-	 * @param accelX
-	 * @param accelY
-	 * @param accelZ
+	 * seekbar
+	 * @param gyroX
+	 * @param gyroY
+	 * @param gyroZ
 	 * @param slider
 	 */
-	private void controlSeaperch(ArrayList<Float> accelX, ArrayList<Float> accelY,
-								 ArrayList<Float> accelZ, SeekBar slider){
-		if(!accelX.isEmpty()) //If we have data
-			slider.setMax(accelZ.size()-1); //Scale bar to size of data array
-		rotateSeaperch(seaperch, accelX.get(slider.getProgress()),
-				accelY.get(slider.getProgress()), accelZ.get(slider.getProgress()));
+	private void controlSeaperch(ArrayList<Float> gyroX, ArrayList<Float> gyroZ,
+								 ArrayList<Float> gyroY, SeekBar slider){
+		if(!gyroY.isEmpty() && !(slider.getProgress()>=gyroY.size())) { //If we have data
+			slider.setMax(gyroZ.size() - 1); //Scale bar to size of data array
+			float x = gyroX.get(slider.getProgress());
+			float y = gyroY.get(slider.getProgress());
+			float z = gyroZ.get(slider.getProgress());
+			float sampleTime = 0.1f; //approximate, 10Hz sample rate
+
+			x = x * sampleTime; //deg/sec * sec
+			y = y * sampleTime;
+			z = z * sampleTime;
+
+			rotateSeaperch(seaperch, x, z, y); //Z and Y are reversed here
+		}
+	}
+
+	/**
+	 * Adjusts clock to the values correspoding to a time on the seekbar
+	 * @param time
+	 * @param slider
+	 */
+	private void controlClock(ArrayList<String> time, SeekBar slider){
+		if(!time.isEmpty() && !(slider.getProgress()>=time.size())) { //If we have data
+			serialReceivedText.setText(""); //reset text view
+			for(String timeHolder : time.get(slider.getProgress()).split("\\n")) //Ignore any newline data
+			print2BT(timeHolder);
+		}
 	}
 
 	/**

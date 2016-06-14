@@ -19,16 +19,15 @@
         android:layout_weight="1"/>
 
     <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:id="@+id/scrollView"
-        android:layout_weight="1">
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:id="@+id/scrollView"
+    android:layout_weight="1">
 
-        <TextView
-            android:id="@+id/serialReceivedText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="20" />
+    <TextView
+        android:id="@+id/serialReceivedText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
     </ScrollView>
 
     <ImageView
@@ -49,3 +48,17 @@
         https://upload.wikimedia.org/wikipedia/commons/8/8e/Compass_Card.png-->
 
 </LinearLayout>
+
+<!--
+<ScrollView
+android:layout_width="match_parent"
+android:layout_height="0dp"
+android:id="@+id/scrollView"
+android:layout_weight="1">
+
+<TextView
+    android:id="@+id/serialReceivedText"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:ems="20" />
+</ScrollView>-->
