@@ -36,7 +36,7 @@ Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
 char cli_rxBuf [MAX_INPUT_SIZE];
 int count; // used in timer1 interrupt
-
+int vBat;
 
 // used for ADC interrupt routine
 byte adc_channel = 10; // first ADC channel to be read from 
@@ -75,6 +75,7 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     // don't enable data logging by default
     // the states of these booleans dictate whether or not data is written to the
     // SD card or serial port
+    init = false;
     logData = false;
     sd_logData = false;
     app_logData = false;
@@ -122,7 +123,7 @@ void SeaSense::Initialize(){
     // ADC conversion ISR
     // REFS0 - AVCC reference with external cap at AREF pin
     // ADLAR - left adjust result
-    // MUX[5:0] = 100010 = ADC channel 10
+    // MUX[5:0] = first channel to read = 100010 = ADC channel 10
     ADMUX |= ((1 << REFS0)|(1 << ADLAR)|(1 << MUX1));
     ADCSRB |= (1 << MUX5);
     
@@ -133,15 +134,11 @@ void SeaSense::Initialize(){
     
     sei(); // enable global interrupts:
     
-    ADCSRA |= (1 << ADSC);  // Start A2D Conversions
-    
     Serial1.println(F("System Initialization..."));
-    
-    // initialize the light sensor (only matters if using TSL230r sensor)
-    light_sensor_init(_s0,_s1);
     
     // initialize the SD card
     // first search for the actual card
+    digitalWrite(7,HIGH);
     Serial1.print(F("\tSearching for SD card ..."));
     if (!card.init(SPI_HALF_SPEED, SD_CS)) 
         Serial1.println(F(" card not found"));
@@ -157,6 +154,10 @@ void SeaSense::Initialize(){
         }
     }
     
+    ADCSRA |= (1 << ADSC);  // Start A2D Conversions
+    
+    // initialize the light sensor (only matters if using TSL230r sensor)
+    light_sensor_init(_s0,_s1);
     
     // initialize the RTC
     if (! rtc.begin()) {
@@ -308,6 +309,8 @@ void SeaSense::CollectData()
 // File logs will be updated every ISR; serial logs every 10 ISRs
 ISR(TIMER1_COMPA_vect) 
 {
+  if(init == false) return;
+    
   getLight(); // read in light from hardware counter exactly every 100ms
     
     // log data to SD card
@@ -349,7 +352,7 @@ ISR(TIMER1_COMPA_vect)
       //return;
     } 
     
-    else if (!app_logData) count2 = 0;
+    if (!app_logData) count2 = 0;
     // keep a rolling count of the number of interrupts triggered
     if(count<9) 
       count++;
@@ -384,12 +387,22 @@ ISR(TIMER1_COMPA_vect)
         display.setCursor(24,48);
         display.print("C");
         drawArrow(Head);
-        if (noSD) // if no SD card is available, indicate so
+        if (noSD) { // if no SD card is available, indicate so
             display.drawBitmap(0, 0, dispNoCard, 128, 64, WHITE);
-        else if(app_logData | logData | sd_logData)
+            display.setCursor(2,1); display.print("NC");
+        } else if(app_logData | logData | sd_logData) {
             display.drawBitmap(0, 0, dispCardWrite, 128, 64, WHITE);
-        else
+            display.setCursor(16,2);
+            if(app_logData)
+                display.print("A"); // logging to (A)pp
+            if(logData)
+                display.print("U"); // logging to (U)ser
+            if(sd_logData)
+                display.print("F"); // logging to (F)ile
+        } else {
             display.drawBitmap(0, 0, dispCard, 128, 64, WHITE);
+        }
+        drawBatInd();
         display.display();
         digitalWrite(7,HIGH);
         digitalWrite(4,LOW);

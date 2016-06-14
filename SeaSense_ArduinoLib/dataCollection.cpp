@@ -57,6 +57,8 @@ void getADCreadings(){
             break;
         case 12: Cond = avg;
             break;
+        case 13: vBat = avg;
+            break;
     }
     
     cli(); // globally disable interrupts while the ADC registers are being modified
@@ -82,10 +84,6 @@ void getMag(){
       if(heading > 2*PI)
         heading -= 2*PI;
     
-      // arrow position for compass
-     dx = (12 * cos((heading-90)*3.14/180)) + 63;    // calculate X position
-     dy = (12 * sin((heading-90)*3.14/180)) + 42;    // calculate Y position
-
      // Convert radians to degrees for readability.
      Head = heading * 180/M_PI; 
 
@@ -198,7 +196,7 @@ void light_sensitivity(int scale, int s0, int s1){
 // resets the ADC for new conversions starting with channel 10 and buffer index 0
 void resetADC(){
     // cycle which ADC is being read from
-    if(adc_channel<12) {
+    if(adc_channel<13) {
         adc_channel++;
     }
     else adc_channel = 10;
@@ -225,6 +223,11 @@ void resetADC(){
         case 12: 
             // MUX[5:0] = 100100 = ADC channel 12
             ADMUX |= (1 << MUX2);
+            ADCSRB |= (1 << MUX5);
+            break;
+        case 13: 
+            // MUX[5:0] = 100101 = ADC channel 13
+            ADMUX |= ((1 << MUX2)|(1<<MUX0));
             ADCSRB |= (1 << MUX5);
             break;
         default:

@@ -27,7 +27,7 @@
         #define MAX_INPUT_SIZE 80
         #define MAX_CLI_ARGV 10
         #define SD_CS 4
-        #define NUM_ADC_CHANNELS 3
+        #define NUM_ADC_CHANNELS 4
         #define ADC_BUFFER_SIZE 10
         /* http://www.magnetic-declination.com/ */
         #define DECLINATION_ANGLE 0.2516f 
@@ -43,7 +43,7 @@
         #define OLED_DC    11   //DC
         #define OLED_CS    7    //CS
         #define OLED_RESET 13   //RES
-
+        
         /*Data values for writing to the SD card/serial log*/
         extern boolean noSD;
         extern boolean logData;
@@ -55,10 +55,11 @@
         extern int Cond;
         extern unsigned long Light;
         extern int carryOut;
-        extern int Head,dx,dy;
+        extern int Head;
         extern int AccelX,AccelY,AccelZ;
         extern int GyroX,GyroY,GyroZ;
         extern int adcBuf[ADC_BUFFER_SIZE];
         extern byte adc_channel, adc_pos;
+        extern int vBat;
         
 #endif
