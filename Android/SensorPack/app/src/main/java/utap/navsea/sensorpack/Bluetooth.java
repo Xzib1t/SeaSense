@@ -619,7 +619,7 @@ public class Bluetooth extends AppCompatActivity{
                 parsedData.add(splitVal);
                 switch (dataType) {
                     case 0:
-                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof //TODO make this a stringbuffer
                             String buffer[] = parsedData.get(curIndex).split("\\n?\\r"); //ignore newlines and carriage returns
                             time.add(buffer[buffer.length - 1]); //Grab the time value and ignore the rest
                             if (buffer.length >= 2 && isFloat(buffer[buffer.length - 2])) {//>=3) {
