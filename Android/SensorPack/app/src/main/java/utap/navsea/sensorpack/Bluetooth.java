@@ -606,25 +606,37 @@ public class Bluetooth extends AppCompatActivity{
     /**
      * Parses the CSV data
      * @param input
-     * @param distinctDataPoints this is the number of distinctly separated data points in the file
+     * @param distinctDataPoints this is the number of distinctly separated data TYPES in the file
      */
-    private static void parseData(String input, int distinctDataPoints) {
+    private static boolean parseData(String input, int distinctDataPoints) {
         int dataType = 0;
         int curIndex = 0;
         String eof = "U+1F4A9";
         ArrayList<String> parsedData = new ArrayList<String>();
+        StringBuffer buffer = new StringBuffer();
 
         for (String splitVal : input.split(",")) {
             if (isFloat(splitVal) || isTime(splitVal)) { //Check if it's data we actually want
                 parsedData.add(splitVal);
                 switch (dataType) {
                     case 0:
-                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof //TODO make this a stringbuffer
-                            String buffer[] = parsedData.get(curIndex).split("\\n?\\r"); //ignore newlines and carriage returns
-                            time.add(buffer[buffer.length - 1]); //Grab the time value and ignore the rest
-                            if (buffer.length >= 2 && isFloat(buffer[buffer.length - 2])) {//>=3) {
-                                gyroZ.add(Float.parseFloat(buffer[buffer.length - 2]));
+                        if (!(eof.equals(parsedData.get(curIndex)))) { //make sure we don't use the eof
+                            for(String bufferStr : parsedData.get(curIndex).split("\\n?\\r")) { //ignore newlines and carriage returns
+                                buffer.setLength(0); //Reset buffer
+                                buffer.append(bufferStr); //When we exit the loop, only time will be here
                             }
+                            System.out.println("Time data: " + buffer.toString());
+                            if(isTime(buffer.toString())) //Only take if it's a time value
+                                time.add(buffer.toString()); //Grab the time value
+                            else return false; //TODO BACKUP HERE AND FIND THE REAL TIME, FIX PARSING
+
+                            for(String bufferStr : parsedData.get(curIndex).split("\\n?\\r")) { //ignore time data
+                                buffer.setLength(0); //Reset buffer
+                                buffer.append(bufferStr); //Get gyroZ data
+                                break; //Only run once to get the first value
+                            }
+                            if(isFloat(buffer.toString())) //Make sure it's not garbage or parsing logapp data
+                                gyroZ.add(Float.parseFloat(buffer.toString())); //Grab the gyro value
                         }
                         break;
                     case 1:
@@ -691,6 +703,7 @@ public class Bluetooth extends AppCompatActivity{
                 if (dataType > (distinctDataPoints-1)) dataType = 0; //reset data counter after last datapoint is filled
             }
         }
+        return true;
     }
 
     /**
@@ -716,9 +729,16 @@ public class Bluetooth extends AppCompatActivity{
      */
     public static boolean isTime(String string)
     {
-        String[] check = string.split(":");
-        if(isFloat(check[check.length-1])) return true; //The last chunk of the time string will be a number (like the 11 in 12:13:11)
+        StringBuffer check = new StringBuffer();
+        for(String checkStr : string.split(":")){ //Splitting with ":+" takes an extra 5 seconds per 5 seconds of data
+            check.setLength(0);
+            check.append(checkStr); //Only store the last value
+            if(checkStr.equals(string)) return false; //Make sure it actually has ":" in it
+        }
+
+        if(isFloat(check.toString())) return true; //The last chunk of the time string will be a number (like the 11 in 12:13:11)
         else return false;
+
     }
 
     /**
