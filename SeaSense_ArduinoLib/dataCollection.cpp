@@ -57,7 +57,12 @@ void getADCreadings(){
     switch(adc_channel){
         case 10: Temp = (avg*500.0)/1024;
             break;
-        case 11: Depth = avg;
+        case 11: //VOUT = Vs* (0.004 x P-0.04) ± Error
+            // => (avg*5/1024)*(1/(Vs*.004))+0.04 = pressure in kPa = (avg*125)/512 + 0.04
+            long pressure;
+            pressure = ((avg*125)>>9)+0.04; 
+            pressure = pressure*10; // convert from kpa to mbar
+            Depth = abs(pressure-1013)*1.019; //convert mbar to cm
             break;
         case 12: Cond = avg;
             break;

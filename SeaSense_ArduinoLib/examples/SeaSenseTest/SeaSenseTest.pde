@@ -18,11 +18,15 @@
 SeaSense ss1(22,48,49);
 
 void setup(){
+    // allow for users to modify the RTC time
+    RTC_AUTOSET = false;
+    
     // Initialize USB serial coms (FOR DEBUG ONLY)
     Serial.begin(9600);
     
     // Initialize the sensor suite
     ss1.Initialize();
+    
 }
 
 void loop(){

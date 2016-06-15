@@ -35,6 +35,7 @@ Adafruit_HMC5883_Unified mag;
 Adafruit_ADXL345_Unified accel;
 Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
+
 char cli_rxBuf [MAX_INPUT_SIZE];
 int count; // used in timer1 interrupt
 int vBat;
@@ -61,7 +62,7 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     pinMode(output,OUTPUT);
     _output = output;
     
-    // default to setting the RTC based on prog compile time
+    // default to setting the RTC based on prog compile time (autoset = true)
     // this var can be changed from within the arduino sketch
     RTC_AUTOSET = true;
     
@@ -217,7 +218,7 @@ void SeaSense::Initialize(){
     
     newCli = true; // will write '>' for bt CLI if true
     init = true; // indicate that initilization is complete (not actually used)
-    digitalWrite(_output,HIGH); // indicate config complete with LED on pin 13
+    
     
     /* prompt users to enter a new command */
     Serial1.print(F("\tType in "));
@@ -322,6 +323,7 @@ ISR(TIMER1_COMPA_vect)
     
     // log data to SD card
     if(sd_logData & SDfile){
+        digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
       SDfile.print(Timestamp); SDfile.print(F(","));
       SDfile.print(Temp); SDfile.print(F(","));
       SDfile.print(Depth); SDfile.print(F(","));
@@ -337,6 +339,7 @@ ISR(TIMER1_COMPA_vect)
       //return;
     }
     else if(app_logData & !logData){
+        digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
       count2++;
       if (count2 == 1) Serial1.print("Temperature"); Serial1.print("\n\r");
         
@@ -370,6 +373,7 @@ ISR(TIMER1_COMPA_vect)
     {
 
       if(logData & !app_logData){
+          digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
           Serial1.print(Timestamp); Serial1.print(F("\t"));
           Serial1.print(Temp); Serial1.print(F("\t"));
           Serial1.print(Depth); Serial1.print(F("\t"));
@@ -413,6 +417,11 @@ ISR(TIMER1_COMPA_vect)
         display.display();
         digitalWrite(7,HIGH);
         digitalWrite(4,LOW);
+    }
+    
+    if((!app_logData) & (!logData) & (!sd_logData))
+    {
+        digitalWrite(22,LOW); // indicate config complete with LED on pin 13
     }
 }
 
