@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
@@ -74,23 +75,33 @@ public class Bluetooth extends AppCompatActivity{
     public static void readData(InputStream inStream, int distinctDataPoints) {
         try {
             boolean eofFound = false;
-            String downloadedStrings = new String();
+            StringBuffer downloadedStrings = new StringBuffer();
             resetBuffers(); //Resets all buffers to take in new data
 
             while (!eofFound) {
-                byte[] buffer = new byte[256];  //buffer store for the stream
-                int bytes; // bytes returned from read()
-                bytes = inStream.read(buffer);
-                String readMessage = new String(buffer, 0, bytes);
-                downloadedData.add(readMessage); //Add new strings to arraylist
+                byte[] buffer = new byte[1024];  //buffer store for the stream
+                int bytes = inStream.read(buffer); // bytes returned from read()
+                downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
                 boolean check = check4eof(downloadedData);
 
                 if (check) {
+                    downloadedStrings.setLength(0); //Reset buffer
                     for (String printStr : downloadedData) {
-                        downloadedStrings = downloadedStrings.concat(printStr);
+                        downloadedStrings.append(printStr);
                     }
-                    parseData(downloadedStrings, distinctDataPoints);
-                    eofFound = true;
+                    if(parseData(downloadedStrings.toString(), distinctDataPoints)){
+                        System.out.println("eof reached");
+                        downloadedStrings.setLength(0); //Reset buffer
+                        downloadedData.clear();
+                        eofFound = true;
+                    }
+                    else{ //Something went wrong when parsing or we timed out
+                        resetBuffers();
+                        downloadedStrings.setLength(0); //Reset buffer
+                        downloadedData.clear();
+                        System.out.println("Stopping");
+                        return; //Stop reading
+                    }
                 }
             }
         }catch(Exception e){
@@ -586,20 +597,25 @@ public class Bluetooth extends AppCompatActivity{
      * @return
      */
     private static boolean check4eof(ArrayList<String> inputString){
-        String buffer = "";
+        StringBuffer buffer = new StringBuffer();
+        buffer.setLength(0);
 
         for (String printStr : inputString) {
-            buffer = buffer.concat(printStr);
+            buffer.append(printStr);
         }
 
-        for(String splitVal : buffer.split(",")) {
+        System.out.println(inputString.get(inputString.size()-1));
+
+        //System.out.println("Received data: " + buffer.toString());
+
+        for(String splitVal : buffer.toString().split(",")) {
+            //System.out.println("Eof is checking: " + splitVal);
             String[] newlineSplit = splitVal.split("\\n?\\r");
-            if (!(isFloat(splitVal) && isTime(buffer))){ //ignore the command data
-                if(splitVal.equals("U+1F4A9")) return true; //check for the eof
+            if (!(isFloat(splitVal) && isTime(buffer.toString()))){ //ignore the command data
+                if(splitVal.trim().equals("U+1F4A9")) return true; //check for the eof
             }
-            if(newlineSplit[newlineSplit.length-1].equals("U+1F4A9")) return true;
+            if(newlineSplit[newlineSplit.length-1].trim().equals("U+1F4A9")) return true;
         }
-
         return false;
     }
 
@@ -625,10 +641,12 @@ public class Bluetooth extends AppCompatActivity{
                                 buffer.setLength(0); //Reset buffer
                                 buffer.append(bufferStr); //When we exit the loop, only time will be here
                             }
-                            System.out.println("Time data: " + buffer.toString());
                             if(isTime(buffer.toString())) //Only take if it's a time value
                                 time.add(buffer.toString()); //Grab the time value
-                            else return false; //TODO BACKUP HERE AND FIND THE REAL TIME, FIX PARSING
+                            else{
+                                System.out.println(buffer.toString());
+                                return false; //TODO BACK UP HERE AND FIND THE REAL TIME, FIX PARSING
+                            }
 
                             for(String bufferStr : parsedData.get(curIndex).split("\\n?\\r")) { //ignore time data
                                 buffer.setLength(0); //Reset buffer
