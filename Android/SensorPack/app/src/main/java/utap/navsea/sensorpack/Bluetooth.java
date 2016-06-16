@@ -80,7 +80,7 @@ public class Bluetooth extends AppCompatActivity{
 
             while (!eofFound) {
                 byte[] buffer = new byte[1024];  //buffer store for the stream
-                int bytes = inStream.read(buffer); // bytes returned from read()
+                int bytes = inStream.read(buffer); //bytes returned from read()
                 downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
                 boolean check = check4eof(downloadedData);
 
@@ -91,20 +91,17 @@ public class Bluetooth extends AppCompatActivity{
                     }
                     if(parseData(downloadedStrings.toString(), distinctDataPoints)){
                         System.out.println("eof reached");
-                        downloadedStrings.setLength(0); //Reset buffer
-                        downloadedData.clear();
                         eofFound = true;
                     }
                     else{ //Something went wrong when parsing or we timed out
-                        resetBuffers();
-                        downloadedStrings.setLength(0); //Reset buffer
-                        downloadedData.clear();
                         System.out.println("Stopping");
                         return; //Stop reading
                     }
                 }
             }
         }catch(Exception e){
+            System.out.println("Read exception");
+            resetBuffers();
             //TODO
         }
     }
@@ -604,17 +601,13 @@ public class Bluetooth extends AppCompatActivity{
             buffer.append(printStr);
         }
 
-        System.out.println(inputString.get(inputString.size()-1));
-
-        //System.out.println("Received data: " + buffer.toString());
-
         for(String splitVal : buffer.toString().split(",")) {
-            //System.out.println("Eof is checking: " + splitVal);
             String[] newlineSplit = splitVal.split("\\n?\\r");
             if (!(isFloat(splitVal) && isTime(buffer.toString()))){ //ignore the command data
                 if(splitVal.trim().equals("U+1F4A9")) return true; //check for the eof
             }
-            if(newlineSplit[newlineSplit.length-1].trim().equals("U+1F4A9")) return true;
+            if(newlineSplit.length>=2) //Bounds check
+                if(newlineSplit[newlineSplit.length-1].trim().equals("U+1F4A9")) return true;
         }
         return false;
     }
