@@ -23,6 +23,7 @@ import android.bluetooth.BluetoothSocket;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
+import android.os.CountDownTimer;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -148,6 +149,7 @@ public class MainActivity  extends AppCompatActivity {
 				Bluetooth.readData(inStream, 12);
 			}
 		} catch (IOException e) {
+			System.out.println("OH?");
 			//TODO
 		}
 	}
@@ -165,6 +167,7 @@ public class MainActivity  extends AppCompatActivity {
 				Bluetooth.readData(inStream, 11);
 			}
 		} catch (IOException e) {
+			System.out.println("OH?1");
 			//TODO
 		}
 	}
@@ -206,6 +209,7 @@ public class MainActivity  extends AppCompatActivity {
 							if(position==13) Download.mode = "logapp";
 							if(position==8) Download.mode = "sd_dd";
 							Download.execute();
+
 						}
 						else Bluetooth.sendCommand(outStream, mCommandAdapter.getItem(position));
 					}
@@ -472,20 +476,34 @@ public class MainActivity  extends AppCompatActivity {
 	 */
 	class DownloadTask extends AsyncTask<Integer, Integer, String> {
 		private ProgressBar spinner;
-		public String mode = "";
+		private String mode = "";
+		private DownloadTask asyncObject;
 		@Override
 		protected void onPreExecute() {
 			spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
 			spinner.setVisibility(View.VISIBLE);
-
 			Snackbar.make(dialogCommands.findViewById(R.id.command_list_display),
 					"Downloading data", Snackbar.LENGTH_LONG)
 					.setAction("Action", null).show();
+
+			//This timeout code came from http://stackoverflow.com/questions/7882739/android-setting-a-timeout-for-an-asynctask
+			new CountDownTimer(7000, 7000) {
+				public void onTick(long millisUntilFinished) {
+				}
+				public void onFinish() {
+					// stop async task if not in progress
+					if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
+						spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
+						spinner.setVisibility(View.INVISIBLE);
+						asyncObject.cancel(false);
+					}
+				}
+			}.start();
 		}
 		@Override
 		protected String doInBackground(Integer... params) {
 			if(mode.equals("logapp")) {
-				downloadRtData(); //TODO fix occasional download dropping
+				downloadRtData();
 			}
 			if(mode.equals("sd_dd")){
 				downloadSdDump();

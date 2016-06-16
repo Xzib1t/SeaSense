@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
@@ -90,19 +89,15 @@ public class Bluetooth extends AppCompatActivity{
                         downloadedStrings.append(printStr);
                     }
                     if(parseData(downloadedStrings.toString(), distinctDataPoints)){
-                        System.out.println("eof reached");
                         eofFound = true;
                     }
                     else{ //Something went wrong when parsing or we timed out
-                        System.out.println("Stopping");
                         return; //Stop reading
                     }
                 }
             }
         }catch(Exception e){
             System.out.println("Read exception");
-            resetBuffers();
-            //TODO
         }
     }
 
@@ -637,7 +632,6 @@ public class Bluetooth extends AppCompatActivity{
                             if(isTime(buffer.toString())) //Only take if it's a time value
                                 time.add(buffer.toString()); //Grab the time value
                             else{
-                                System.out.println(buffer.toString());
                                 return false; //TODO BACK UP HERE AND FIND THE REAL TIME, FIX PARSING
                             }
 
