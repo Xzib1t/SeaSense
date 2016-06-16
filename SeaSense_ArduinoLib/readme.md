@@ -1,5 +1,5 @@
 # SeaSense Arduino Library
-## Created by Georges Gauthier - glgauthier@wpi.edu
+Created by Georges Gauthier - glgauthier@wpi.edu
 
 SeaSense is an underwater sensor package created for educational outreach. The SeaSense package is capable of logging data from various sensors, as well as displaying and wirelessly transmitting gathered data via Bluetooth. 
 
