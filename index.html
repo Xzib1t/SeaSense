@@ -2,31 +2,30 @@
 <html lang ="en">
 <head>
     <meta charset="utf-8">
-    <link href="nv.d3.css" rel="stylesheet" type="text/css">
-    <link href="style.css" rel="stylesheet" type="text/css">
+    <link href="css/nv.d3.css" rel="stylesheet" type="text/css">
+    <link href="css/style.css" rel="stylesheet" type="text/css">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-    <script src="nv.d3.js"></script>
-    <script src="papaparse.min.js"></script>
-    
-    <script src="parse.js"></script>
-    <script src="exampleData.json"></script>
+    <!--Local Scripts-->
+    <script src="js/nv.d3.js"></script>
+    <script src="js/papaparse.min.js"></script>
+    <script src="js/parse.js"></script>
+    <script src="js/exampleData.json"></script>
 </head>
 <body>
     <nav class="navbar navbar-default visible-xs-* visible-sm-* visible-md-* visible-lg-* .visible-xs-block">
          <div class="container-fluid">
             <!-- Brand and toggle get grouped for better mobile display -->
             <div class="navbar-header">
-                <a class="navbar-brand" href="index.html">SeaSense Data Viewer</a>
-             </div>
-             
+                <a class="navbar-brand" href="#">SeaSense Data Viewer</a>
+            </div>
                 <ul class="nav navbar-nav navbar-right">
                     <li><a href="#" id="newFile">Load New Data</a></li>
                     <li><a href="about.html">About</a></li>
                 </ul>
-        </div><!-- /.container-fluid -->
+          </div><!-- /.container-fluid -->
     </nav>
     <div id="chart" class='with-3d-shadow with-transitions'>
         <svg></svg>
