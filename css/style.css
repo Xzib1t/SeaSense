@@ -36,6 +36,15 @@ html, body {
 #newFile{
     
 }
+#interp{
+    
+}
+#chartObj{
+    font-size:9pt;
+    text-align:center;
+    height:0px; /*Don't make the navBar fat*/
+    color:#ff67a1;
+}
 #example{
  cursor:pointer; 
  color: #a7a7a7;
