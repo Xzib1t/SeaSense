@@ -1,3 +1,22 @@
+.navbar-collapse.collapse{
+  display: block !important;
+}
+
+.navbar-nav>li, .navbar-nav{
+  float: left !important;
+}
+
+.navbar-nav.navbar-right:last-child{
+  margin-right: -15px !important;
+}
+
+.navbar-right{
+  float: right !important;
+}
+.navbar-header{
+    float: left !important;
+}
+
 text {
     font: 12px sans-serif;
 }
@@ -39,7 +58,7 @@ html, body {
 #interp{
     
 }
-#chartObj{
+#chartObj,#filename{
     font-size:9pt;
     text-align:center;
     height:0px; /*Don't make the navBar fat*/
