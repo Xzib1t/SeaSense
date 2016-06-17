@@ -39,7 +39,12 @@ html, body {
 #example{
  cursor:pointer; 
  color: #a7a7a7;
- 
+}
+#front-help{
+    position:absolute;
+    left:50%;
+    bottom:0%;
+    transform: translate(-50%,-50%);
 }
 
 .splash-box{
