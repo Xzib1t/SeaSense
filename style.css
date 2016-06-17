@@ -1,0 +1,81 @@
+text {
+    font: 12px sans-serif;
+}
+svg {
+    display: block;
+}
+
+html, body {
+    margin: 0px;
+    padding: 0px;
+    height: 100%;
+    width: 100%;
+}
+
+#chart, svg {
+    margin-bottom:0px;
+    padding:0px;
+    width:100%;
+    height:85%;
+    background: #ffffff;
+}
+#header{
+    height:10%;
+    width:100%; 
+}
+
+#fileUI{
+    position:fixed;
+    top:0%;
+    height:100%;
+    width:100%;
+    background: #43cea2; /* fallback for old browsers */
+    background: -webkit-linear-gradient(to left, #43cea2 , #185a9d); /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to left, #43cea2 , #185a9d); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+}
+#newFile{
+    
+}
+#example{
+ cursor:pointer; 
+ color: #a7a7a7;
+ 
+}
+
+.splash-box{
+    position: absolute;
+    top: 50%;
+    left:50%;
+    transform: translate(-50%,-50%);
+    background:white;
+    padding:3%;
+    padding-top:0px;
+    padding-bottom:15px;
+    border-radius:2px;
+    
+}
+
+.inputfile { /*Hide the ugly file input box*/
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position:absolute;
+	z-index: -1;
+}
+
+.inputfile + label {
+    color:  #ffffff;
+    background-color:  #3a6fe5;
+    display: inline-block;
+    padding:15px;
+    border-radius: 10px;
+}
+
+.inputfile:focus + label,
+.inputfile + label:hover {
+    cursor: pointer; 
+}
+.larger-text{
+    font:15px;
+}
