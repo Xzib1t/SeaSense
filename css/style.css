@@ -1,3 +1,4 @@
+/* Prevent collapsing navBar */
 .navbar-collapse.collapse{
   display: block !important;
 }
@@ -17,20 +18,19 @@
     float: left !important;
 }
 
+/* nvD3 styling*/
 text {
     font: 12px sans-serif;
 }
 svg {
     display: block;
 }
-
 html, body {
     margin: 0px;
     padding: 0px;
     height: 100%;
     width: 100%;
 }
-
 #chart, svg {
     margin-bottom:0px;
     padding:0px;
@@ -38,6 +38,8 @@ html, body {
     height:85%;
     background: #ffffff;
 }
+
+/* Misc. Styling*/
 #header{
     height:10%;
     width:100%; 

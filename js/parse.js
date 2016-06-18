@@ -78,6 +78,7 @@ function handleFileSelect(evt) {
 // hide the landing page and plot the example data stored in exampleData.json
 function plotExampleData(){
     $("#fileUI").hide(500); 
+    stamp = "1992/01/20"; // Ice Cube's good day
     parseData(exampleData);
 }
 
@@ -105,13 +106,13 @@ function parseData(data){
     // find the minimum and maximum timestamp (can be used for domain(x))
     xMin = timeStamps[0];
     xMax = timeStamps[timeStamps.length-1];
-//    var xScale = d3.time.scale().domain([xMin,xMax]).range(0,$(window).width());
+    //var xScale = d3.time.scale().domain([xMin,xMax]);
     
     // create a plottable dataset from each array of xy points
     // arg1 = show area under curve
     // arg2 = dataset name (displayed on plot)
     // arg3 = dataset xy points (array of objects)
-    var Temperature = new dataSet(false,"Temperature",temp);
+    var Temperature = new dataSet(false,'Temperature',temp);
     var Depth = new dataSet(false,"Depth (cm)",depth);
     var Conductivity = new dataSet(false,"Conductivity",cond);
     var Light = new dataSet(false,"Light",light);
@@ -123,29 +124,32 @@ function parseData(data){
     plottedData[2]=Conductivity;
     plottedData[3]=Light;
     plottedData[4]=Heading;
-   
-    // log the data array for debug
-//    console.log(plottedData);
-    
-    
-    
-    //http://stackoverflow.com/questions/17446122/with-nvd3-js-nv-models-linewithfocuschart-how-do-you-set-specific-ticks-on-x
-    //http://cmaurer.github.io/angularjs-nvd3-directives/line.chart.html
+
     // plot the dataset using the lineWithFocusChart template
     nv.addGraph(function() {
         chart = nv.models.lineWithFocusChart();
         chart.brushExtent([50,70]);
-        //chart.xAxis.tickFormat(d3.time.format('%H:%M:%S'));
-        chart.xAxis.tickFormat(d3.format(',f'));
-        //chart.xAxis.scale(xScale);
-        chart.x2Axis.tickFormat(d3.format(',f'));
+        
+        //xAxis ticks correspond to HH:MM:SS from timeStamps(tick)
+        chart.xAxis
+            .tickFormat(function(d) { 
+                return d3.time.format('%H:%M:%S')(new Date(timeStamps[d])) 
+            });
+        
+        //x2Axis ticks correspond to mm/dd/yyyy from timeStamps(tick)
+        chart.x2Axis
+            .tickFormat(function(d) { 
+                return d3.time.format('%m/%d/%Y')(new Date(timeStamps[d])) 
+            })
+        
         chart.yAxis.tickFormat(d3.format(',.2f'));
         chart.y2Axis.tickFormat(d3.format(',.2f'));
         chart.useInteractiveGuideline(true);
         chart.interpolate(methods[methodNum]);
+    
         d3.select('#chart svg')
             .datum(plottedData)
-            .call(chart);
+            .call(chart)
         nv.utils.windowResize(chart.update);
         return chart;
     });
