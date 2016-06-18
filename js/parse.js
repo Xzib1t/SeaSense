@@ -2,6 +2,7 @@
 
 /* Based on the NVD3.js Line with View Finder example 
 *  http://nvd3.org/examples/lineWithFocus.html
+*  https://nvd3-community.github.io/nvd3/examples/documentation.html#lineWithFocusChart
 *  Styled using Bootstrap - getbootstrap.com
 *  Support for CSV file input using papaparse.js - papaparse.com
 */
@@ -15,7 +16,7 @@ var stamp,xMin,xMax; // year/month/day, first and last timestamps
 var parser = d3.time.format.utc("%Y/%m/%d %H:%M:%S"); // convert timestamps to d3 time format
 
 // data interpolation methods
-var methods = ['basis','bundle','step-before','step-after','cardinal','monotone','linear'];
+var methods = ['basis','bundle','step','cardinal','monotone','linear'];
 var methodNum = 4; // current interpolation method (cardinal by default)
 
 var filename = "example.csv"; // current filename (example by default)
