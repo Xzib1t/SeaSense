@@ -91,7 +91,11 @@ function handleFileSelect(evt) {
     
     // turn filename into YYYY/MM/DD timestamp
     stamp = file.name.substr(0,4) + '/' + file.name.substr(4,2) + '/' + file.name.substr(6,2);
-  
+    
+    if((stamp.search('_')>-1) || (stamp.search(':')>-1)){
+        rightNow = new Date();
+        stamp = rightNow.toISOString().slice(0,10).replace(/-/g,"/");
+    }
     Papa.parse(file, { // parse the file as CSV using PapaParse.js
       worker: true,
       header: true,
