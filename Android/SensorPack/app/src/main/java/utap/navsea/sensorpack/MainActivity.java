@@ -492,6 +492,7 @@ public class MainActivity  extends AppCompatActivity {
 				}
 				public void onFinish() {
 					// stop async task if not in progress
+					if(asyncObject!=null)
 					if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
 						spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
 						spinner.setVisibility(View.INVISIBLE);

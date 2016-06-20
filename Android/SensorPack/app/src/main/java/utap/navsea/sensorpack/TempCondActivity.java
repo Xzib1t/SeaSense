@@ -27,6 +27,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -51,7 +52,7 @@ public class TempCondActivity extends AppCompatActivity {
 
         graphTest(chartTemp, convert2Entry(Bluetooth.getTemp()), "Temperature (Deg C)", Color.RED);
         chartTemp.invalidate(); //Refresh graph
-        graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity", Color.GREEN);
+        graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity (S/m)", Color.GREEN);
         chartCond.invalidate(); //refresh graph
 
         FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left1);
@@ -130,7 +131,7 @@ public class TempCondActivity extends AppCompatActivity {
     private void formatChart(LineChart chart){
         chart.setEnabled(true);
         chart.setTouchEnabled(true);
-        chart.setDescription("Data over 24 hours");
+        chart.setDescription("");
 
         XAxis xAxis = chart.getXAxis();
         xAxis.setEnabled(true);
@@ -149,6 +150,11 @@ public class TempCondActivity extends AppCompatActivity {
 
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
+        chart.setMaxVisibleValueCount(0);
         chart.setBorderColor(Color.BLACK);
+
+        Legend legend = chart.getLegend();
+        legend.setEnabled(true);
+        legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
     }
 }

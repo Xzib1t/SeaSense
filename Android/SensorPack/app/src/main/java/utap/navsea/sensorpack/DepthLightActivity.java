@@ -28,6 +28,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -50,9 +51,9 @@ public class DepthLightActivity extends AppCompatActivity {
         chartDepth = (LineChart) findViewById(R.id.chart4); //get the first chart
         chartLight = (LineChart) findViewById(R.id.chart5); //get the second chart
 
-        graphTest(chartDepth, convert2Entry(Bluetooth.getDepth()), "Depth", Color.RED);
+        graphTest(chartDepth, convert2Entry(Bluetooth.getDepth()), "Depth (cm)", Color.BLUE);
         chartDepth.invalidate(); //Refresh graph
-        graphTest(chartLight, convert2Entry(Bluetooth.getLight()), "Light", Color.GREEN);
+        graphTest(chartLight, convert2Entry(Bluetooth.getLight()), "Light (lux)", Color.YELLOW);
         chartLight.invalidate(); //refresh graph
 
         FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left2);
@@ -139,7 +140,7 @@ public class DepthLightActivity extends AppCompatActivity {
     private void formatChart(LineChart chart){
         chart.setEnabled(true);
         chart.setTouchEnabled(true);
-        chart.setDescription("Data over 24 hours");
+        chart.setDescription("");
 
         XAxis xAxis = chart.getXAxis();
         xAxis.setEnabled(true);
@@ -158,7 +159,12 @@ public class DepthLightActivity extends AppCompatActivity {
 
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
+        chart.setMaxVisibleValueCount(0);
         chart.setBorderColor(Color.BLACK);
+
+        Legend legend = chart.getLegend();
+        legend.setEnabled(true);
+        legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
     }
 
     public void onSerialReceived(String theString) {    //Once connection data received, this function will be called
