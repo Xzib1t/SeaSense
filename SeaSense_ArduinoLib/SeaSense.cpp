@@ -1,6 +1,9 @@
 // Created by Georges Gauthier - glgauthier@wpi.edu
 // ported from the original seasense PIC code
 
+// this file contains all main source code for the SeaSense Arduino library.
+// All external library functions are located within this file, along with all register config and ISR code
+
 #include "Arduino.h"
 #include "globals.h"
 #include "SeaSense.h"
@@ -15,30 +18,28 @@
 
 
 // global vars (defined in globals.h)
-boolean RTC_AUTOSET;
-boolean logData; 
-boolean sd_logData;
-boolean app_logData;
-boolean noSD;
-boolean adc_ready;
-RTC_DS1307 rtc;
-char Timestamp[9];
-double Temp = 0.0;
-unsigned int Depth = 0;
-int Cond = 0;
-unsigned long Light = 0;
-int Head = 0;
-int AccelX = 0,AccelY = 0,AccelZ = 0; // units of m/s^2
-int GyroX = 0,GyroY = 0,GyroZ = 0; // units of microTeslas
-File SDfile;
-Adafruit_HMC5883_Unified mag;
-Adafruit_ADXL345_Unified accel;
-Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
+boolean RTC_AUTOSET; // allows for users to set the time using the bluetooth cli if set to false
+boolean logData; // log data to cli in a human-readable format
+boolean sd_logData; // log data to a file on the SD card
+boolean app_logData; // log data to the cli for the andriod app 
+boolean noSD; // indicates whether or not an SD card has been located
+boolean adc_ready; // indicates if the ADC is ready to perform new conversions
+RTC_DS1307 rtc; // realtime clock module 
+char Timestamp[9]; // current time stored as 'HH:MM:SS/0'
+double Temp = 0.0; // current temperature reading
+unsigned int Depth = 0; // current depth reading
+int Cond = 0; // current conductivity
+unsigned long Light = 0; // current light sensor reading
+int Head = 0; // current heading
+int AccelX = 0,AccelY = 0,AccelZ = 0; // current accelerometer (reading units of m/s^2)
+int GyroX = 0,GyroY = 0,GyroZ = 0; // current compass reading (units of microTeslas)
+File SDfile; // current file being logged to (addressable through SDfile.write(text))
+Adafruit_HMC5883_Unified mag; // magnometer sensor
+Adafruit_ADXL345_Unified accel; // accelerometer sensor
+Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); //SPI OLED display
+int vBat; // current battery reading (from ADC) 
 
-
-char cli_rxBuf [MAX_INPUT_SIZE];
-int count; // used in timer1 interrupt
-int vBat;
+char cli_rxBuf[MAX_INPUT_SIZE]; // input character buffer
 
 // used for ADC interrupt routine
 byte adc_channel = 10; // first ADC channel to be read from 
@@ -46,19 +47,21 @@ int adcBuf[ADC_BUFFER_SIZE]; // global buffer for incoming ADC readings
 byte adc_pos = 0; // position in adcBuf
 
 int count2 = 0; // temporarily here for use with testing the android app
+int count; // used in timer1 interrupt
 
 // set up variables using the SD utility library functions:
 Sd2Card card;
 
-// Initializations are done here automatically,
+// Initializations are done here automatically on calling the library
 SeaSense::SeaSense(int output, int light_s0, int light_s1){
     // disable the watchdog timer
     wdt_disable();
     
+    // config the light sensor scale pins (for depreciated sensor)
     _s0 = light_s0;
     _s1 = light_s1;
     
-    // LED pin
+    // LED indicator pin (shows when logging is enabled)
     pinMode(output,OUTPUT);
     _output = output;
     
@@ -74,18 +77,18 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
     pinMode(SD_CS, OUTPUT); // ss pin for SD card on ethernet shield
     
-    pinMode(A10,INPUT);
-    pinMode(A11,INPUT);
-    pinMode(A12,INPUT);
-    pinMode(A13,INPUT);
+    // ADC inputs
+    pinMode(A10,INPUT); // temp
+    pinMode(A11,INPUT); // pressure
+    pinMode(A12,INPUT); // cond
+    pinMode(A13,INPUT); // battery 
     
-    // don't enable data logging by default
-    // the states of these booleans dictate whether or not data is written to the
-    // SD card or serial port
-    init = false;
+    init = false; // set to true after SeaSense.Initialize() has been called
+    // the states of these booleans dictate whether or not data is written to the SD card or serial port
     logData = false;
     sd_logData = false;
     app_logData = false;
+    // States of the SD card and ADC read sequence
     noSD = true;
     adc_ready = false;
 }
@@ -99,7 +102,7 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
 */ 
 void SeaSense::Initialize(){
     /* Initialize the display */
-    digitalWrite(7,LOW);
+    digitalWrite(OLED_CS,LOW);
     display.begin(SSD1306_SWITCHCAPVCC);
     display.clearDisplay();
     display.setTextSize(1);
@@ -107,7 +110,7 @@ void SeaSense::Initialize(){
     display.setCursor(0,0);
     display.print("System init . . .\n");
     display.display();
-    digitalWrite(7,HIGH);
+    digitalWrite(OLED_CS,HIGH); // disable the OLED disp. so that the SD card can be initialized
     
     /* Perform all critical init with interrupts disabled */
     cli(); // disable global interrupts
@@ -115,7 +118,7 @@ void SeaSense::Initialize(){
     Serial1.begin(115200); // turn on serial to bluetooth module
     
     // Timer 5 hardware hardware pulse count (used for light sensor)
-    // see http://forum.arduino.cc/index.php?topic=259063.0
+    // see http://forum.arduino.cc/index.php?topic=259063.0 for more info
     TCCR5A = 0; // set entire TCCR5A register to 0
     TCCR5B |= ((1 << CS52)|(1 << CS51)|(1 << CS50)); // enable external clock source on rising edge (pin 47)
     TIMSK5 |= (1 << TOIE5); // enable overflow isr
@@ -146,7 +149,7 @@ void SeaSense::Initialize(){
     
     // initialize the SD card
     // first search for the actual card
-    digitalWrite(7,HIGH);
+    digitalWrite(OLED_CS,HIGH);
     Serial1.print(F("\tSearching for SD card ..."));
     if (!card.init(SPI_HALF_SPEED, SD_CS)) 
         Serial1.println(F(" card not found"));
@@ -209,16 +212,16 @@ void SeaSense::Initialize(){
     //delay(1500); //wait for the sensor to be ready 
     Serial1.println(F(" done"));
     
-    digitalWrite(4,HIGH);
-    digitalWrite(7,LOW);
+    // indicate that initialization is done on the OLED display
+    digitalWrite(SD_CS,HIGH);
+    digitalWrite(OLED_CS,LOW);
     display.print("done!\n");
     display.display();
-    digitalWrite(4,LOW);
-    digitalWrite(7,HIGH);
+    digitalWrite(SD_CS,LOW);
+    digitalWrite(OLED_CS,HIGH);
     
-    newCli = true; // will write '>' for bt CLI if true
-    init = true; // indicate that initilization is complete (not actually used)
-    
+    newCli = true; // will write '>' for bt CLI on boot if true
+    init = true; // indicate that initilization is complete (not actually used, but may be useful at some point)
     
     /* prompt users to enter a new command */
     Serial1.print(F("\tType in "));
@@ -243,58 +246,53 @@ void SeaSense::BluetoothClient(){
         switch(rxChar){
             /* if a carriage return is detected */
             case 0x0D: 
-                _rxCmdSize = _i;
-                newCli = true;
-                /*COMMENT OUT FOR JOE*/
-                Serial1.print(F("\n\r")); // jump to a new line
+                _rxCmdSize = _i; // save the size of the input buffer (passed to processCMD)
+                newCli = true; // globally indicate that a new command has been entered
+                Serial1.print(F("\n\r")); // jump to a new line in the bluetooth command line interface
               break;
                 
             /* if the backspace key is pressed, remove the char and realign the index */
             case 0x7F: 
                 if(_i<=1){ // don't allow for the deletion of the '>' character
-                    while(_i>0){ // flush input buffer
+                    while(_i>0){ // flush input buffer (pad with \0s)
                         cli_rxBuf[_i] = '\0';
                         _i--;
                     }
                     cli_rxBuf[0] = '>'; // add '>' char back in
                 }
-                else{ // clear out incorrect char and move buffer index
+                else{ // clear out char being deleted and move the buffer index accordingly
                     Serial1.print((char)rxChar);
                     cli_rxBuf[_i-1]='\0';
                     _i-=2;
                 }
                break;
                 
-            /* if any other keys are pressed, store them in the buffer */
+            /* if any other keys are pressed, store them in the command buffer */
             default: // if any other keys are pressed
                 cli_rxBuf[_i] = (char)rxChar;
-                /*COMMENT OUT FOR JOE*/
                 if(!app_logData) Serial1.print(cli_rxBuf[_i]);
         }
     }
     
-    /* if a carriage return is detected, search cli_rxBuf[] for a command */
+    /* if a carriage return is detected, search cli_rxBuf[] for a matching command */
     if (newCli == true)
     {
-        // look for a command (see Cli.cpp)
+        // look for a matching cli command and excecute it if possible (see Cli.cpp)
         processCMD(&cli_rxBuf[1],_rxCmdSize); 
         
-        // flush the buffer and prepare it for new input
+        // after running the intended command, flush the buffer and prepare it for new input
         while(_i>0){ 
             cli_rxBuf[_i] = '\0';
             _i--;
         }
-        // print '>' char
+        // print '>' char on newline (prompt a new input from the user)
         cli_rxBuf[0] = '>'; 
         Serial1.print(cli_rxBuf);
-        
-        // if logging data for the android app, also include a delimiter
-        //if(app_logData) Serial1.print(F(","));
         
         // reset the new command boolean so that this segment of code doesn't repeat
         newCli = false;
     }
-    return;
+    return; // exit
 }
 
 // lowest priority code - used for sending pre-gathered sensor data to
@@ -302,13 +300,13 @@ void SeaSense::BluetoothClient(){
 // This code should be run from the main loop of your arduino sketch
 void SeaSense::CollectData()
 {
+    // Note that the following functions can be found in dataCollection.cpp
     // note that light sensor is being read from TIMER1 ISR for better timing interval accuracy
-    getTime();
-    getADCreadings();
-    getMag();
-    getAccel();
-    getGyro();
-    
+    getTime(); // update the value stored in Timestamp
+    getADCreadings(); // update all ADC-based readings (Temp, Pressure, Conductivity, Battery)
+    getMag(); // get a new magnometer reading
+    getAccel(); // get a new accelerometer reading
+    getGyro(); // get a new gyroscope reading
     return;
 }
 
@@ -317,14 +315,14 @@ void SeaSense::CollectData()
 // File logs will be updated every ISR; serial logs every 10 ISRs
 ISR(TIMER1_COMPA_vect) 
 {
-  if(init == false) return;
+  if(init == false) return; // if initialization hasn't finished, immediately exit the ISR
     
   getLight(); // read in light from hardware counter exactly every 100ms
     
-    // log data to SD card
+    // log data to SD card (highest priority logging)
     if(sd_logData & SDfile){
-      digitalWrite(OLED_CS,HIGH);
-      digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
+      digitalWrite(OLED_CS,HIGH); // make sure the OLED display isn't asserted
+      digitalWrite(22,HIGH); // indicate logging with LED on pin 22
       SDfile.print(Timestamp); SDfile.print(F(","));
       SDfile.print(Temp); SDfile.print(F(","));
       SDfile.print(Depth); SDfile.print(F(","));
@@ -339,11 +337,10 @@ ISR(TIMER1_COMPA_vect)
       SDfile.print(GyroZ); SDfile.print(F("\n\r"));
       //return;
     }
+    // log data to the andriod app (second highest priority logging)
     else if(app_logData & !logData){
-        digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
-      count2++;
-      //if (count2 == 1) Serial1.print("Temperature"); Serial1.print("\n\r");
-        
+      digitalWrite(22,HIGH); //indicate logging with LED on pin 22
+      count2++; //REMOVE IN PRODUCTION VERSION
       Serial.println(F("Logging data to app"));
       Serial1.print(Timestamp); Serial1.print(F(","));
       Serial1.print(Temp); Serial1.print(F(","));
@@ -359,20 +356,20 @@ ISR(TIMER1_COMPA_vect)
       Serial1.print(GyroZ); Serial1.print(F(",\n"));
       //Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
       
-      //if (count2 == 50) {app_logData = false; count2=0; Serial1.print(F("U+1F4A9")); Serial1.print(F(","));}
-      //return;
+      //if (count2 == 50) {app_logData = false; count2=0; Serial1.print(F("U+1F4A9")); Serial1.print(F(","));} //REMOVE IN PRODUCTION VERSION
     } 
+    if (!app_logData) count2 = 0; // reset data logging counter if app_logData is stopped early (REMOVE IN PRODUCTION VERSION)
     
-    if (!app_logData) count2 = 0;
     // keep a rolling count of the number of interrupts triggered
+    // every 10 counts = 1 second
     if(count<9) 
       count++;
     else count = 0;
 
-    // log data over the bluetooth port every time the count rolls over
+    // log data over the bluetooth port every time the count rolls over (lowest logging priority)
     if(count == 0)
     {
-
+      // log verbose output to the command line for 
       if(logData & !app_logData){
           digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
           Serial1.print(Timestamp); Serial1.print(F("\t"));
@@ -383,6 +380,7 @@ ISR(TIMER1_COMPA_vect)
           Serial1.println(Head);
           //return;
       }
+        // update the OLED display with new sensor readings
         digitalWrite(SD_CS,HIGH);
         digitalWrite(OLED_CS,LOW);
         display.clearDisplay();
@@ -422,7 +420,7 @@ ISR(TIMER1_COMPA_vect)
     
     if((!app_logData) & (!logData) & (!sd_logData))
     {
-        digitalWrite(22,LOW); // indicate config complete with LED on pin 13
+        digitalWrite(22,LOW); // turn off data logging indicator LED on pin 22
     }
 }
 
@@ -437,9 +435,14 @@ ISR(TIMER5_OVF_vect){
 // https://bennthomsen.wordpress.com/arduino/peripherals/analogue-input/
 // http://www.avrfreaks.net/forum/sampling-multiple-adc-channels
 // Users' guide pg 283
+// configured to run until the adc buffer has been filled (globals.h - 100 samples), then wait
+// to be re-enabled externally (see dataCollection.h)
 ISR(ADC_vect){
-    // read in current adc value (users' guide pg 286)
-    // the shifts are based on ADCD[9:0] positions as set by the ADLAR bit of ADMUX
+    // read in current adc value (users' guide pg 286 - MUST READ ADCL FIRST)
+    // the shifts are based on ADCD[9:0] positions as set by the ADLAR bit of ADMUX (ADLAR=1)
+    // ADCL = (ADC1|ADC0|x5|x4|x3|x2|x1|x0)
+    // ADCH = (ADC9|ADC8|ADC7|ADC6|ADC5|ADC4|ADC3|ADC2)
+    adcBuf[adc_pos] = 0x0000; // make sure all 16 bits of the adc buffer are clear
     adcBuf[adc_pos] = ADCL >> 6; // must read low data register first
     adcBuf[adc_pos] += ADCH << 2; // followed by high data register
 

@@ -1,6 +1,9 @@
 // Created by Georges Gauthier - glgauthier@wpi.edu
 // ported from the original seasense PIC code
 
+// This source file contains all command line interface code
+// any functions relating to command line input are stored here
+
 #include "Arduino.h"
 #include "Cli.h"
 #include "SeaSense.h"
@@ -35,7 +38,7 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("sd_dd", "Dump all .csv files", cli_sd_dd) \
         CLI_CMD("sd_append", "Append to a file", cli_sd_append) \
         CLI_CMD("sd_create", "Create a file", cli_sd_create) \
-        CLI_CMD("sd_del", "Delete a file", cli_sd_del) \
+        CLI_CMD("sd_del", "Delete a file or folder of files", cli_sd_del) \
         /* Data logging commands */ \
         CLI_CMD("log", "Log sensor data to command line.", cli_log_data) \
         CLI_CMD("logapp", "Log sensor data to the andriod app", cli_log_app) \
