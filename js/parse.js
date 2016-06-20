@@ -14,7 +14,7 @@ var timeStamps = []; // timestamps matching the current data set(s)
 var stamp; // year/month/day
 var min,max; // brush extent (used in calculating averages)
 var stats = 0;
-var parser = d3.time.format.utc("%Y/%m/%d %H:%M:%S"); // convert timestamps to d3 time format
+var parser = d3.time.format("%Y/%m/%d %H:%M:%S"); // convert timestamps to d3 time format
 
 // data interpolation methods
 var methods = ['basis','bundle','step','cardinal','monotone','linear'];
