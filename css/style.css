@@ -17,7 +17,8 @@
 .navbar-header{
     float: left !important;
 }
-
+.navbar,.navbar-default{
+}
 /* nvD3 styling*/
 text {
     font: 12px sans-serif;
@@ -37,14 +38,25 @@ html, body {
     width:100%;
     height:85%;
     background: #ffffff;
+    position:inherit;
+    float:left;
 }
+#avg-data{
+    z-index:500;
+    position:fixed;
+    float:right;
+    right:-5px;
+    padding:10px;
+    padding-top:0px;
+    font: 13px sans-serif;
+    text-align:left;
+    height:80%;
+    width:150px;
+    
+}
+
 
 /* Misc. Styling*/
-#header{
-    height:10%;
-    width:100%; 
-}
-
 #fileUI{
     position:fixed;
     top:0%;
@@ -60,7 +72,7 @@ html, body {
 #interp{
     
 }
-#chartObj,#filename{
+#chartObj,#filename,#statistics{
     font-size:9pt;
     text-align:center;
     height:0px; /*Don't make the navBar fat*/

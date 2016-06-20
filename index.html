@@ -24,14 +24,15 @@
             </div>
                 <ul class="nav navbar-nav navbar-right pull-right">
                     <li><a href="#" id="interp">Interpolate<p id = "chartObj"></p></a></li>
+                    <li><a href="#" id="stats">Statistics<p id = "statistics">off</p></a></li>
                     <li><a href="#" id="newFile">Load New Data<p id = "filename"></p></a></li>
                     <li><a href="about.html">About</a></li>
                 </ul>
           </div><!-- /.container-fluid -->
     </nav>
     <div id="chart" class='with-3d-shadow with-transitions'>
+       
         <svg></svg>
-        
         <div id="fileUI" class = "container text-center centerVertical">
             <div class="splash-box">
                 <h1>SeaSense Data Viewer</h1>
@@ -44,6 +45,7 @@
             <div id="front-help"><a href="about.html"><b>About</b></a></div>
         </div>
     </div>
+    <div class="well" id="avg-data"></div>
 
 </body>
 </html>
