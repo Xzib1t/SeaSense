@@ -51,7 +51,7 @@ CLI_CORE_CMD_LIST
 
 // misc. function prototypes
 void printDirectory(File dir, int numTabs);
-char* newFile(int filenum);
+char* newFile(int filenum,char* directory);
 void dumpCSV(File dir, int numTabs); 
 bool isCSV(char* filename);
 void rmSubFiles(File dir);
@@ -390,37 +390,44 @@ void cli_log_app(int argc, char *argv[])
         return;
     }
     delay(10);
+    if(app_logData){
+        Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
+    }
     app_logData = !app_logData;
     return;
 }
 
 // Create a new datafile and begin logging data to it
 void cli_log_file(int argc, char *argv[])
-{
+{   
     sd_logData = !sd_logData;
     if(sd_logData){ // if data logging is toggled to on..
         DateTime now = rtc.now();
         char* fullpath = (char*)calloc(24,sizeof(char));
-        char* dir = (char*)calloc(10,sizeof(char));
-        sprintf(dir,"%04d%02d%02d/",now.year(),now.month(),now.day());
-        char* filename = newFile(0);
-        if (SD.exists(dir)){ 
-            fullpath = strcat(fullpath,dir);
-            fullpath = strcat(fullpath,filename);
+        char* directory = (char*)calloc(10,sizeof(char));
+        char* filename = (char*)calloc(13,sizeof(char));
+        
+        sprintf(directory,"%04d%02d%02d/",now.year(),now.month(),now.day());
+        
+        if (SD.exists(directory)){ 
+            fullpath = strcat(fullpath,directory);
         }
         else{
-            SD.mkdir(dir);
-            Serial1.print(F("Created directory ")); Serial1.println(dir);
-            fullpath = strcat(fullpath,dir);
-            fullpath = strcat(fullpath,filename);
+            SD.mkdir(directory);
+            Serial1.print(F("Created directory ")); Serial1.println(directory);
+            fullpath = strcat(fullpath,directory);
         }
+        filename = newFile(0,directory);
+        fullpath = strcat(fullpath,filename);
         
+        digitalWrite(OLED_CS,HIGH);
         SDfile = SD.open(fullpath,FILE_WRITE);
         SDfile.println(F("Time,Temp,Depth,Cond,Light,Head,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ"));
         Serial1.print(F("Logging data to ")); Serial1.println(fullpath);
+        free(directory);
         free(filename);
-        free(dir);
         free(fullpath);
+        
     } else { // if data logging is toggled to off...
         //SDfile.print((char)0xF0);
         //SDfile.print((char)0x9F);
@@ -519,15 +526,30 @@ void dumpCSV(File dir, int numTabs)
 
 // newfile - scans SD card for a filename in the format of YYMMDDxx.csv
 // returns a pointer to a new 8.3 filename containing YYMMDD and a number (00-99)
-char* newFile(int filenum){
+char* newFile(int filenum, char* directory){
         DateTime now = rtc.now();
-        char* filename = (char*)malloc(sizeof(char)*13);
+       
         boolean exists = true;
         while(exists == true){
-             sprintf(filename,"%02d:%02d:%02d.csv",now.hour(),now.minute(),now.second());
-             exists = false;
+             char* fullpath = (char*)calloc(24,sizeof(char));
+             char* filename = (char*)calloc(13,sizeof(char));
+             sprintf(filename,"%02d%02d%02d%02d.csv",now.year()-2000,now.month(),now.day(),filenum);
+            Serial.println("Creating file");
+            Serial.println(filename);
+             fullpath = strcat(fullpath,directory);
+             fullpath = strcat(fullpath,filename);
+            Serial.println(fullpath);
+             
+             if(SD.exists(fullpath)){
+                 filenum++;
+                 free(fullpath);
+                 free(filename);
+             }
+             else{
+                 free(fullpath);
+                 return filename; // stop when a non-existing filename has been created
+             }
         }
-        return filename;
 }
 
 // isCSV - returns true if a given filename ends with .CSV or .csv, false otherwise
