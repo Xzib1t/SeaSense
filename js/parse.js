@@ -296,9 +296,9 @@ function getStats(min,max){
         $("#avg-data").append(
             (enabled[4] == 1 ?
             '<h4>Heading</h4><p>'+
-            "min: "+ d3.min(head).toFixed(2) + "&deg"+
+            "min: "+ d3.min(head).toFixed(2) + '&deg ('+ degToCompass(avgHead) + ')' +
             '</p><p>'+
-            "max: "+ d3.max(head).toFixed(2) + "&deg"+
+            "max: "+ d3.max(head).toFixed(2) +'&deg ('+ degToCompass(avgHead) + ')' +
             '</p><p>' +
             "mean: "+  avgHead + '&deg ('+ degToCompass(avgHead) + ')</p><p>'+
             "stdDev: "+ d3.deviation(head).toFixed(0) + '&deg'+

@@ -7,7 +7,7 @@
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
-    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <script src="js/nv.d3.js"></script>
     <script src="js/papaparse.min.js"></script>
     <script src="js/parse.js"></script>
@@ -51,7 +51,8 @@
           </big>
           <h3>My graph isn't showing the correct date and time</h3>
           <big>
-              <p>This application assumes that filenames follow the SeaSense's 8.3 datestamp naming convention. For example, a proper filename could be <i>20160816.CSV</i>, corresponding to year 2016, month 08, day 16. Since filenames are used to determine the correct date that the file contents correspond to, an incorrectly formatted filename may cause issues.</p>
+              <p>This application assumes that filenames follow the SeaSense's 8.3 timestamp naming convention. For example, a proper filename could be <i>09_04_51.CSV</i>, corresponding to 09:04:51AM. Another acceptable filename format would be <i>20160618.CSV</i>, corresponding to the date 06/18/2016. Since filenames are used to determine the correct date or time that the file contents correspond to, an incorrectly formatted filename may cause issues.</p>
+              <p>Note that if a filename doesn't contain the date of the file's recording, the graph will default to showing the current date. If the filename passed is completely invalid, the graph will show all data corresponding to 12/31/1969 at 19:00:00.</p>
           </big>
           <h3>The SeaSense can't recognize my SD card, what gives?!</h3>
           <big>
@@ -64,11 +65,30 @@
                 <li>If the above doesn't work, try resetting the SeaSense using the <code>reset</code> command, or by manually pressing the reset button*</li>
                 <li>As a last resort, reformat the SD card to FAT16 or FAT32 format</li>
             </ul>
+          </big>
+              <p>*<b>RESETTING OR REBOOTING WHILE WRITING TO THE SD CARD WILL CORRUPT IT</b><br> If your card is corrupted it must be reformatted to FAT16 or FAT32 format</p>
+          <big>
           <h3>How are you interpolating your data?</h3>
               <p>Data interpolation options are based on the d3.js line interpolation options. Documentation on each method can be found <a href="https://github.com/d3/d3/wiki/SVG-Shapes#line_interpolate" target ="_blank">here</a>.</p>
-              <br>
-            <p>*<b>RESETTING OR REBOOTING WHILE WRITING TO THE SD CARD WILL CORRUPT IT</b><br> If your card is corrupted it must be reformatted to FAT16 or FAT32 format</p>
           </big>
+          
+          <h1>Attribution</h1>
+          <big>
+            <p>This application relies on the following libraries:</p>
+              <ul>
+                <li><a href="http://papaparse.com/" target ="_blank">papaparse.js</a></li>
+                
+                <li><a href="https://d3js.org/" target ="_blank">d3.js</a></li>
+              
+                <li><a href="http://nvd3.org/" target="_blank">nvd3.js</a>, specifically the <a href="http://nvd3.org/examples/lineWithFocus.html" target="_blank">Line Chart with View Finder</a> example.</li>
+                  
+                <li><a href="http://getbootstrap.com/" target="blank">bootstrap</a></li>
+              </ul>
+            <p>Licenses for each library can be found <a href="licenses.html">here</a>.</p>
+          </big>
+          <br>
+          
+          <small><center>Created and maintained by Georges Gauthier - glgauthier@wpi.edu</center></small>
       </div>
     </div>
 </body>
