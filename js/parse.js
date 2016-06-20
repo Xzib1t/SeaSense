@@ -84,13 +84,13 @@ function handleFileSelect(evt) {
     
     // read in the first file (if using multiSelect)
     var file = evt.target.files[0]; 
-    
+    console.log(file);
     // write the filename underneath the "Load New Data" button
     $( "#filename" ).empty();
     $( "#filename" ).append(file.name);
     
     // turn filename into YYYY/MM/DD timestamp
-    stamp = file.name.substr(0,4) + '/' + file.name.substr(4,2) + '/' + file.name.substr(6,2);
+    stamp = '20'+ file.name.substr(0,2) + '/' + file.name.substr(2,2) + '/' + file.name.substr(4,2);
     
     if((stamp.search('_')>-1) || (stamp.search(':')>-1)){
         rightNow = new Date();
