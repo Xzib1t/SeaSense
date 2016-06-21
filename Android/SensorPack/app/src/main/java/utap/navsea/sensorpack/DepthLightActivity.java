@@ -29,6 +29,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -53,7 +54,6 @@ public class DepthLightActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_depthlight);	        //set the Uart Baudrate on BLE chip to 115200
 
-        //serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
         chartDepth = (LineChart) findViewById(R.id.chart4); //get the first chart
         chartLight = (LineChart) findViewById(R.id.chart5); //get the second chart
 
@@ -83,8 +83,7 @@ public class DepthLightActivity extends AppCompatActivity {
             public void onClick(View view) {
                 //changeActivity(MainActivity.class);
 
-                sendFirst(); //Only uncomment this if you plan to run this activity before the TempCondActivity
-                sendFirst();
+                //sendFirst(); //Only uncomment this if you plan to run this activity before the TempCondActivity
                 //The following thread code in this method is modified from:
                 //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
                 new Thread(new Runnable() {
@@ -150,9 +149,9 @@ public class DepthLightActivity extends AppCompatActivity {
     private void downloadRtData(){
         try {
             if (socket != null) {
-                InputStream inStream = socket.getInputStream();
-                Bluetooth.readRtData(inStream, "TempCondActivity");
-            }
+                    InputStream inStream = socket.getInputStream();
+                    Bluetooth.readRtData(inStream);
+             }
         } catch (IOException e) {
             //TODO
         }
@@ -265,7 +264,12 @@ public class DepthLightActivity extends AppCompatActivity {
 
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
+        chart.setMaxVisibleValueCount(0);
         chart.setBorderColor(Color.BLACK);
+
+        Legend legend = chart.getLegend();
+        legend.setEnabled(true);
+        legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
     }
 }
 

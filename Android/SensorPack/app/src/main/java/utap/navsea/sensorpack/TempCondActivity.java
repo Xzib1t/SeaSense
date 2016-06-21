@@ -29,6 +29,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -50,7 +51,6 @@ public class TempCondActivity extends AppCompatActivity {
     private  ArrayList<Float> temperature = new ArrayList<Float>();
     private ArrayList<Float> conductivity = new ArrayList<Float>();
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
-    private Observable data = new Observable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,6 +111,11 @@ public class TempCondActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+/*                try{
+                    if(socket!=null)
+                    Bluetooth.sendCommand(socket.getOutputStream(), "logapp");
+                }
+                catch(IOException e){}*/
                 changeActivity(DepthLightActivity.class);
             }
         });
@@ -195,7 +200,7 @@ public class TempCondActivity extends AppCompatActivity {
         try {
             if (socket != null) {
                 InputStream inStream = socket.getInputStream();
-                Bluetooth.readRtData(inStream, "TempCondActivity");
+                Bluetooth.readRtData(inStream);
             }
         } catch (IOException e) {
             //TODO
@@ -290,5 +295,10 @@ public class TempCondActivity extends AppCompatActivity {
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
         chart.setBorderColor(Color.BLACK);
+        chart.setMaxVisibleValueCount(0);
+
+        Legend legend = chart.getLegend();
+        legend.setEnabled(true);
+        legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
     }
 }

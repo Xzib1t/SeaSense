@@ -29,7 +29,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ArrayAdapter;
 
@@ -38,7 +37,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
@@ -62,14 +60,6 @@ public class Bluetooth extends AppCompatActivity{
     private static ArrayList<Float> gyroZ = new ArrayList<Float>();
     private static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
     private static StringBuffer downloadedStrings = new StringBuffer();
-    private static StringBuffer downloadedStrings1 = new StringBuffer();
-    private static int dataType = 0;
-    private static int curIndex = 0;
-
-    private static int newLineCount = 0;
-    private static int lastNl = 0;
-
-    private static int index = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -117,10 +107,9 @@ public class Bluetooth extends AppCompatActivity{
      * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
      * Modifications were made to conform to the specifications of this app
      */
-    public static void readRtData(InputStream inStream, String currentActivity) {
+    public static void readRtData(InputStream inStream) {
         try {
             resetBuffers(false);
-            StringBuffer sBuffer = new StringBuffer();
             byte[] buffer = new byte[30];
             int bytes = inStream.read(buffer); //bytes returned from read()
 
@@ -132,7 +121,7 @@ public class Bluetooth extends AppCompatActivity{
             }
             parseRtData(downloadedStrings.toString(), temperature, 10, 1);
             parseRtData(downloadedStrings.toString(), conductivity, 10, 3);
-            parseRtData(downloadedStrings.toString(), depth, 10, 2);
+            parseRtData(downloadedStrings.toString(), depth, 50, 2);
             parseRtData(downloadedStrings.toString(), light, 100, 4);
 
 
@@ -145,7 +134,6 @@ public class Bluetooth extends AppCompatActivity{
         String line = "";
         String[] lineArray = {""};
         if(input.length()>=20) {
-            //TODO if length is <20, save end of string, mash together with start of next buffer reading
             lineArray = input.split("\\n");
             if (lineNumber <= lineArray.length) line = lineArray[lineNumber];
         }
