@@ -29,6 +29,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ArrayAdapter;
 
@@ -37,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
@@ -58,7 +60,16 @@ public class Bluetooth extends AppCompatActivity{
     private static ArrayList<Float> gyroX = new ArrayList<Float>();
     private static ArrayList<Float> gyroY = new ArrayList<Float>();
     private static ArrayList<Float> gyroZ = new ArrayList<Float>();
-    public static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
+    private static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
+    private static StringBuffer downloadedStrings = new StringBuffer();
+    private static StringBuffer downloadedStrings1 = new StringBuffer();
+    private static int dataType = 0;
+    private static int curIndex = 0;
+
+    private static int newLineCount = 0;
+    private static int lastNl = 0;
+
+    private static int index = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -75,10 +86,10 @@ public class Bluetooth extends AppCompatActivity{
         try {
             boolean eofFound = false;
             StringBuffer downloadedStrings = new StringBuffer();
-            resetBuffers(); //Resets all buffers to take in new data
+            resetBuffers(true); //Resets all buffers to take in new data
 
             while (!eofFound) {
-                byte[] buffer = new byte[1024];  //buffer store for the stream
+                byte[] buffer = new byte[256];  //buffer store for the stream
                 int bytes = inStream.read(buffer); //bytes returned from read()
                 downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
                 boolean check = check4eof(downloadedData);
@@ -101,20 +112,112 @@ public class Bluetooth extends AppCompatActivity{
         }
     }
 
-    private static void resetBuffers(){
+    /**
+     * Some pieces of this method were taken from:
+     * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
+     * Modifications were made to conform to the specifications of this app
+     */
+    public static void readRtData(InputStream inStream, String currentActivity) {
+        try {
+            resetBuffers(false);
+            StringBuffer sBuffer = new StringBuffer();
+            byte[] buffer = new byte[30]; //TODO figure out buffer size
+            int bytes = inStream.read(buffer); //bytes returned from read()
+
+            downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
+            downloadedStrings.setLength(0); //Reset buffer
+
+            for (String printStr : downloadedData) {
+                downloadedStrings.append(printStr);
+            }
+            parseRtData(downloadedStrings.toString(), 0);
+
+                //System.out.println("Test: " + downloadedStrings.toString());
+                //String[] tempAr = downloadedStrings.toString().split(",");
+                //System.out.println("Test: " + tempAr[tempAr.length-1]);
+/*                if (isFloat(downloadedStrings.toString())){// || isTime(bufferString)) { //Check if it's data we actually want
+                    if(temperature.size()>20){
+                        temperature.remove(0);
+                        temperature.add(Float.parseFloat(downloadedStrings.toString()));
+                    }else {
+                        temperature.add(Float.parseFloat(downloadedStrings.toString()));
+                    }
+                }*/
+
+                /*byte[] buffer = new byte[1024];  //buffer store for the stream
+                int bytes = inStream.read(buffer); //bytes returned from read()
+                downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
+                boolean check = check4eof(downloadedData);
+                downloadedStrings.setLength(0);
+                    if(!parseRtData(downloadedStrings.toString(), dataType, curIndex, downloadedStrings1.toString())) { //If parsing fails
+                        try {
+                            if (socket != null) sendCommand(socket.getOutputStream(), "logapp");
+                            return; //Stop reading
+                        }
+                        catch(IOException e){
+                            //TODO
+                    }
+                }*/
+        }catch(Exception e){
+            System.out.println("Read exception");
+        }
+    }
+
+    private static void parseLine(String input){
+        //System.out.println("Values: ");
+        System.out.println(input);
+        for(String splitVal : input.split(",")){
+            //System.out.println(splitVal);
+        }
+    }
+
+    private static String separateLines(String input, int lineNumber){
+        String line = "";
+        String[] lineArray = {""};
+        if(input.length()>=20) {
+            //TODO if length is <20, save end of string, mash together with start of next 256 buffer reading
+            lineArray = input.split("\\n");
+            if (lineNumber <= lineArray.length) line = lineArray[lineNumber];
+        }
+        return line;
+    }
+
+    /**
+     * Parses the CSV data
+     * @param input
+     */
+    private static void parseRtData(String input, int newLine){
+        if(separateLines(input,0)!="") { //If we have data
+            String[] csvData = separateLines(input, 0).split(",");
+            //System.out.println("Temperature: " + csvData[1]);
+            if (!temperature.isEmpty()) {
+                Float lastValue = temperature.get(temperature.size() - 1);
+                if ((Float.parseFloat(csvData[1]) < lastValue + 10) &&
+                        (Float.parseFloat(csvData[1]) > lastValue - 10)) //shouldn't change by more than 10 deg between samples, or it's garbage data
+                    temperature.add(Float.parseFloat(csvData[1]));
+            }else{
+                temperature.add(Float.parseFloat(csvData[1]));
+            }
+        }
+    }
+
+    public static void resetBuffers(boolean includeSensors){
+        downloadedStrings.setLength(0);
         downloadedData.clear();
         time.clear();
-        temperature.clear();
-        depth.clear();
-        conductivity.clear();
-        light.clear();
-        heading.clear();
-        accelX.clear();
-        accelY.clear();
-        accelZ.clear();
-        gyroX.clear();
-        gyroY.clear();
-        gyroZ.clear();
+        if(includeSensors) {
+            temperature.clear();
+            depth.clear();
+            conductivity.clear();
+            light.clear();
+            heading.clear();
+            accelX.clear();
+            accelY.clear();
+            accelZ.clear();
+            gyroX.clear();
+            gyroY.clear();
+            gyroZ.clear();
+        }
     }
 
     public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}
@@ -123,6 +226,10 @@ public class Bluetooth extends AppCompatActivity{
 
     public static ArrayList<String> getTime(){
         return time;
+    }
+
+    public static void removeFirst(){
+        temperature.remove(0);
     }
 
     public static ArrayList<Float> getTemp(){

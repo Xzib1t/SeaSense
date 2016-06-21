@@ -19,8 +19,10 @@
 
 package utap.navsea.sensorpack;
 
+import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -34,25 +36,35 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.Random;
 
 public class TempCondActivity extends AppCompatActivity {
     public LineChart chartTemp = null;
     public LineChart chartCond = null;
+    private  ArrayList<Float> temperature = new ArrayList<Float>();
+    private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
+    private Observable data = new Observable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tempcond);
 
-        //serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
+        //graphData();
         chartTemp = (LineChart) findViewById(R.id.chart2); //get the first chart
-        chartCond = (LineChart) findViewById(R.id.chart3); //get the second chart
+        temperature.add(10f);
+        graphTest(chartTemp, convert2Entry(temperature), "Temperature (Deg C)", Color.RED);
 
-        graphTest(chartTemp, convert2Entry(Bluetooth.getTemp()), "Temperature (Deg C)", Color.RED);
-        chartTemp.invalidate(); //Refresh graph
-        graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity", Color.GREEN);
-        chartCond.invalidate(); //refresh graph
+        final GraphObject graph = new GraphObject();
+        final DataObject data = new DataObject();
+        data.addObserver(graph);
+        graph.update(data, 10);
 
         FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left1);
         assert fabLeft != null;
@@ -68,9 +80,128 @@ public class TempCondActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-               changeActivity(DepthLightActivity.class);
+        sendFirst();
+                new Thread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        for(;;){//int i = 0; i < 500; i++) {
+
+                            runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    data.setValue();
+                                }
+                            });
+
+                            try {
+                                Thread.sleep(35);
+                            } catch (InterruptedException e) {
+                                return;
+                            }
+                        }
+                    }
+                }).start();
+               //changeActivity(DepthLightActivity.class);
             }
         });
+    }
+
+    private class GraphObject implements Observer {
+        @Override
+        public void update(Observable observable, Object data) {
+            ArrayList<Float> data1 = Bluetooth.getTemp();
+            if (data1.size() > 20) {
+                while (data1.size() > 20) Bluetooth.removeFirst();
+            }
+            if (data1.size() > 0) {
+                ArrayList<Entry> dataE = convert2Entry(Bluetooth.getTemp());
+                chartTemp.setVisibleXRangeMaximum(20);
+                chartTemp.moveViewToX(chartTemp.getData().getXValCount() - 21);
+
+                //The following code in this method is modified from:
+                //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+                LineData graphData = chartTemp.getData();
+
+                if (graphData != null) {
+                    ILineDataSet set = graphData.getDataSetByIndex(0);
+                    graphData.addXValue(graphData.getXValCount() + " "
+                            + graphData.getXValCount());
+                    graphData.addEntry(new Entry(Bluetooth.getTemp().get(Bluetooth.getTemp().size()-1), set.getEntryCount()), 0);
+                    chartTemp.notifyDataSetChanged();
+                    chartTemp.invalidate(); //Refresh graph
+                }
+            }
+        }
+    }
+
+    private class DataObject extends Observable {
+
+        public void setValue() {
+            downloadRtData();
+            setChanged();
+            notifyObservers();
+        }
+    }
+
+    /**
+     * This class handles downloading data in the background while displaying
+     * a loading bar.
+     */
+    class DownloadTask extends AsyncTask<ArrayList<Float>, ArrayList<Float>, String> {
+        @Override
+        protected void onPreExecute() {
+
+        }
+        @Override
+        protected String doInBackground(ArrayList<Float>... params) {
+            Random rand = new Random();
+
+            int  n = rand.nextInt(50) + 1;
+            Float p = (float) n;
+            temperature.add(p);
+            //downloadRtData();
+            publishProgress(temperature);
+            return "done";
+        }
+        protected void onProgressUpdate(ArrayList<Float>...values){
+            System.out.println("Running");
+        }
+        @Override
+        protected void onPostExecute(String result) {
+        }
+    }
+
+    private void graphData(){
+        chartTemp.notifyDataSetChanged();
+        chartTemp.invalidate(); //Refresh graph
+    }
+
+    /**
+     * Send command to Bluno to start data transfer
+     * Receive data
+     */
+    private void downloadRtData(){
+        try {
+            if (socket != null) {
+                InputStream inStream = socket.getInputStream();
+                Bluetooth.readRtData(inStream, "TempCondActivity");
+            }
+        } catch (IOException e) {
+            //TODO
+        }
+    }
+
+    private void sendFirst(){
+         try{
+            if (socket != null) {
+                OutputStream outStream = socket.getOutputStream();
+                Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+            }
+        } catch (IOException e) {
+            //TODO
+        }
     }
 
     /**

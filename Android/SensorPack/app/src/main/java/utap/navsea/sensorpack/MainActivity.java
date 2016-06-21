@@ -149,7 +149,6 @@ public class MainActivity  extends AppCompatActivity {
 				Bluetooth.readData(inStream, 12);
 			}
 		} catch (IOException e) {
-			System.out.println("OH?");
 			//TODO
 		}
 	}
@@ -167,7 +166,6 @@ public class MainActivity  extends AppCompatActivity {
 				Bluetooth.readData(inStream, 11);
 			}
 		} catch (IOException e) {
-			System.out.println("OH?1");
 			//TODO
 		}
 	}
