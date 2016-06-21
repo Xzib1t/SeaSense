@@ -19,6 +19,7 @@
 
 package utap.navsea.sensorpack;
 
+import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -35,11 +36,17 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
 
 public class DepthLightActivity extends AppCompatActivity {
     public LineChart chartDepth = null;
     public LineChart chartLight = null;
+    private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +62,11 @@ public class DepthLightActivity extends AppCompatActivity {
         graphTest(chartLight, convert2Entry(Bluetooth.getLight()), "Light", Color.GREEN);
         chartLight.invalidate(); //refresh graph
 
+        final GraphObject graph = new GraphObject();
+        final DataObject data = new DataObject();
+        data.addObserver(graph);
+        graph.update(data, 10);
+
         FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left2);
         assert fabLeft != null;
         fabLeft.setOnClickListener(new View.OnClickListener() {
@@ -69,9 +81,104 @@ public class DepthLightActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                changeActivity(MainActivity.class);
+                //changeActivity(MainActivity.class);
+
+                sendFirst(); //Only uncomment this if you plan to run this activity before the TempCondActivity
+                sendFirst();
+                //The following thread code in this method is modified from:
+                //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+                new Thread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        for(;;){
+
+                            runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    data.setValue();
+                                }
+                            });
+
+                            try {
+                                Thread.sleep(35);
+                            } catch (InterruptedException e) {
+                                return;
+                            }
+                        }
+                    }
+                }).start();
             }
         });
+    }
+
+    private class GraphObject implements Observer {
+        @Override
+        public void update(Observable observable, Object data) {
+            ArrayList<Float> dataCond = Bluetooth.getDepth();
+            ArrayList<Float> dataLight = Bluetooth.getLight();
+            graphRtData(dataCond, Bluetooth.getDepth(), chartDepth); //Graph temp
+            graphRtData(dataLight, Bluetooth.getLight(), chartLight); //Graph conductivity
+        }
+    }
+
+    private class DataObject extends Observable {
+
+        public void setValue() {
+            downloadRtData();
+            setChanged();
+            notifyObservers();
+        }
+    }
+
+    private void sendFirst(){
+        try{
+            if (socket != null) {
+                OutputStream outStream = socket.getOutputStream();
+                Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+            }
+        } catch (IOException e) {
+            //TODO
+        }
+    }
+
+    /**
+     * Send command to Bluno to start data transfer
+     * Receive data
+     */
+    private void downloadRtData(){
+        try {
+            if (socket != null) {
+                InputStream inStream = socket.getInputStream();
+                Bluetooth.readRtData(inStream, "TempCondActivity");
+            }
+        } catch (IOException e) {
+            //TODO
+        }
+    }
+
+    private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
+        if (data.size() > 20) {
+            while (data.size() > 20) Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
+        }
+        if (data.size() > 0) {
+            chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
+            chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
+
+            //The following code in this method is modified from:
+            //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+            LineData graphData = chart.getData();
+
+            if (graphData != null) {
+                ILineDataSet set = graphData.getDataSetByIndex(0);
+                graphData.addXValue(graphData.getXValCount() + " "
+                        + graphData.getXValCount());
+                graphData.addEntry(new Entry(sensorData.get(sensorData.size()-1), set.getEntryCount()), 0);
+                chart.notifyDataSetChanged();
+                chart.invalidate(); //Refresh graph
+            }
+        }
     }
 
     /**
@@ -159,10 +266,6 @@ public class DepthLightActivity extends AppCompatActivity {
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
         chart.setBorderColor(Color.BLACK);
-    }
-
-    public void onSerialReceived(String theString) {    //Once connection data received, this function will be called
-
     }
 }
 

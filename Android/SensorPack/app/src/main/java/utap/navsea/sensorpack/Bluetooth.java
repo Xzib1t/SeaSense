@@ -89,7 +89,7 @@ public class Bluetooth extends AppCompatActivity{
             resetBuffers(true); //Resets all buffers to take in new data
 
             while (!eofFound) {
-                byte[] buffer = new byte[256];  //buffer store for the stream
+                byte[] buffer = new byte[1024];  //buffer store for the stream
                 int bytes = inStream.read(buffer); //bytes returned from read()
                 downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
                 boolean check = check4eof(downloadedData);
@@ -121,7 +121,7 @@ public class Bluetooth extends AppCompatActivity{
         try {
             resetBuffers(false);
             StringBuffer sBuffer = new StringBuffer();
-            byte[] buffer = new byte[30]; //TODO figure out buffer size
+            byte[] buffer = new byte[30];
             int bytes = inStream.read(buffer); //bytes returned from read()
 
             downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
@@ -130,44 +130,14 @@ public class Bluetooth extends AppCompatActivity{
             for (String printStr : downloadedData) {
                 downloadedStrings.append(printStr);
             }
-            parseRtData(downloadedStrings.toString(), 0);
+            parseRtData(downloadedStrings.toString(), temperature, 10, 1);
+            parseRtData(downloadedStrings.toString(), conductivity, 10, 3);
+            parseRtData(downloadedStrings.toString(), depth, 10, 2);
+            parseRtData(downloadedStrings.toString(), light, 100, 4);
 
-                //System.out.println("Test: " + downloadedStrings.toString());
-                //String[] tempAr = downloadedStrings.toString().split(",");
-                //System.out.println("Test: " + tempAr[tempAr.length-1]);
-/*                if (isFloat(downloadedStrings.toString())){// || isTime(bufferString)) { //Check if it's data we actually want
-                    if(temperature.size()>20){
-                        temperature.remove(0);
-                        temperature.add(Float.parseFloat(downloadedStrings.toString()));
-                    }else {
-                        temperature.add(Float.parseFloat(downloadedStrings.toString()));
-                    }
-                }*/
 
-                /*byte[] buffer = new byte[1024];  //buffer store for the stream
-                int bytes = inStream.read(buffer); //bytes returned from read()
-                downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
-                boolean check = check4eof(downloadedData);
-                downloadedStrings.setLength(0);
-                    if(!parseRtData(downloadedStrings.toString(), dataType, curIndex, downloadedStrings1.toString())) { //If parsing fails
-                        try {
-                            if (socket != null) sendCommand(socket.getOutputStream(), "logapp");
-                            return; //Stop reading
-                        }
-                        catch(IOException e){
-                            //TODO
-                    }
-                }*/
         }catch(Exception e){
             System.out.println("Read exception");
-        }
-    }
-
-    private static void parseLine(String input){
-        //System.out.println("Values: ");
-        System.out.println(input);
-        for(String splitVal : input.split(",")){
-            //System.out.println(splitVal);
         }
     }
 
@@ -175,7 +145,7 @@ public class Bluetooth extends AppCompatActivity{
         String line = "";
         String[] lineArray = {""};
         if(input.length()>=20) {
-            //TODO if length is <20, save end of string, mash together with start of next 256 buffer reading
+            //TODO if length is <20, save end of string, mash together with start of next buffer reading
             lineArray = input.split("\\n");
             if (lineNumber <= lineArray.length) line = lineArray[lineNumber];
         }
@@ -183,20 +153,23 @@ public class Bluetooth extends AppCompatActivity{
     }
 
     /**
-     * Parses the CSV data
+     * Parses the real time CSV data, we drop some data with this method
+     * but we pull so much in it doesn't matter
      * @param input
+     * @param arrayList
+     * @param errorRange
+     * @param position
      */
-    private static void parseRtData(String input, int newLine){
-        if(separateLines(input,0)!="") { //If we have data
+    private static void parseRtData(String input, ArrayList<Float> arrayList, int errorRange, int position){
+        if(separateLines(input, 0)!="") { //If we have data
             String[] csvData = separateLines(input, 0).split(",");
-            //System.out.println("Temperature: " + csvData[1]);
-            if (!temperature.isEmpty()) {
-                Float lastValue = temperature.get(temperature.size() - 1);
-                if ((Float.parseFloat(csvData[1]) < lastValue + 10) &&
-                        (Float.parseFloat(csvData[1]) > lastValue - 10)) //shouldn't change by more than 10 deg between samples, or it's garbage data
-                    temperature.add(Float.parseFloat(csvData[1]));
+            if (!arrayList.isEmpty()) {
+                Float lastValue = arrayList.get(arrayList.size() - 1);
+                if ((Float.parseFloat(csvData[position]) < lastValue + errorRange) &&
+                        (Float.parseFloat(csvData[position]) > lastValue - errorRange)) //shouldn't change by more than 10 deg between samples, or it's garbage data
+                    arrayList.add(Float.parseFloat(csvData[position]));
             }else{
-                temperature.add(Float.parseFloat(csvData[1]));
+                arrayList.add(Float.parseFloat(csvData[position]));
             }
         }
     }
@@ -229,7 +202,10 @@ public class Bluetooth extends AppCompatActivity{
     }
 
     public static void removeFirst(){
-        temperature.remove(0);
+        if(temperature.size()>20) temperature.remove(0);
+        if(conductivity.size()>20) conductivity.remove(0);
+        if(depth.size()>20) depth.remove(0);
+        if(light.size()>20) light.remove(0);
     }
 
     public static ArrayList<Float> getTemp(){
@@ -250,18 +226,6 @@ public class Bluetooth extends AppCompatActivity{
 
     public static ArrayList<Float> getHeading(){
         return heading;
-    }
-
-    public static ArrayList<Float> getAccelX(){
-        return accelX;
-    }
-
-    public static ArrayList<Float> getAccelY(){
-        return accelY;
-    }
-
-    public static ArrayList<Float> getAccelZ(){
-        return accelZ;
     }
 
     public static ArrayList<Float> getGyroX(){

@@ -48,6 +48,7 @@ public class TempCondActivity extends AppCompatActivity {
     public LineChart chartTemp = null;
     public LineChart chartCond = null;
     private  ArrayList<Float> temperature = new ArrayList<Float>();
+    private ArrayList<Float> conductivity = new ArrayList<Float>();
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
     private Observable data = new Observable();
 
@@ -61,6 +62,10 @@ public class TempCondActivity extends AppCompatActivity {
         temperature.add(10f);
         graphTest(chartTemp, convert2Entry(temperature), "Temperature (Deg C)", Color.RED);
 
+        chartCond = (LineChart) findViewById(R.id.chart3); //get the first chart
+        temperature.add(10f);
+        graphTest(chartCond, convert2Entry(conductivity), "Conductivity (S/m)", Color.BLACK);
+
         final GraphObject graph = new GraphObject();
         final DataObject data = new DataObject();
         data.addObserver(graph);
@@ -71,21 +76,16 @@ public class TempCondActivity extends AppCompatActivity {
         fabLeft.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                changeActivity(MainActivity.class);
-            }
-        });
+                //changeActivity(MainActivity.class);
+                sendFirst();
 
-        FloatingActionButton fabRight = (FloatingActionButton) findViewById(R.id.fab_right1);
-        assert fabRight != null;
-        fabRight.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-        sendFirst();
+                //The following thread code in this method is modified from:
+                //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
                 new Thread(new Runnable() {
 
                     @Override
                     public void run() {
-                        for(;;){//int i = 0; i < 500; i++) {
+                        for(;;){
 
                             runOnUiThread(new Runnable() {
 
@@ -103,7 +103,15 @@ public class TempCondActivity extends AppCompatActivity {
                         }
                     }
                 }).start();
-               //changeActivity(DepthLightActivity.class);
+            }
+        });
+
+        FloatingActionButton fabRight = (FloatingActionButton) findViewById(R.id.fab_right1);
+        assert fabRight != null;
+        fabRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                changeActivity(DepthLightActivity.class);
             }
         });
     }
@@ -111,28 +119,10 @@ public class TempCondActivity extends AppCompatActivity {
     private class GraphObject implements Observer {
         @Override
         public void update(Observable observable, Object data) {
-            ArrayList<Float> data1 = Bluetooth.getTemp();
-            if (data1.size() > 20) {
-                while (data1.size() > 20) Bluetooth.removeFirst();
-            }
-            if (data1.size() > 0) {
-                ArrayList<Entry> dataE = convert2Entry(Bluetooth.getTemp());
-                chartTemp.setVisibleXRangeMaximum(20);
-                chartTemp.moveViewToX(chartTemp.getData().getXValCount() - 21);
-
-                //The following code in this method is modified from:
-                //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-                LineData graphData = chartTemp.getData();
-
-                if (graphData != null) {
-                    ILineDataSet set = graphData.getDataSetByIndex(0);
-                    graphData.addXValue(graphData.getXValCount() + " "
-                            + graphData.getXValCount());
-                    graphData.addEntry(new Entry(Bluetooth.getTemp().get(Bluetooth.getTemp().size()-1), set.getEntryCount()), 0);
-                    chartTemp.notifyDataSetChanged();
-                    chartTemp.invalidate(); //Refresh graph
-                }
-            }
+            ArrayList<Float> dataTemp = Bluetooth.getTemp();
+            ArrayList<Float> dataCond = Bluetooth.getCond();
+            graphRtData(dataTemp, Bluetooth.getTemp(), chartTemp); //Graph temp
+            graphRtData(dataCond, Bluetooth.getCond(), chartCond); //Graph conductivity
         }
     }
 
@@ -173,9 +163,28 @@ public class TempCondActivity extends AppCompatActivity {
         }
     }
 
-    private void graphData(){
-        chartTemp.notifyDataSetChanged();
-        chartTemp.invalidate(); //Refresh graph
+    private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
+        if (data.size() > 20) {
+            while (data.size() > 20) Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
+        }
+        if (data.size() > 0) {
+            ArrayList<Entry> dataE = convert2Entry(Bluetooth.getTemp());
+            chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
+            chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
+
+            //The following code in this method is modified from:
+            //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+            LineData graphData = chart.getData();
+
+            if (graphData != null) {
+                ILineDataSet set = graphData.getDataSetByIndex(0);
+                graphData.addXValue(graphData.getXValCount() + " "
+                        + graphData.getXValCount());
+                graphData.addEntry(new Entry(sensorData.get(sensorData.size()-1), set.getEntryCount()), 0);
+                chart.notifyDataSetChanged();
+                chart.invalidate(); //Refresh graph
+            }
+        }
     }
 
     /**
