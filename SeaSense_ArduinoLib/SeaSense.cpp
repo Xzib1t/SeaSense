@@ -16,15 +16,30 @@
 #include <avr/interrupt.h>
 #include <string.h>
 
+// function prototypes
+void getHallEffect();
+void printVerboseData();
+void printAppData();
+void printFileData();
+void printOLEDdata();
 
-// global vars (defined in globals.h)
+//**********************  global vars (defined in globals.h) ***********************************
+// booleans for the states of various processes
 boolean RTC_AUTOSET; // allows for users to set the time using the bluetooth cli if set to false
 boolean logData; // log data to cli in a human-readable format
 boolean sd_logData; // log data to a file on the SD card
 boolean app_logData; // log data to the cli for the andriod app 
 boolean noSD; // indicates whether or not an SD card has been located
 boolean adc_ready; // indicates if the ADC is ready to perform new conversions
-RTC_DS1307 rtc; // realtime clock module 
+
+// data buffer management (Bluetooth command char buffer, ADC sample buffer)
+char cli_rxBuf[MAX_INPUT_SIZE]; // input character buffer
+byte adc_channel = 10; // first ADC channel to be read from 
+int adcBuf[ADC_BUFFER_SIZE]; // global buffer for incoming ADC readings
+byte adc_pos = 0; // position in adcBuf
+int count; // used in timer1 interrupt
+
+// formatted data storage variables (these are what get printed when logging)
 char Timestamp[9]; // current time stored as 'HH:MM:SS/0'
 double Temp = 0.0; // current temperature reading
 unsigned int Depth = 0; // current depth reading
@@ -33,37 +48,25 @@ unsigned long Light = 0; // current light sensor reading
 int Head = 0; // current heading
 int AccelX = 0,AccelY = 0,AccelZ = 0; // current accelerometer (reading units of m/s^2)
 int GyroX = 0,GyroY = 0,GyroZ = 0; // current compass reading (units of microTeslas)
+int vBat; // current battery reading (from ADC) 
+
+// library objects
+Sd2Card card; // sd card 
 File SDfile; // current file being logged to (addressable through SDfile.write(text))
+RTC_DS1307 rtc; // realtime clock module 
 Adafruit_HMC5883_Unified mag; // magnometer sensor
 Adafruit_ADXL345_Unified accel; // accelerometer sensor
 Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); //SPI OLED display
-int vBat; // current battery reading (from ADC) 
-
-char cli_rxBuf[MAX_INPUT_SIZE]; // input character buffer
-
-// used for ADC interrupt routine
-byte adc_channel = 10; // first ADC channel to be read from 
-int adcBuf[ADC_BUFFER_SIZE]; // global buffer for incoming ADC readings
-byte adc_pos = 0; // position in adcBuf
-
-int count2 = 0; // temporarily here for use with testing the android app
-int count; // used in timer1 interrupt
-
-// set up variables using the SD utility library functions:
-Sd2Card card;
+//*********************************************************************************************
 
 // Initializations are done here automatically on calling the library
-SeaSense::SeaSense(int output, int light_s0, int light_s1){
+SeaSense::SeaSense(int light_s0, int light_s1){
     // disable the watchdog timer
     wdt_disable();
     
     // config the light sensor scale pins (for depreciated sensor)
     _s0 = light_s0;
     _s1 = light_s1;
-    
-    // LED indicator pin (shows when logging is enabled)
-    pinMode(output,OUTPUT);
-    _output = output;
     
     // default to setting the RTC based on prog compile time (autoset = true)
     // this var can be changed from within the arduino sketch
@@ -76,6 +79,12 @@ SeaSense::SeaSense(int output, int light_s0, int light_s1){
     digitalWrite(10, HIGH); // de-assert chip select on ethernet chip (keeps spi lines clear)
     pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
     pinMode(SD_CS, OUTPUT); // ss pin for SD card on ethernet shield
+    
+    // hall effect sensor
+    pinMode(HALL_PIN,INPUT);
+    
+    // LED indicator
+    pinMode(LEDpin,OUTPUT);
     
     // ADC inputs
     pinMode(A10,INPUT); // temp
@@ -315,112 +324,34 @@ void SeaSense::CollectData()
 // File logs will be updated every ISR; serial logs every 10 ISRs
 ISR(TIMER1_COMPA_vect) 
 {
-  if(init == false) return; // if initialization hasn't finished, immediately exit the ISR
+    if(init == false) return; // if initialization hasn't finished, immediately exit the ISR
     
-  getLight(); // read in light from hardware counter exactly every 100ms
+    getLight(); // read in light from hardware counter exactly every 100ms
+    getHallEffect(); // check if file logging should be enabled
     
-    // log data to SD card (highest priority logging)
-    if(sd_logData & SDfile){
-      digitalWrite(OLED_CS,HIGH); // make sure the OLED display isn't asserted
-      digitalWrite(22,HIGH); // indicate logging with LED on pin 22
-      SDfile.print(Timestamp); SDfile.print(F(","));
-      SDfile.print(Temp); SDfile.print(F(","));
-      SDfile.print(Depth); SDfile.print(F(","));
-      SDfile.print(Cond); SDfile.print(F(","));
-      SDfile.print(Light); SDfile.print(F(","));
-      SDfile.print(Head); SDfile.print(F(","));
-      SDfile.print(AccelX); SDfile.print(F(","));
-      SDfile.print(AccelY); SDfile.print(F(","));
-      SDfile.print(AccelZ); SDfile.print(F(","));
-      SDfile.print(GyroX); SDfile.print(F(","));
-      SDfile.print(GyroY); SDfile.print(F(","));
-      SDfile.print(GyroZ); SDfile.print(F("\n\r"));
-      //return;
-    }
-    // log data to the andriod app (second highest priority logging)
-    else if(app_logData & !logData){
-      digitalWrite(22,HIGH); //indicate logging with LED on pin 22
-      count2++; //REMOVE IN PRODUCTION VERSION
-      Serial.println(F("Logging data to app"));
-      Serial1.print(Timestamp); Serial1.print(F(","));
-      Serial1.print(Temp); Serial1.print(F(","));
-      Serial1.print(Depth); Serial1.print(F(","));
-      Serial1.print(Cond); Serial1.print(F(","));
-      Serial1.print(Light); Serial1.print(F(","));
-      Serial1.print(Head); Serial1.print(F(","));
-      Serial1.print(AccelX); Serial1.print(F(","));
-      Serial1.print(AccelY); Serial1.print(F(","));
-      Serial1.print(AccelZ); Serial1.print(F(","));
-      Serial1.print(GyroX); Serial1.print(F(","));
-      Serial1.print(GyroY); Serial1.print(F(","));
-      Serial1.print(GyroZ); Serial1.print(F(",\n"));
-      //Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
-      
-      //if (count2 == 50) {app_logData = false; count2=0; Serial1.print(F("U+1F4A9")); Serial1.print(F(","));} //REMOVE IN PRODUCTION VERSION
+    if(sd_logData & SDfile){ // log data to SD card (highest priority logging)
+        printFileData();
+    } else if(app_logData & !logData){ // log data to the andriod app (second highest priority logging)
+        printAppData();
     } 
-    if (!app_logData) count2 = 0; // reset data logging counter if app_logData is stopped early (REMOVE IN PRODUCTION VERSION)
-    
-    // keep a rolling count of the number of interrupts triggered
-    // every 10 counts = 1 second
-    if(count<9) 
-      count++;
-    else count = 0;
 
-    // log data over the bluetooth port every time the count rolls over (lowest logging priority)
-    if(count == 0)
-    {
-      // log verbose output to the command line for 
-      if(logData & !app_logData){
-          digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
-          Serial1.print(Timestamp); Serial1.print(F("\t"));
-          Serial1.print(Temp); Serial1.print(F("\t"));
-          Serial1.print(Depth); Serial1.print(F("\t"));
-          Serial1.print(Cond); Serial1.print(F("\t"));
-          Serial1.print(Light); Serial1.print(F("\t"));
-          Serial1.println(Head);
-          //return;
-      }
-        // update the OLED display with new sensor readings
-        digitalWrite(SD_CS,HIGH);
-        digitalWrite(OLED_CS,LOW);
-        display.clearDisplay();
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(40,2);
-        display.print(Timestamp);
-        display.setCursor(8,20);
-        display.print(Temp);
-        display.setCursor(95,20);
-        display.print(Light);
-        display.setCursor(115,48);
-        display.print("lx");
-        display.setCursor(24,48);
-        display.print("C");
-        drawArrow(Head);
-        if (noSD) { // if no SD card is available, indicate so
-            display.drawBitmap(0, 0, dispNoCard, 128, 64, WHITE);
-            display.setCursor(2,1); display.print("NC");
-        } else if(app_logData | logData | sd_logData) {
-            display.drawBitmap(0, 0, dispCardWrite, 128, 64, WHITE);
-            display.setCursor(16,2);
-            if(app_logData)
-                display.print("A"); // logging to (A)pp
-            if(logData)
-                display.print("U"); // logging to (U)ser
-            if(sd_logData)
-                display.print("F"); // logging to (F)ile
-        } else {
-            display.drawBitmap(0, 0, dispCard, 128, 64, WHITE);
+    // keep a rolling count of the number of interrupts triggered (every 10 counts = 1 second)
+    if(count<9) {
+        count++;
+    } else { // log data over the bluetooth port every time the count rolls over
+        count = 0; // don't forget to reset the counter
+        
+        printOLEDdata(); // update the OLED display with new sensor readings
+        
+        if(logData & !app_logData){ // log verbose output to the command line if enabled 
+          printVerboseData();
         }
-        drawBatInd();
-        display.display();
-        digitalWrite(OLED_CS,HIGH);
-        digitalWrite(SD_CS,LOW);
     }
     
+    // update the logging indicator LED
     if((!app_logData) & (!logData) & (!sd_logData))
     {
-        digitalWrite(22,LOW); // turn off data logging indicator LED on pin 22
+        digitalWrite(LEDpin,LOW); // turn off data logging indicator LED on pin 22
     }
 }
 
@@ -437,6 +368,8 @@ ISR(TIMER5_OVF_vect){
 // Users' guide pg 283
 // configured to run until the adc buffer has been filled (globals.h - 100 samples), then wait
 // to be re-enabled externally (see dataCollection.h)
+// note that to add additional ADC channels to read from, you need to modify the globals for
+// the number of ADCs, as well as the getADCreadings() and resetADC() functions in dataCollection.cpp
 ISR(ADC_vect){
     // read in current adc value (users' guide pg 286 - MUST READ ADCL FIRST)
     // the shifts are based on ADCD[9:0] positions as set by the ADLAR bit of ADMUX (ADLAR=1)
@@ -458,3 +391,95 @@ ISR(ADC_vect){
     }
 }
  
+// get the current state of the hall effect sensor and toggle file write
+void getHallEffect(){
+    boolean state = digitalRead(HALL_PIN);
+    // future code: toggle sd_logData based on hall effect pin state
+}
+
+// print user-readable data readings to the bluetooth port
+void printVerboseData(){
+    digitalWrite(LEDpin,HIGH); // indicate config complete with LED on pin 13
+    Serial1.print(Timestamp); Serial1.print(F("\t"));
+    Serial1.print(Temp); Serial1.print(F("\t"));
+    Serial1.print(Depth); Serial1.print(F("\t"));
+    Serial1.print(Cond); Serial1.print(F("\t"));
+    Serial1.print(Light); Serial1.print(F("\t"));
+    Serial1.println(Head);
+}
+
+// print data readings to the android app
+void printAppData(){
+    digitalWrite(LEDpin,HIGH); //indicate logging with LED on pin 22
+    Serial.println(F("Logging data to app"));
+    Serial1.print(Timestamp); Serial1.print(F(","));
+    Serial1.print(Temp); Serial1.print(F(","));
+    Serial1.print(Depth); Serial1.print(F(","));
+    Serial1.print(Cond); Serial1.print(F(","));
+    Serial1.print(Light); Serial1.print(F(","));
+    Serial1.print(Head); Serial1.print(F(","));
+    Serial1.print(AccelX); Serial1.print(F(","));
+    Serial1.print(AccelY); Serial1.print(F(","));
+    Serial1.print(AccelZ); Serial1.print(F(","));
+    Serial1.print(GyroX); Serial1.print(F(","));
+    Serial1.print(GyroY); Serial1.print(F(","));
+    Serial1.print(GyroZ); Serial1.print(F(",\n"));
+    //Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
+}
+
+// print data readings to file
+void printFileData(){
+    digitalWrite(OLED_CS,HIGH); // make sure the OLED display isn't asserted
+    digitalWrite(LEDpin,HIGH); // indicate logging with LED on pin 22
+    SDfile.print(Timestamp); SDfile.print(F(","));
+    SDfile.print(Temp); SDfile.print(F(","));
+    SDfile.print(Depth); SDfile.print(F(","));
+    SDfile.print(Cond); SDfile.print(F(","));
+    SDfile.print(Light); SDfile.print(F(","));
+    SDfile.print(Head); SDfile.print(F(","));
+    SDfile.print(AccelX); SDfile.print(F(","));
+    SDfile.print(AccelY); SDfile.print(F(","));
+    SDfile.print(AccelZ); SDfile.print(F(","));
+    SDfile.print(GyroX); SDfile.print(F(","));
+    SDfile.print(GyroY); SDfile.print(F(","));
+    SDfile.print(GyroZ); SDfile.print(F("\n\r"));
+}
+
+// update content shown on the OLED display
+void printOLEDdata(){
+    digitalWrite(SD_CS,HIGH);
+    digitalWrite(OLED_CS,LOW);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(40,2);
+    display.print(Timestamp);
+    display.setCursor(8,20);
+    display.print(Temp);
+    display.setCursor(95,20);
+    display.print(Light);
+    display.setCursor(115,48);
+    display.print("lx");
+    display.setCursor(24,48);
+    display.print("C");
+    drawArrow(Head);
+    if (noSD) { // if no SD card is available, indicate so
+        display.drawBitmap(0, 0, dispNoCard, 128, 64, WHITE);
+        display.setCursor(2,1); display.print("NC");
+    } else if(app_logData | logData | sd_logData) {
+        display.drawBitmap(0, 0, dispCardWrite, 128, 64, WHITE);
+        display.setCursor(16,2);
+        if(app_logData)
+            display.print("A"); // logging to (A)pp
+        if(logData)
+            display.print("U"); // logging to (U)ser
+        if(sd_logData)
+            display.print("F"); // logging to (F)ile
+    } else {
+        display.drawBitmap(0, 0, dispCard, 128, 64, WHITE);
+    }
+    drawBatInd();
+    display.display();
+    digitalWrite(OLED_CS,HIGH);
+    digitalWrite(SD_CS,LOW);
+}

@@ -1,4 +1,4 @@
-// Created by Georges Gauthier - glgauthier@wpi.edu
+ // Created by Georges Gauthier - glgauthier@wpi.edu
 // ported from the original seasense PIC code
 
 // This source file contains all command line interface code

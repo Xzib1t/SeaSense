@@ -38,11 +38,15 @@
         #define CTRL_REG5 0x24
         #define L3G4200D_ADDRESS 0x69 
         /* OLED Display */
-        #define OLED_MOSI  6    //D1
-        #define OLED_CLK   5    //D0
-        #define OLED_DC    11   //DC
-        #define OLED_CS    7    //CS
+        #define OLED_MOSI 6    //D1
+        #define OLED_CLK 5    //D0
+        #define OLED_DC 11   //DC
+        #define OLED_CS 7    //CS
         #define OLED_RESET 13   //RES
+        /* Hall Effect Sensor */
+        #define HALL_PIN 23
+        /* LED logging status indicator */
+        #define LEDpin 22
         
         /*Data values for writing to the SD card/serial log*/
         extern boolean noSD;

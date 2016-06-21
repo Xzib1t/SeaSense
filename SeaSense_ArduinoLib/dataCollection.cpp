@@ -1,6 +1,9 @@
 // Created by Georges Gauthier - glgauthier@wpi.edu
 // Last updated June 2016
 
+// this source files contains low-priority code for updating global variables with new sensor
+// readings, as well as code for resetting the ADC for a new conversion sequence
+
 #include "Arduino.h"
 #include "SeaSense.h"
 
@@ -11,7 +14,7 @@ int carryOut = 0;
 void light_sensitivity(int scale, int s0, int s1);
 void resetADC();
 
-
+// getTime - update the current timestamp stored in global var Timestamp
 void getTime(){
     DateTime now = rtc.now();
     sprintf(Timestamp,"%02d:%02d:%02d",now.hour(),now.minute(),now.second());
@@ -30,7 +33,7 @@ void light_sensor_init(int light_s0, int light_s1){
     return;
 }
 
-// read a new value from the hardware counter to global var Light
+// getLight - read a new value from the hardware counter to global var Light
 void getLight() {
     Light = (65535 * carryOut + TCNT5)/10;
     TCNT5 = 0;
@@ -99,6 +102,7 @@ void getMag(){
     return;
 }
 
+// getAccel - get a new reading from the accelerometer
 void getAccel(){
      /* Get a new sensor event */ 
     sensors_event_t event; 
@@ -109,6 +113,7 @@ void getAccel(){
     
 }
 
+// getGyro - get a new reading from the gyroscope
 void getGyro(){
   byte xMSB = readRegister(L3G4200D_ADDRESS, 0x29);
   byte xLSB = readRegister(L3G4200D_ADDRESS, 0x28);
@@ -123,6 +128,7 @@ void getGyro(){
   GyroZ = ((zMSB << 8) | zLSB);
 }
 
+// configure the Gyroscope
 int setupL3G4200D(int scale){
   //From  Jim Lindblom of Sparkfun's code
 
@@ -151,7 +157,7 @@ int setupL3G4200D(int scale){
   // if you'd like:
   writeRegister(L3G4200D_ADDRESS, CTRL_REG5, 0b00000000);
 }
-
+// writeRegister - used in gyroscope config
 void writeRegister(int deviceAddress, byte address, byte val) {
     Wire.beginTransmission(deviceAddress); // start transmission to device 
     Wire.write(address);       // send register address
@@ -159,6 +165,7 @@ void writeRegister(int deviceAddress, byte address, byte val) {
     Wire.endTransmission();     // end transmission
 }
 
+// readRegister - used to read from the gyroscope module
 int readRegister(int deviceAddress, byte address){
 
     int v;
