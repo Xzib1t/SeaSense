@@ -28,6 +28,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -44,6 +45,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.Set;
 import java.util.UUID;
 
@@ -59,6 +62,7 @@ public class MainActivity  extends AppCompatActivity {
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
 	private SeekBar timeSlider = null;
+	private Button rtButton = null;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -80,6 +84,46 @@ public class MainActivity  extends AppCompatActivity {
 		dialogCommands = new Dialog(this); //Create dialog to hold command options
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
+
+        final GraphObject graph = new GraphObject();
+        final DataObject data = new DataObject();
+        data.addObserver(graph);
+        graph.update(data, 10);
+
+		rtButton = (Button) findViewById(R.id.rtbutton_main);
+		assert rtButton != null;
+		rtButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				sendFirst();
+
+				//The following thread code in this method is modified from:
+				//https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+				new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+
+					@Override
+					public void run() {
+						while(true){
+
+							runOnUiThread(new Runnable() {
+
+								@Override
+								public void run() {
+									data.setValue(); //TODO add timeout
+								}
+							});
+
+							try {
+								Thread.sleep(35);
+							} catch (InterruptedException e) {
+								return;
+							}
+						}
+					}
+				}).start();
+			}
+		});
+
 		fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
@@ -136,17 +180,44 @@ public class MainActivity  extends AppCompatActivity {
 		});
 	}
 
-	/**
+    private class GraphObject implements Observer {
+        @Override
+        public void update(Observable observable, Object data) {
+        if(!Bluetooth.getHeading().isEmpty())
+            spinCompass(compass, Bluetooth.getHeading().get(Bluetooth.getHeading().size()-1));
+        }
+    }
+
+    private class DataObject extends Observable {
+
+        public void setValue() {
+            downloadRtData();
+            setChanged();
+            notifyObservers();
+        }
+    }
+
+    private void sendFirst(){
+        try{
+            if (socket != null) {
+                OutputStream outStream = socket.getOutputStream();
+                Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+            }
+        } catch (IOException e) {
+            //TODO
+        }
+    }
+
+
+    /**
 	 * Send command to Bluno to start data transfer
 	 * Receive data
 	 */
 	private void downloadRtData(){
 		try {
 			if (socket != null) {
-				OutputStream outStream = socket.getOutputStream();
-				Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
 				InputStream inStream = socket.getInputStream();
-				Bluetooth.readData(inStream, 12);
+				Bluetooth.readRtData(inStream, "MainActivity");
 			}
 		} catch (IOException e) {
 			//TODO

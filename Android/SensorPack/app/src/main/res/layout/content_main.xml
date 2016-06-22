@@ -8,7 +8,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:orientation="vertical"
-    android:weightSum="6"
+    android:weightSum="6.15"
     tools:context="utap.navsea.sensorpack.MainActivity"
     tools:showIn="@layout/activity_main">
 
@@ -46,6 +46,14 @@
         android:src="@drawable/compass" />
         <!--compass picture from:
         https://upload.wikimedia.org/wikipedia/commons/8/8e/Compass_Card.png-->
+
+    <Button
+        android:id="@+id/rtbutton_main"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:text="@string/button_realtime"
+        android:layout_weight="0.15" />
 
 </LinearLayout>
 

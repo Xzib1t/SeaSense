@@ -27,6 +27,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 
 import android.view.View;
+import android.widget.Button;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -45,14 +46,16 @@ import java.util.Observable;
 import java.util.Observer;
 
 public class DepthLightActivity extends AppCompatActivity {
-    public LineChart chartDepth = null;
-    public LineChart chartLight = null;
+    private LineChart chartDepth = null;
+    private LineChart chartLight = null;
+    private Button rtButton = null;
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
+    private boolean activityRunning = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_depthlight);	        //set the Uart Baudrate on BLE chip to 115200
+        setContentView(R.layout.activity_depthlight);
 
         chartDepth = (LineChart) findViewById(R.id.chart4); //get the first chart
         chartLight = (LineChart) findViewById(R.id.chart5); //get the second chart
@@ -67,36 +70,30 @@ public class DepthLightActivity extends AppCompatActivity {
         data.addObserver(graph);
         graph.update(data, 10);
 
-        FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left2);
-        assert fabLeft != null;
-        fabLeft.setOnClickListener(new View.OnClickListener() {
+        rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
+
+        assert rtButton != null;
+        rtButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                changeActivity(TempCondActivity.class);
-            }
-        });
-
-        FloatingActionButton fabRight = (FloatingActionButton) findViewById(R.id.fab_right2);
-        assert fabRight != null;
-        fabRight.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //changeActivity(MainActivity.class);
-
-                //sendFirst(); //Only uncomment this if you plan to run this activity before the TempCondActivity
                 //The following thread code in this method is modified from:
                 //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-                new Thread(new Runnable() {
+                new Thread(new Runnable() { //TODO make sure this doesn't run more than once
 
                     @Override
                     public void run() {
-                        for(;;){
+                        try {
+                            Bluetooth.sendCommand(socket.getOutputStream(), "logapp");
+                            System.out.println("Logapp sent");
+                        }catch(IOException e){}
+
+                        while(activityRunning){
 
                             runOnUiThread(new Runnable() {
 
                                 @Override
                                 public void run() {
-                                    data.setValue();
+                                    data.setValue(); //TODO add timeout
                                 }
                             });
 
@@ -108,6 +105,29 @@ public class DepthLightActivity extends AppCompatActivity {
                         }
                     }
                 }).start();
+            }
+        });
+
+        FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left2);
+        assert fabLeft != null;
+        fabLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    Bluetooth.sendCommand(socket.getOutputStream(), "logapp");
+                    System.out.println("Logapp sent");
+                }catch(IOException e){}
+                activityRunning = false;
+                changeActivity(TempCondActivity.class);
+            }
+        });
+
+        FloatingActionButton fabRight = (FloatingActionButton) findViewById(R.id.fab_right2);
+        assert fabRight != null;
+        fabRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                changeActivity(MainActivity.class);
             }
         });
     }
@@ -150,7 +170,7 @@ public class DepthLightActivity extends AppCompatActivity {
         try {
             if (socket != null) {
                     InputStream inStream = socket.getInputStream();
-                    Bluetooth.readRtData(inStream);
+                    Bluetooth.readRtData(inStream, "DepthLightActivity");
              }
         } catch (IOException e) {
             //TODO

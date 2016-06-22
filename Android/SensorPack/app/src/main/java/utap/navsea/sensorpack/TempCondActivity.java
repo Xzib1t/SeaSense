@@ -27,6 +27,7 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.Button;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -46,11 +47,13 @@ import java.util.Observer;
 import java.util.Random;
 
 public class TempCondActivity extends AppCompatActivity {
-    public LineChart chartTemp = null;
-    public LineChart chartCond = null;
+    private LineChart chartTemp = null;
+    private LineChart chartCond = null;
+    private Button rtButton = null;
     private  ArrayList<Float> temperature = new ArrayList<Float>();
     private ArrayList<Float> conductivity = new ArrayList<Float>();
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
+    private boolean activityRunning = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,27 +74,27 @@ public class TempCondActivity extends AppCompatActivity {
         data.addObserver(graph);
         graph.update(data, 10);
 
-        FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left1);
-        assert fabLeft != null;
-        fabLeft.setOnClickListener(new View.OnClickListener() {
+        rtButton = (Button) findViewById(R.id.rtbutton_tempcond);
+
+        assert rtButton != null;
+        rtButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //changeActivity(MainActivity.class);
                 sendFirst();
 
                 //The following thread code in this method is modified from:
                 //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-                new Thread(new Runnable() {
+                new Thread(new Runnable() { //TODO make sure this doesn't run more than once
 
                     @Override
                     public void run() {
-                        for(;;){
+                        while(activityRunning){
 
                             runOnUiThread(new Runnable() {
 
                                 @Override
                                 public void run() {
-                                    data.setValue();
+                                    data.setValue(); //TODO add timeout
                                 }
                             });
 
@@ -106,16 +109,26 @@ public class TempCondActivity extends AppCompatActivity {
             }
         });
 
+
+        FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left1);
+        assert fabLeft != null;
+        fabLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                changeActivity(MainActivity.class);
+            }
+        });
+
         FloatingActionButton fabRight = (FloatingActionButton) findViewById(R.id.fab_right1);
         assert fabRight != null;
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-/*                try{
-                    if(socket!=null)
+                try {
                     Bluetooth.sendCommand(socket.getOutputStream(), "logapp");
-                }
-                catch(IOException e){}*/
+                    System.out.println("Logapp sent");
+                }catch(IOException e){}
+                activityRunning = false;
                 changeActivity(DepthLightActivity.class);
             }
         });
@@ -200,7 +213,7 @@ public class TempCondActivity extends AppCompatActivity {
         try {
             if (socket != null) {
                 InputStream inStream = socket.getInputStream();
-                Bluetooth.readRtData(inStream);
+                Bluetooth.readRtData(inStream, "TempCondActivity"); //TODO add extra input here to start faster download process
             }
         } catch (IOException e) {
             //TODO

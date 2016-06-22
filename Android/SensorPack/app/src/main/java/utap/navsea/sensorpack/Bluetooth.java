@@ -107,7 +107,7 @@ public class Bluetooth extends AppCompatActivity{
      * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
      * Modifications were made to conform to the specifications of this app
      */
-    public static void readRtData(InputStream inStream) {
+    public static void readRtData(InputStream inStream, String activity) {
         try {
             resetBuffers(false);
             byte[] buffer = new byte[30];
@@ -119,11 +119,20 @@ public class Bluetooth extends AppCompatActivity{
             for (String printStr : downloadedData) {
                 downloadedStrings.append(printStr);
             }
-            parseRtData(downloadedStrings.toString(), temperature, 10, 1);
-            parseRtData(downloadedStrings.toString(), conductivity, 10, 3);
-            parseRtData(downloadedStrings.toString(), depth, 50, 2);
-            parseRtData(downloadedStrings.toString(), light, 100, 4);
-
+            if(activity.equals("TempCondActivity")) {
+                parseRtData(downloadedStrings.toString(), temperature, 10, 1);
+                parseRtData(downloadedStrings.toString(), conductivity, 10, 3);
+            }
+            if(activity.equals("DepthLightActivity")) {
+                parseRtData(downloadedStrings.toString(), depth, 50, 2);
+                parseRtData(downloadedStrings.toString(), light, 100, 4);
+            }
+            if(activity.equals("MainActivity")) {
+                parseRtData(downloadedStrings.toString(), heading, 100, 5);
+//                parseRtData(downloadedStrings.toString(), gyroX, 100, 9);
+//                parseRtData(downloadedStrings.toString(), gyroY, 100, 10);
+//                parseRtData(downloadedStrings.toString(), gyroZ, 100, 11);
+            }
 
         }catch(Exception e){
             System.out.println("Read exception");
@@ -151,13 +160,15 @@ public class Bluetooth extends AppCompatActivity{
     private static void parseRtData(String input, ArrayList<Float> arrayList, int errorRange, int position){
         if(separateLines(input, 0)!="") { //If we have data
             String[] csvData = separateLines(input, 0).split(",");
-            if (!arrayList.isEmpty()) {
-                Float lastValue = arrayList.get(arrayList.size() - 1);
-                if ((Float.parseFloat(csvData[position]) < lastValue + errorRange) &&
-                        (Float.parseFloat(csvData[position]) > lastValue - errorRange)) //shouldn't change by more than 10 deg between samples, or it's garbage data
+            if(csvData.length > position) { //Make sure we have enough data
+                if (!arrayList.isEmpty()) {
+                    Float lastValue = arrayList.get(arrayList.size() - 1);
+                    if ((Float.parseFloat(csvData[position]) < lastValue + errorRange) &&
+                            (Float.parseFloat(csvData[position]) > lastValue - errorRange)) //shouldn't change by more than 10 deg between samples, or it's garbage data
+                        arrayList.add(Float.parseFloat(csvData[position]));
+                } else {
                     arrayList.add(Float.parseFloat(csvData[position]));
-            }else{
-                arrayList.add(Float.parseFloat(csvData[position]));
+                }
             }
         }
     }
