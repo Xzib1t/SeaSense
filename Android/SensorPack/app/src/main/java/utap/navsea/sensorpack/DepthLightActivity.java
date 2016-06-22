@@ -48,7 +48,6 @@ import java.util.Observer;
 public class DepthLightActivity extends AppCompatActivity {
     private LineChart chartDepth = null;
     private LineChart chartLight = null;
-    private Button rtButton = null;
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
     private boolean activityRunning = true;
 
@@ -70,7 +69,7 @@ public class DepthLightActivity extends AppCompatActivity {
         data.addObserver(graph);
         graph.update(data, 10);
 
-        rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
+        Button rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
 
         assert rtButton != null;
         rtButton.setOnClickListener(new View.OnClickListener() {
@@ -83,7 +82,7 @@ public class DepthLightActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         try {
-                            Bluetooth.sendCommand(socket.getOutputStream(), "logapp");
+                            Commands.sendCommand(socket.getOutputStream(), "logapp");
                             System.out.println("Logapp sent");
                         }catch(IOException e){}
 
@@ -114,7 +113,7 @@ public class DepthLightActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 try {
-                    Bluetooth.sendCommand(socket.getOutputStream(), "logapp");
+                    Commands.sendCommand(socket.getOutputStream(), "logapp");
                     System.out.println("Logapp sent");
                 }catch(IOException e){}
                 activityRunning = false;
@@ -155,7 +154,7 @@ public class DepthLightActivity extends AppCompatActivity {
         try{
             if (socket != null) {
                 OutputStream outStream = socket.getOutputStream();
-                Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+                Commands.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
             }
         } catch (IOException e) {
             //TODO

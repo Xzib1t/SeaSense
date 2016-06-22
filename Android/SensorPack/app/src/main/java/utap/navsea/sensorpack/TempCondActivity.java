@@ -49,7 +49,6 @@ import java.util.Random;
 public class TempCondActivity extends AppCompatActivity {
     private LineChart chartTemp = null;
     private LineChart chartCond = null;
-    private Button rtButton = null;
     private  ArrayList<Float> temperature = new ArrayList<Float>();
     private ArrayList<Float> conductivity = new ArrayList<Float>();
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
@@ -74,7 +73,7 @@ public class TempCondActivity extends AppCompatActivity {
         data.addObserver(graph);
         graph.update(data, 10);
 
-        rtButton = (Button) findViewById(R.id.rtbutton_tempcond);
+        Button rtButton = (Button) findViewById(R.id.rtbutton_tempcond);
 
         assert rtButton != null;
         rtButton.setOnClickListener(new View.OnClickListener() {
@@ -125,7 +124,7 @@ public class TempCondActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 try {
-                    Bluetooth.sendCommand(socket.getOutputStream(), "logapp");
+                    Commands.sendCommand(socket.getOutputStream(), "logapp");
                     System.out.println("Logapp sent");
                 }catch(IOException e){}
                 activityRunning = false;
@@ -224,7 +223,7 @@ public class TempCondActivity extends AppCompatActivity {
          try{
             if (socket != null) {
                 OutputStream outStream = socket.getOutputStream();
-                Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+                Commands.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
             }
         } catch (IOException e) {
             //TODO

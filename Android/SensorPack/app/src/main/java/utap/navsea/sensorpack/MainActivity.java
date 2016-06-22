@@ -62,7 +62,7 @@ public class MainActivity  extends AppCompatActivity {
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
 	private SeekBar timeSlider = null;
-	private Button rtButton = null;
+    private boolean rtThreadRunning = false;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -85,25 +85,25 @@ public class MainActivity  extends AppCompatActivity {
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
 
-        final GraphObject graph = new GraphObject();
+        final DisplayObject display = new DisplayObject();
         final DataObject data = new DataObject();
-        data.addObserver(graph);
-        graph.update(data, 10);
+        data.addObserver(display);
+        display.update(data, 10);
 
-		rtButton = (Button) findViewById(R.id.rtbutton_main);
+		Button rtButton = (Button) findViewById(R.id.rtbutton_main);
 		assert rtButton != null;
 		rtButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
 				sendFirst();
-
+                rtThreadRunning = true;
 				//The following thread code in this method is modified from:
 				//https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
 				new Thread(new Runnable() { //TODO make sure this doesn't run more than once
 
 					@Override
 					public void run() {
-						while(true){
+						while(rtThreadRunning){
 
 							runOnUiThread(new Runnable() {
 
@@ -158,7 +158,7 @@ public class MainActivity  extends AppCompatActivity {
 		timeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-				if(!Bluetooth.getHeading().isEmpty()) { //If we have heading data we also have accelerometer data
+				if(!Bluetooth.getHeading().isEmpty() && !rtThreadRunning) { //If we have heading data we also have accelerometer data, make sure we aren't pulling rt data
 					controlCompass(Bluetooth.getHeading(), timeSlider); //Show heading corresponding to time
 
 					controlSeaperch(Bluetooth.getGyroX(), Bluetooth.getGyroY(),
@@ -167,24 +167,40 @@ public class MainActivity  extends AppCompatActivity {
 					controlClock(Bluetooth.getTime(), timeSlider);
 				}
 			}
-
 			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-
-			}
-
+			public void onStartTrackingTouch(SeekBar seekBar) {}
 			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {
-
-			}
+			public void onStopTrackingTouch(SeekBar seekBar) {}
 		});
 	}
 
-    private class GraphObject implements Observer {
+    private class DisplayObject implements Observer {
         @Override
         public void update(Observable observable, Object data) {
-        if(!Bluetooth.getHeading().isEmpty())
-            spinCompass(compass, Bluetooth.getHeading().get(Bluetooth.getHeading().size()-1));
+            if(!Bluetooth.getHeading().isEmpty()) { //Check that we have data, gyroZ is last so if we have it we have everything
+                resizeArrays(Bluetooth.getHeading(), Bluetooth.getGyroX(),
+                        Bluetooth.getGyroY(), Bluetooth.getGyroZ()); //Make sure arrays haven't grown too large
+
+                float heading = Bluetooth.getHeading().get(Bluetooth.getHeading().size() - 1);
+                float gyroX = Bluetooth.getGyroX().get(Bluetooth.getGyroX().size() - 1); //TODO bounds check
+                float gyroY = Bluetooth.getGyroY().get(Bluetooth.getGyroY().size() - 1);
+                float gyroZ = Bluetooth.getGyroZ().get(Bluetooth.getGyroZ().size() - 1);
+
+                spinCompass(compass, heading); //TODO 180-?
+  //              controlSeaperchRt(gyroX, gyroY, gyroZ); //TODO getting data here, but display extremely delayed, or not changing at all
+                System.out.println("Heading: " + heading);
+  //              System.out.println("Gyro x: " + gyroX);
+  //              System.out.println("Gyro y: " + gyroY);
+  //              System.out.println("Gyro z: " + gyroZ);
+            }
+        }
+    }
+
+    private static void resizeArrays(ArrayList<Float> heading, ArrayList<Float> gyroX,
+                                     ArrayList<Float> gyroY, ArrayList<Float> gyroZ) {
+            while ((heading.size()>20) || (gyroX.size()>20) || (gyroY.size()>20)
+                    || (gyroZ.size()>20)) { //Shrink arrays down to 20
+                Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
         }
     }
 
@@ -201,7 +217,7 @@ public class MainActivity  extends AppCompatActivity {
         try{
             if (socket != null) {
                 OutputStream outStream = socket.getOutputStream();
-                Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+                Commands.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
             }
         } catch (IOException e) {
             //TODO
@@ -232,7 +248,7 @@ public class MainActivity  extends AppCompatActivity {
 		try {
 			if (socket != null) {
 				OutputStream outStream = socket.getOutputStream();
-				Bluetooth.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
+                Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
 				InputStream inStream = socket.getInputStream();
 				Bluetooth.readData(inStream, 11);
 			}
@@ -280,7 +296,7 @@ public class MainActivity  extends AppCompatActivity {
 							Download.execute();
 
 						}
-						else Bluetooth.sendCommand(outStream, mCommandAdapter.getItem(position));
+						else Commands.sendCommand(outStream, mCommandAdapter.getItem(position));
 					}
 					else{
 						Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
@@ -498,6 +514,22 @@ public class MainActivity  extends AppCompatActivity {
 		}
 	}
 
+    /**
+     * Rotates the seaperch to received real time values
+     * @param x
+     * @param y
+     * @param z
+     */
+    private void controlSeaperchRt(float x, float z, float y){
+            float sampleTime = 0.1f; //approximate, 10Hz sample rate
+
+            x = x * sampleTime; //deg/sec * sec
+            y = y * sampleTime;
+            z = z * sampleTime;
+
+            rotateSeaperch(seaperch, x, z, y); //Z and Y are reversed here
+    }
+
 	/**
 	 * This method prints text to a text box on the MainActivity screen
 	 * @param theString
@@ -561,11 +593,13 @@ public class MainActivity  extends AppCompatActivity {
 				}
 				public void onFinish() {
 					// stop async task if not in progress
-					if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
-						spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
-						spinner.setVisibility(View.INVISIBLE);
-						asyncObject.cancel(false);
-					}
+                    if(asyncObject!=null) {
+                        if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
+                            spinner = (ProgressBar) dialogCommands.findViewById(R.id.progressBar1);
+                            spinner.setVisibility(View.INVISIBLE);
+                            asyncObject.cancel(false);
+                        }
+                    }
 				}
 			}.start();
 		}
