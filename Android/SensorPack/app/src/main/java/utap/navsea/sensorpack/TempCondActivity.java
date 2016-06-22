@@ -22,9 +22,9 @@ package utap.navsea.sensorpack;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -44,7 +44,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.Random;
 
 public class TempCondActivity extends AppCompatActivity {
     private LineChart chartTemp = null;
@@ -52,12 +51,17 @@ public class TempCondActivity extends AppCompatActivity {
     private  ArrayList<Float> temperature = new ArrayList<Float>();
     private ArrayList<Float> conductivity = new ArrayList<Float>();
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
-    private boolean activityRunning = true;
+    private int btnPressCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tempcond);
+
+        final GraphObject graph = new GraphObject();
+        final DataObject data = new DataObject();
+        data.addObserver(graph);
+        graph.update(data, 10);
 
         //graphData();
         chartTemp = (LineChart) findViewById(R.id.chart2); //get the first chart
@@ -68,43 +72,40 @@ public class TempCondActivity extends AppCompatActivity {
         temperature.add(10f);
         graphTest(chartCond, convert2Entry(conductivity), "Conductivity (S/m)", Color.BLACK);
 
-        final GraphObject graph = new GraphObject();
-        final DataObject data = new DataObject();
-        data.addObserver(graph);
-        graph.update(data, 10);
-
-        Button rtButton = (Button) findViewById(R.id.rtbutton_tempcond);
-
-        assert rtButton != null;
+        final Button rtButton = (Button) findViewById(R.id.rtbutton_tempcond);
+        if(socket!=null) rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
+        else rtButton.setVisibility(View.INVISIBLE);
         rtButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                sendFirst();
+                rtButton.setText(getResources().getString(R.string.graph_rt));
+                btnPressCount++;
+                sendLogApp(); //TODO add a timeout here in case Bluno misses a logapp command
+                if((btnPressCount % 2)!=0) {
+                    if(!isReceivingData()) return;
+                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    //The following thread code in this method is modified from:
+                    //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+                    new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+                        @Override
+                        public void run() {
+                            while ((btnPressCount % 2) != 0) { //If it's an odd button press
+                                runOnUiThread(new Runnable() {
 
-                //The following thread code in this method is modified from:
-                //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-                new Thread(new Runnable() { //TODO make sure this doesn't run more than once
-
-                    @Override
-                    public void run() {
-                        while(activityRunning){
-
-                            runOnUiThread(new Runnable() {
-
-                                @Override
-                                public void run() {
-                                    data.setValue(); //TODO add timeout
+                                    @Override
+                                    public void run() {
+                                        data.setValue(); //TODO add timeout
+                                    }
+                                });
+                                try {
+                                    Thread.sleep(35);
+                                } catch (InterruptedException e) {
+                                    return;
                                 }
-                            });
-
-                            try {
-                                Thread.sleep(35);
-                            } catch (InterruptedException e) {
-                                return;
                             }
                         }
-                    }
-                }).start();
+                    }).start();
+                }
             }
         });
 
@@ -114,7 +115,11 @@ public class TempCondActivity extends AppCompatActivity {
         fabLeft.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if((btnPressCount % 2) == 0)
                 changeActivity(MainActivity.class);
+                else Snackbar.make(view, "Stop real time display before changing screens",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
             }
         });
 
@@ -123,12 +128,11 @@ public class TempCondActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                try {
-                    Commands.sendCommand(socket.getOutputStream(), "logapp");
-                    System.out.println("Logapp sent");
-                }catch(IOException e){}
-                activityRunning = false;
+                if((btnPressCount % 2) == 0)
                 changeActivity(DepthLightActivity.class);
+                else Snackbar.make(view, "Stop real time display before changing screens",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
             }
         });
     }
@@ -152,32 +156,17 @@ public class TempCondActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * This class handles downloading data in the background while displaying
-     * a loading bar.
-     */
-    class DownloadTask extends AsyncTask<ArrayList<Float>, ArrayList<Float>, String> {
-        @Override
-        protected void onPreExecute() {
-
+    private boolean isReceivingData(){
+        try{
+            if(socket!=null){
+                InputStream inStream = socket.getInputStream();
+                if(inStream.available()==0) return false; //There is no data to be read
+                else return true;
+            }
+        }catch(IOException e){
+            return false;
         }
-        @Override
-        protected String doInBackground(ArrayList<Float>... params) {
-            Random rand = new Random();
-
-            int  n = rand.nextInt(50) + 1;
-            Float p = (float) n;
-            temperature.add(p);
-            //downloadRtData();
-            publishProgress(temperature);
-            return "done";
-        }
-        protected void onProgressUpdate(ArrayList<Float>...values){
-            System.out.println("Running");
-        }
-        @Override
-        protected void onPostExecute(String result) {
-        }
+        return false;
     }
 
     private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
@@ -215,11 +204,11 @@ public class TempCondActivity extends AppCompatActivity {
                 Bluetooth.readRtData(inStream, "TempCondActivity"); //TODO add extra input here to start faster download process
             }
         } catch (IOException e) {
-            //TODO
+            System.out.println("Exception thrown");
         }
     }
 
-    private void sendFirst(){
+    private void sendLogApp(){
          try{
             if (socket != null) {
                 OutputStream outStream = socket.getOutputStream();

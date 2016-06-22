@@ -24,4 +24,6 @@
 
     <string name="button_realtime">Graph real time data</string>
     <string name="button_realtime_compgyro">Display real time data</string>
+    <string name="graph_rt">Graph real time data</string>
+    <string name="stop_graph_rt">Stop graphing</string>
 </resources>

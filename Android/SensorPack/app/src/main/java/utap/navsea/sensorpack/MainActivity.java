@@ -90,8 +90,9 @@ public class MainActivity  extends AppCompatActivity {
         data.addObserver(display);
         display.update(data, 10);
 
-		Button rtButton = (Button) findViewById(R.id.rtbutton_main);
-		assert rtButton != null;
+        final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
+        if(socket!=null) rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
+        else rtButton.setVisibility(View.INVISIBLE);
 		rtButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
