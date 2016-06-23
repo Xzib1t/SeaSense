@@ -97,7 +97,7 @@ public class MainActivity  extends AppCompatActivity {
 		rtButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				sendFirst();
+                sendFirst();
                 //rtThreadRunning = true;
                 //rtButton.setText(getResources().getString(R.string.start_dl_rt));
                 btnPressCount++;

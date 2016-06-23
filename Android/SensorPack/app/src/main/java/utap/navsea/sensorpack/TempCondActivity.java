@@ -79,7 +79,8 @@ public class TempCondActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
-                btnPressCount++;
+                btnPressCount++; //Will get rt data when this number is odd, will stop when even
+                syncButton(); //If our button goes out of sync resync it
                 sendLogApp();
                 if((btnPressCount % 2)!=0) {
                     rtButton.setText(getResources().getString(R.string.stop_graph_rt));
@@ -87,7 +88,6 @@ public class TempCondActivity extends AppCompatActivity {
                 }
             }
         });
-
 
         FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left1);
         assert fabLeft != null;
@@ -132,6 +132,18 @@ public class TempCondActivity extends AppCompatActivity {
             downloadRtData();
             setChanged();
             notifyObservers();
+        }
+    }
+
+    private void syncButton(){
+        try {
+            boolean receivingData = false;
+            if(socket.getInputStream().available()!=0) receivingData = true;
+
+            if(Bluetooth.getTemp().isEmpty() && receivingData){ //handles the first run, if logapp was already running
+                sendLogApp();
+            }
+        }catch(IOException e){
         }
     }
 
