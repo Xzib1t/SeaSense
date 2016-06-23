@@ -80,31 +80,10 @@ public class TempCondActivity extends AppCompatActivity {
             public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
                 btnPressCount++;
-                sendLogApp(); //TODO add a timeout here in case Bluno misses a logapp command
+                sendLogApp();
                 if((btnPressCount % 2)!=0) {
-                    if(!isReceivingData()) return;
                     rtButton.setText(getResources().getString(R.string.stop_graph_rt));
-                    //The following thread code in this method is modified from:
-                    //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-                    new Thread(new Runnable() { //TODO make sure this doesn't run more than once
-                        @Override
-                        public void run() {
-                            while ((btnPressCount % 2) != 0) { //If it's an odd button press
-                                runOnUiThread(new Runnable() {
-
-                                    @Override
-                                    public void run() {
-                                        data.setValue(); //TODO add timeout
-                                    }
-                                });
-                                try {
-                                    Thread.sleep(35);
-                                } catch (InterruptedException e) {
-                                    return;
-                                }
-                            }
-                        }
-                    }).start();
+                    startRtDownload(data);
                 }
             }
         });
@@ -156,17 +135,28 @@ public class TempCondActivity extends AppCompatActivity {
         }
     }
 
-    private boolean isReceivingData(){
-        try{
-            if(socket!=null){
-                InputStream inStream = socket.getInputStream();
-                if(inStream.available()==0) return false; //There is no data to be read
-                else return true;
+    private void startRtDownload(final DataObject data){
+        //The following thread code in this method is modified from:
+        //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+        new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+            @Override
+            public void run() {
+                while ((btnPressCount % 2) != 0) { //If it's an odd button press
+                    runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            data.setValue();
+                        }
+                    });
+                    try {
+                        Thread.sleep(35);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                }
             }
-        }catch(IOException e){
-            return false;
-        }
-        return false;
+        }).start();
     }
 
     private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
@@ -201,7 +191,7 @@ public class TempCondActivity extends AppCompatActivity {
         try {
             if (socket != null) {
                 InputStream inStream = socket.getInputStream();
-                Bluetooth.readRtData(inStream, "TempCondActivity"); //TODO add extra input here to start faster download process
+                Bluetooth.readRtData(inStream, "TempCondActivity");
             }
         } catch (IOException e) {
             System.out.println("Exception thrown");
@@ -215,7 +205,7 @@ public class TempCondActivity extends AppCompatActivity {
                 Commands.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
             }
         } catch (IOException e) {
-            //TODO
+             System.out.println("Exception thrown, output");
         }
     }
 

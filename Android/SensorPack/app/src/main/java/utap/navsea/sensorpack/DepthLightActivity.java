@@ -78,30 +78,10 @@ public class DepthLightActivity extends AppCompatActivity {
             public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
                 btnPressCount++;
-                sendLogApp(); //TODO add a timeout here in case Bluno misses a logapp command
+                sendLogApp();
                 if((btnPressCount % 2)!=0) {
                     rtButton.setText(getResources().getString(R.string.stop_graph_rt));
-                    //The following thread code in this method is modified from:
-                    //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-                    new Thread(new Runnable() { //TODO make sure this doesn't run more than once
-                        @Override
-                        public void run() {
-                            while ((btnPressCount % 2) != 0) { //If it's an odd button press
-                                runOnUiThread(new Runnable() {
-
-                                    @Override
-                                    public void run() {
-                                        data.setValue(); //TODO add timeout
-                                    }
-                                });
-                                try {
-                                    Thread.sleep(35);
-                                } catch (InterruptedException e) {
-                                    return;
-                                }
-                            }
-                        }
-                    }).start();
+                    startRtDownload(data);
                 }
             }
         });
@@ -161,6 +141,30 @@ public class DepthLightActivity extends AppCompatActivity {
         } catch (IOException e) {
             //TODO
         }
+    }
+
+    private void startRtDownload(final DataObject data){
+        //The following thread code in this method is modified from:
+        //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+        new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+            @Override
+            public void run() {
+                while ((btnPressCount % 2) != 0) { //If it's an odd button press
+                    runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            data.setValue();
+                        }
+                    });
+                    try {
+                        Thread.sleep(35);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                }
+            }
+        }).start();
     }
 
     /**

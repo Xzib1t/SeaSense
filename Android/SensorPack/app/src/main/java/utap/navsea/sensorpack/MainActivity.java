@@ -66,6 +66,7 @@ public class MainActivity  extends AppCompatActivity {
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+	private int btnPressCount = 0;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -97,31 +98,34 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
 				sendFirst();
-                rtThreadRunning = true;
-				//The following thread code in this method is modified from:
-				//https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-				new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+                //rtThreadRunning = true;
+                //rtButton.setText(getResources().getString(R.string.start_dl_rt));
+                btnPressCount++;
+                if((btnPressCount % 2)!=0) {
+                    //rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+                    //The following thread code in this method is modified from:
+                    //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+                    new Thread(new Runnable() { //TODO make sure this doesn't run more than once
 
-					@Override
-					public void run() {
-						while(rtThreadRunning){
+                        @Override
+                        public void run() {
+                            while ((btnPressCount % 2) != 0) {
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        data.setValue(); //TODO add timeout
+                                    }
+                                });
 
-							runOnUiThread(new Runnable() {
-
-								@Override
-								public void run() {
-									data.setValue(); //TODO add timeout
-								}
-							});
-
-							try {
-								Thread.sleep(35);
-							} catch (InterruptedException e) {
-								return;
-							}
-						}
-					}
-				}).start();
+                                try {
+                                    Thread.sleep(35);
+                                } catch (InterruptedException e) {
+                                    return;
+                                }
+                            }
+                        }
+                    }).start();
+                }
 			}
 		});
 

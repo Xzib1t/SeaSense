@@ -110,6 +110,7 @@ public class Bluetooth extends AppCompatActivity{
             byte[] buffer;
             if(activity.equals("MainActivity")) buffer = new byte[60]; //need a larger buffer to read gyro data
             else buffer = new byte[30]; //need a smaller buffer for better speed
+            if(inStream.available()==0) return; //Make sure it's actually sending us data
             int bytes = inStream.read(buffer); //bytes returned from read()
 
             downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
