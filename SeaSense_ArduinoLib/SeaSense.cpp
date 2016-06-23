@@ -14,14 +14,16 @@
 #include "avr/wdt.h" 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <string.h>
 
 // function prototypes
-void getHallEffect();
+//void getHallEffect();
 void printVerboseData();
 void printAppData();
 void printFileData();
 void printOLEDdata();
+void lpmWake();
 
 //**********************  global vars (defined in globals.h) ***********************************
 // booleans for the states of various processes
@@ -80,9 +82,6 @@ SeaSense::SeaSense(int light_s0, int light_s1){
     pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
     pinMode(SD_CS, OUTPUT); // ss pin for SD card on ethernet shield
     
-    // hall effect sensor
-    pinMode(HALL_PIN,INPUT);
-    
     // LED indicator
     pinMode(LEDpin,OUTPUT);
     
@@ -91,6 +90,9 @@ SeaSense::SeaSense(int light_s0, int light_s1){
     pinMode(A11,INPUT); // pressure
     pinMode(A12,INPUT); // cond
     pinMode(A13,INPUT); // battery 
+    
+    // low power mode disable interrupt pin
+    pinMode(LPM_WAKE, INPUT);
     
     init = false; // set to true after SeaSense.Initialize() has been called
     // the states of these booleans dictate whether or not data is written to the SD card or serial port
@@ -316,6 +318,7 @@ void SeaSense::CollectData()
     getMag(); // get a new magnometer reading
     getAccel(); // get a new accelerometer reading
     getGyro(); // get a new gyroscope reading
+    this->getHallEffect(); // check if LPM should be turned on
     return;
 }
 
@@ -327,7 +330,7 @@ ISR(TIMER1_COMPA_vect)
     if(init == false) return; // if initialization hasn't finished, immediately exit the ISR
     
     getLight(); // read in light from hardware counter exactly every 100ms
-    getHallEffect(); // check if file logging should be enabled
+    //getHallEffect(); // check if file logging should be enabled
     
     if(sd_logData & SDfile){ // log data to SD card (highest priority logging)
         printFileData();
@@ -349,10 +352,9 @@ ISR(TIMER1_COMPA_vect)
     }
     
     // update the logging indicator LED
-    if((!app_logData) & (!logData) & (!sd_logData))
-    {
-        digitalWrite(LEDpin,LOW); // turn off data logging indicator LED on pin 22
-    }
+    if((!app_logData) & (!logData) & (!sd_logData)) digitalWrite(LEDpin,LOW); // turn off data logging indicator
+    else digitalWrite(LEDpin,HIGH); // turn on data logging indicator
+
 }
 
 // Timer overflow for edge count interrupt (used with light sensor)
@@ -392,14 +394,61 @@ ISR(ADC_vect){
 }
  
 // get the current state of the hall effect sensor and toggle file write
-void getHallEffect(){
-    boolean state = digitalRead(HALL_PIN);
-    // future code: toggle sd_logData based on hall effect pin state
+// NOTE: I used a slightly different layout than the original schematic:
+// Pin 1 connected to VCC
+// Pin 2 connected to ground
+// Pin 3 Connected to LED cathode -> 390Ohm resistor -> VCC
+// LPM_WAKE (digital pin 2) connected to pin 3
+// see http://playground.arduino.cc/Learning/ArduinoSleepCode
+// this is a member function so that I can call SeaSense:Initialize() from within it
+void SeaSense::getHallEffect(){
+    boolean state = digitalRead(LPM_WAKE);
+    if(state == 1){ // output pulled high (LED turned off)
+        if(sd_logData){ 
+            Serial1.print(F("Turning off data logging . . ."));
+            sd_logData = !sd_logData;
+            SDfile.print(F("U+1F4A9")); 
+            SDfile.print(F(","));
+            SDfile.close();
+            Serial1.println(F("Stopped logging data to file"));
+            sd_logData = false;
+        }
+        app_logData = false;
+        logData = false;
+        Serial1.println(F("Low power mode enabled - goodbye!"));
+        Serial.println(F("Low power mode enabled - goodbye!"));
+        digitalWrite(SD_CS,HIGH);
+        digitalWrite(OLED_CS,LOW);
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.setCursor(25,28);
+        display.print(F("low power mode"));
+        display.display();
+        digitalWrite(OLED_CS,HIGH);
+        digitalWrite(SD_CS,LOW);
+       
+        delay(100);
+        set_sleep_mode(SLEEP_MODE_PWR_DOWN); // max power savings
+        sleep_enable(); // set sleep bit in mcu
+        attachInterrupt(0, lpmWake, LOW); // int0 = pin 2 = LPM_WAKE
+        sleep_mode(); // put micro to sleep
+        
+        sleep_disable(); // resumes here on wake...
+        detachInterrupt(0);
+        this->Initialize();
+    }
+    
 }
-
+    
+void lpmWake(){
+     // wake from low power mode
+    Serial1.println(F("Waking up from low power mode ..."));
+    Serial.println(F("Waking up from low power mode ..."));
+}
+    
 // print user-readable data readings to the bluetooth port
 void printVerboseData(){
-    digitalWrite(LEDpin,HIGH); // indicate config complete with LED on pin 13
     Serial1.print(Timestamp); Serial1.print(F("\t"));
     Serial1.print(Temp); Serial1.print(F("\t"));
     Serial1.print(Depth); Serial1.print(F("\t"));
@@ -410,7 +459,6 @@ void printVerboseData(){
 
 // print data readings to the android app
 void printAppData(){
-    digitalWrite(LEDpin,HIGH); //indicate logging with LED on pin 22
     Serial.println(F("Logging data to app"));
     Serial1.print(Timestamp); Serial1.print(F(","));
     Serial1.print(Temp); Serial1.print(F(","));
@@ -424,13 +472,11 @@ void printAppData(){
     Serial1.print(GyroX); Serial1.print(F(","));
     Serial1.print(GyroY); Serial1.print(F(","));
     Serial1.print(GyroZ); Serial1.print(F(",\n"));
-    //Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
 }
 
 // print data readings to file
 void printFileData(){
     digitalWrite(OLED_CS,HIGH); // make sure the OLED display isn't asserted
-    digitalWrite(LEDpin,HIGH); // indicate logging with LED on pin 22
     SDfile.print(Timestamp); SDfile.print(F(","));
     SDfile.print(Temp); SDfile.print(F(","));
     SDfile.print(Depth); SDfile.print(F(","));
@@ -459,22 +505,22 @@ void printOLEDdata(){
     display.setCursor(95,20);
     display.print(Light);
     display.setCursor(115,48);
-    display.print("lx");
+    display.print(F("lx"));
     display.setCursor(24,48);
-    display.print("C");
+    display.print(F("C"));
     drawArrow(Head);
     if (noSD) { // if no SD card is available, indicate so
         display.drawBitmap(0, 0, dispNoCard, 128, 64, WHITE);
-        display.setCursor(2,1); display.print("NC");
+        display.setCursor(2,1); display.print(F("NC"));
     } else if(app_logData | logData | sd_logData) {
         display.drawBitmap(0, 0, dispCardWrite, 128, 64, WHITE);
         display.setCursor(16,2);
         if(app_logData)
-            display.print("A"); // logging to (A)pp
+            display.print(F("A")); // logging to (A)pp
         if(logData)
-            display.print("U"); // logging to (U)ser
+            display.print(F("U")); // logging to (U)ser
         if(sd_logData)
-            display.print("F"); // logging to (F)ile
+            display.print(F("F")); // logging to (F)ile
     } else {
         display.drawBitmap(0, 0, dispCard, 128, 64, WHITE);
     }

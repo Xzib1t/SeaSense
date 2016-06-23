@@ -45,5 +45,8 @@ void drawArrow(int degrees){
 void drawBatInd(){
     // 11 rows of pixels, top left corner at 112,3
     // x0=112,y0=3,height=5,width = 11
-    display.fillRect(112,3,vBat/100,5,WHITE);
+    // 1024 / 93 ~= 11 pixel rows = bat ind scaling (1024=5v in to ADC)
+    // note that this assumes the battery discharges at a LINEAR scale, which is incorrect
+    // however, it is easier on the CPU to do a simple divide rather than anything more complex
+    display.fillRect(112,3,vBat/93,5,WHITE);
 }

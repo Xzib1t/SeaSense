@@ -13,6 +13,7 @@
 #include "avr/wdt.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <string.h>
 
 
@@ -25,6 +26,7 @@ class SeaSense
         void CollectData();
 
     private:
+        void getHallEffect();
         boolean init; // indicator for initialization complete
         boolean newCli; // indicator for new bluetooth client command recieved 
         int _i; // current location in bluetooth input character buffer
