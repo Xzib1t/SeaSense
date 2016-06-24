@@ -29,6 +29,8 @@ import android.support.v7.app.AppCompatActivity;
 
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -69,6 +71,12 @@ public class DepthLightActivity extends AppCompatActivity {
         final DataObject data = new DataObject();
         data.addObserver(graph);
         graph.update(data, 10);
+
+        //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
+        ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
+        activitySwipeDetector.setDestinations(TempCondActivity.class, MainActivity.class);
+        LinearLayout layout = (LinearLayout) findViewById(R.id.full_screen_depthlight);
+        layout.setOnTouchListener(activitySwipeDetector);
 
         final Button rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
         if(socket!=null) rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected

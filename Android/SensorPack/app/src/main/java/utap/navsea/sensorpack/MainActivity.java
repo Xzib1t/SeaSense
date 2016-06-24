@@ -30,6 +30,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -88,6 +89,12 @@ public class MainActivity  extends AppCompatActivity {
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
         fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
         final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
+
+        //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
+        ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
+        activitySwipeDetector.setDestinations(DepthLightActivity.class, TempCondActivity.class);
+        LinearLayout layout = (LinearLayout) findViewById(R.id.full_screen_main);
+        layout.setOnTouchListener(activitySwipeDetector);
 
         if(socket==null){
             fab.setVisibility(View.VISIBLE);
@@ -195,11 +202,11 @@ public class MainActivity  extends AppCompatActivity {
             float gyroY = 0;
             float gyroZ = 0;
 
-            if(!Bluetooth.getHeading().isEmpty()) { //Check that we have data, gyroZ is last so if we have it we have everything
+            if(!Bluetooth.getHeading().isEmpty()) { //Check that we have data
                 resizeArrays(Bluetooth.getHeading(), Bluetooth.getGyroX(),
                         Bluetooth.getGyroY(), Bluetooth.getGyroZ()); //Make sure arrays haven't grown too large
-            if(!(Bluetooth.getHeading().isEmpty() && Bluetooth.getGyroX().isEmpty()
-                    && Bluetooth.getGyroY().isEmpty() && Bluetooth.getGyroZ().isEmpty())) {
+            if(!Bluetooth.getHeading().isEmpty() && !Bluetooth.getGyroX().isEmpty()
+                    && !Bluetooth.getGyroY().isEmpty() && !Bluetooth.getGyroZ().isEmpty()) {
                 heading = Bluetooth.getHeading().get(Bluetooth.getHeading().size() - 1);
                 gyroX = Bluetooth.getGyroX().get(Bluetooth.getGyroX().size() - 1);
                 gyroY = Bluetooth.getGyroY().get(Bluetooth.getGyroY().size() - 1);
@@ -209,8 +216,8 @@ public class MainActivity  extends AppCompatActivity {
                 gyroY = convert2deg(gyroY);
                 gyroZ = convert2deg(gyroZ);
 
-                spinCompass(compass, heading); //TODO 180-?
-                controlSeaperchRt(gyroX, gyroY, gyroZ); //TODO getting data here, but display extremely delayed, or not changing at all
+                spinCompass(compass, heading);
+                controlSeaperchRt(gyroX, gyroY, gyroZ);
                 System.out.println("Heading: " + heading);
                 System.out.println("Gyro x: " + gyroX);
                 System.out.println("Gyro y: " + gyroY);
@@ -415,7 +422,7 @@ public class MainActivity  extends AppCompatActivity {
 	 * Intent code from
 	 * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
 	 */
-	void changeActivity(Class mClass){
+	private void changeActivity(Class mClass){
 		Intent intentApp = new Intent(MainActivity.this, mClass);
 		MainActivity.this.startActivity(intentApp);
 	}
