@@ -99,6 +99,11 @@ public class MainActivity  extends AppCompatActivity {
             fabRight.setVisibility(View.INVISIBLE);
             rtButton.setVisibility(View.VISIBLE);
         }
+        else if(socket.isConnected()){
+            fab.setVisibility(View.INVISIBLE);
+            fabRight.setVisibility(View.VISIBLE);
+            rtButton.setVisibility(View.VISIBLE);
+        }
 
         final DisplayObject display = new DisplayObject();
         final DataObject data = new DataObject();
@@ -144,7 +149,11 @@ public class MainActivity  extends AppCompatActivity {
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
 			public void onClick(View view) {
-				changeActivity(TempCondActivity.class); //Switches to TempCondActivity
+                if((btnPressCount % 2) == 0)
+                    changeActivity(TempCondActivity.class); //Switches to TempCondActivity
+                else Snackbar.make(view, "Stop real time display before changing screens",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
 			}
 		});
 
@@ -181,14 +190,21 @@ public class MainActivity  extends AppCompatActivity {
     private class DisplayObject implements Observer {
         @Override
         public void update(Observable observable, Object data) {
+            float heading = 0;
+            float gyroX = 0;
+            float gyroY = 0;
+            float gyroZ = 0;
+
             if(!Bluetooth.getHeading().isEmpty()) { //Check that we have data, gyroZ is last so if we have it we have everything
                 resizeArrays(Bluetooth.getHeading(), Bluetooth.getGyroX(),
                         Bluetooth.getGyroY(), Bluetooth.getGyroZ()); //Make sure arrays haven't grown too large
-
-                float heading = Bluetooth.getHeading().get(Bluetooth.getHeading().size() - 1);
-                float gyroX = Bluetooth.getGyroX().get(Bluetooth.getGyroX().size() - 1); //TODO bounds check
-                float gyroY = Bluetooth.getGyroY().get(Bluetooth.getGyroY().size() - 1);
-                float gyroZ = Bluetooth.getGyroZ().get(Bluetooth.getGyroZ().size() - 1);
+            if(!(Bluetooth.getHeading().isEmpty() && Bluetooth.getGyroX().isEmpty()
+                    && Bluetooth.getGyroY().isEmpty() && Bluetooth.getGyroZ().isEmpty())) {
+                heading = Bluetooth.getHeading().get(Bluetooth.getHeading().size() - 1);
+                gyroX = Bluetooth.getGyroX().get(Bluetooth.getGyroX().size() - 1);
+                gyroY = Bluetooth.getGyroY().get(Bluetooth.getGyroY().size() - 1);
+                gyroZ = Bluetooth.getGyroZ().get(Bluetooth.getGyroZ().size() - 1);
+            }
                 gyroX = convert2deg(gyroX); //The values we get are in rads/sec
                 gyroY = convert2deg(gyroY);
                 gyroZ = convert2deg(gyroZ);
@@ -337,10 +353,9 @@ public class MainActivity  extends AppCompatActivity {
 				try {
 					if(socket!=null) {
 						OutputStream outStream = socket.getOutputStream();
-						if(position==13 || position==8){ //if logapp or sd_dd were pressed
+						if(position==1){ //if sd_dd was pressed (for dev mode change number to 8)
 							DownloadTask Download = new DownloadTask();  //TODO make these tasks stop if dialog is destroyed
-							if(position==13) Download.mode = "logapp";
-							if(position==8) Download.mode = "sd_dd";
+                            Download.mode = "sd_dd";
 							Download.execute();
 
 						}
@@ -465,10 +480,10 @@ public class MainActivity  extends AppCompatActivity {
 
 	/**
 	 * This method loads the command ArrayAdapter with the
-	 * options that the user can choose
+	 * developer options that the user can choose
 	 * @param mCommandAdapter
 	 */
-	private void loadCommandPopup(ArrayAdapter<String> mCommandAdapter){
+	private void loadCommandPopupDevMode(ArrayAdapter<String> mCommandAdapter){
 		mCommandAdapter.clear();
 		mCommandAdapter.add("help");
 		mCommandAdapter.add("#");
@@ -487,6 +502,19 @@ public class MainActivity  extends AppCompatActivity {
 		mCommandAdapter.add("logfile");
 		mCommandAdapter.add("reset");
 	}
+
+    /**
+     * This method loads the command ArrayAdapter with the
+     * non-developer options that the user can choose
+     * @param mCommandAdapter
+     */
+    private void loadCommandPopup(ArrayAdapter<String> mCommandAdapter){
+        mCommandAdapter.clear();
+        mCommandAdapter.add("sd_init");
+        mCommandAdapter.add("sd_dd");
+        mCommandAdapter.add("logfile");
+        mCommandAdapter.add("reset");
+    }
 
 	/**
 	 * This method rotates the compass image to a desired angle
