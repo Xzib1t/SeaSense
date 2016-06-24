@@ -68,8 +68,8 @@
     extern unsigned long Light;
     extern int carryOut;
     extern int Head;
-    extern int AccelX,AccelY,AccelZ;
-    extern int GyroX,GyroY,GyroZ;
+    extern float AccelX,AccelY,AccelZ;
+    extern float GyroX,GyroY,GyroZ;
     extern int adcBuf[ADC_BUFFER_SIZE];
     extern byte adc_channel, adc_pos;
     extern int vBat;

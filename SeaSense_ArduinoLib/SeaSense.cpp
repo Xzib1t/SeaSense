@@ -48,8 +48,8 @@ unsigned int Depth = 0; // current depth reading
 int Cond = 0; // current conductivity
 unsigned long Light = 0; // current light sensor reading
 int Head = 0; // current heading
-int AccelX = 0,AccelY = 0,AccelZ = 0; // current accelerometer (reading units of m/s^2)
-int GyroX = 0,GyroY = 0,GyroZ = 0; // current compass reading (units of microTeslas)
+float AccelX = 0,AccelY = 0,AccelZ = 0; // current accelerometer (reading units of m/s^2)
+float GyroX = 0,GyroY = 0,GyroZ = 0; // current compass reading (units of microTeslas)
 int vBat; // current battery reading (from ADC) 
 
 // library objects
@@ -161,6 +161,8 @@ void SeaSense::Initialize(){
     
     sei(); // enable global interrupts:
     
+    ADCSRA |= (1 << ADSC);  // Start A2D Conversions
+    
     Serial1.println(F("System Initialization..."));
     
     // initialize the SD card
@@ -181,7 +183,7 @@ void SeaSense::Initialize(){
         }
     }
     
-    ADCSRA |= (1 << ADSC);  // Start A2D Conversions
+    
     
     // initialize the light sensor (only matters if using TSL230r sensor)
     light_sensor_init(_s0,_s1);
@@ -331,6 +333,58 @@ void SeaSense::CollectData()
     getGyro(); // get a new gyroscope reading
     this->getHallEffect(); // check if LPM should be turned on
     return;
+}
+
+// ReadAnalogPin - replacement for analogRead so that analog pins can be read indipendently from the ADC ISR
+// this function will disable interrupts, store the current ADC register settings, read from the given pin, 
+// and then revert the ADC register settings and re-enable the ADC isr
+// semi based on analogRead source code: http://garretlab.web.fc2.com/en/arduino/inside/arduino/wiring_analog.c/analogRead.html
+int SeaSense::ReadAnalogPin(int pin){
+    int value = 0; // storage for pin reading
+
+    // start by disabling all ISRs (remember we normally rely on an ADC isr) 
+    cli();
+    
+    // store the ADC register states so that they may be reset later on
+    int admuxVal = ADMUX;
+    int adcsraVal = ADCSRA;
+    int adcsrbVal = ADCSRB;
+    
+    ADCSRA &= ~((1 << ADIE));
+    ADMUX &= ~((1<<ADLAR)|(1<<MUX4)|(1<<MUX3)|(1<<MUX2)|(1<<MUX1)|(1<<MUX0));  
+    ADCSRB &= ~(1<<MUX5);
+    
+    // set up the registers to read a value on the given pin
+    if(pin>=8){ 
+        ADMUX |= ((1 << REFS0)|((pin-8)& 0x07));
+        ADCSRB |= (1 << MUX5);
+    } else {
+        ADMUX |= ((1 << REFS0)|(pin & 0x07));
+    }
+    
+    // start the conversion
+    ADCSRA |= (1<< ADSC); 
+    
+    // ADSC is cleared when the conversion finishes
+    while (bit_is_set(ADCSRA, ADSC));   
+    
+    // read in the conversion results (ADLAR=0, different from the ADC isr)
+    uint8_t low, high;
+    low = ADCL; // must read low data register first
+    high = ADCH;
+
+   
+    // return registers to original state so that the ADC ISR may continue where it left off
+    ADMUX = admuxVal;
+    ADCSRA = adcsraVal;
+    ADCSRB = adcsrbVal;
+    
+    value = (high << 8) | low;
+    // re-enable interrupts
+    sei(); 
+    
+    // return the value read from the given pin
+    return value;
 }
 
 // Interrupt is called once every 100mS - checks to see if any type of

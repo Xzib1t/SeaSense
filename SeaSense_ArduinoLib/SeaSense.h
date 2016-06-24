@@ -24,6 +24,7 @@ class SeaSense
         void Initialize();
         void BluetoothClient();
         void CollectData();
+        int ReadAnalogPin(int pin);
 
     private:
         void getHallEffect();

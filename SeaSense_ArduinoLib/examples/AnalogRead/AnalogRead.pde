@@ -1,3 +1,4 @@
+
 /* Created by Georges Gauthier - glgauthier@wpi.edu
 *-> Ported from the original seasense PIC code
 *-> Recorded some data files? Try using our online file viewer!
@@ -57,5 +58,11 @@ void loop(){
     // Process sensor data for logging 
     seasense.CollectData();
     
-    // All other processes are handled internally through interrupts!
+    // Get readings from your analog pins
+    // Be careful! ReadAnalogPin disables ISRs, so the more frequently you call it, the more other processes will slow down
+    Serial.print("Pin A5 Value: ");
+    Serial.println(seasense.ReadAnalogPin(5));
+    Serial.print("Pin A15 Value: ");
+    Serial.println(seasense.ReadAnalogPin(15));
+    
 }
