@@ -56,9 +56,14 @@ int vBat; // current battery reading (from ADC)
 Sd2Card card; // sd card 
 File SDfile; // current file being logged to (addressable through SDfile.write(text))
 RTC_DS1307 rtc; // realtime clock module 
-Adafruit_HMC5883_Unified mag; // magnometer sensor
-Adafruit_ADXL345_Unified accel; // accelerometer sensor
 Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); //SPI OLED display
+/*GY80 IMU*/
+//Adafruit_HMC5883_Unified mag; // magnometer sensor
+//Adafruit_ADXL345_Unified accel; // accelerometer sensor
+/*Adafruit 9DOF IMU*/
+Adafruit_LSM303_Accel_Unified accel;
+Adafruit_LSM303_Mag_Unified mag;
+Adafruit_L3GD20_Unified gyro;
 //*********************************************************************************************
 
 // Initializations are done here automatically on calling the library
@@ -199,29 +204,35 @@ void SeaSense::Initialize(){
         Serial1.println(F("\tRTC successfully initialized"));
     
     /* Initialize the magnetometer*/
-    mag = Adafruit_HMC5883_Unified(12345); // see globals.h
+    // mag = Adafruit_HMC5883_Unified(12345); // GY80
+    mag = Adafruit_LSM303_Mag_Unified(30302); // Adafruit 9DOF
+    
     if(!mag.begin())
     {
-        Serial1.println(F("\tNo HMC5883 detected ... Check your wiring!"));
+        Serial1.println(F("\tNo magnetometer detected ... Check your wiring!"));
         //while(1);
-    } else Serial1.println(F("\tHMC5883 successfully initialized"));
+    } else Serial1.println(F("\tMagnetometer successfully initialized"));
     
     /* Initialize the accelerometer */
-    accel = Adafruit_ADXL345_Unified(23456); // see globals.h
+    //accel = Adafruit_ADXL345_Unified(23456); // GY80
+    accel = Adafruit_LSM303_Accel_Unified(30301); // Adafruit 9DOF
     if(!accel.begin())
     {
-        Serial1.println(F("\tNo ADXL345 detected ... Check your wiring!"));
+        Serial1.println(F("\tNo accelerometer detected ... Check your wiring!"));
         //while(1);
     } else {
-        Serial1.println(F("\tADXL345 successfully initialized with 4G range"));
-        accel.setRange(ADXL345_RANGE_4_G);
+        Serial1.println(F("\tAccelerometer successfully initialized"));
+        //accel.setRange(ADXL345_RANGE_4_G); // GY80
     }
     
     /* Initialize the gyroscope */
-    Serial1.print(F("\tInitializing gyroscope ..."));
-    setupL3G4200D(2000); // Configure L3G4200  - 250, 500 or 2000 deg/sec
-    //delay(1500); //wait for the sensor to be ready 
-    Serial1.println(F(" done"));
+    //setupL3G4200D(2000); // GY80 
+    gyro  = Adafruit_L3GD20_Unified(20); // Adafruit 9DOF
+    if(!gyro.begin()){
+        Serial1.println(F("\tNo gyroscope detected ... Check your wiring!"));
+    } else{
+        Serial1.println(F("\tGyroscope successfully initialized"));
+    }
     
     // indicate that initialization is done on the OLED display
     digitalWrite(SD_CS,HIGH);
@@ -243,7 +254,7 @@ void SeaSense::Initialize(){
 }
 
 /* BluetoothClient - reads in new characters from the bluetooth 
-* serial port and parses them as an input string upon detecting
+* serial port and parses them asan input string upon detecting
 * '\r'. I've tested this to work with PuTTY and arduino's serial monitor
 */
 void SeaSense::BluetoothClient(){

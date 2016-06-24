@@ -115,20 +115,28 @@ void getAccel(){
 
 // getGyro - get a new reading from the gyroscope
 void getGyro(){
-  byte xMSB = readRegister(L3G4200D_ADDRESS, 0x29);
-  byte xLSB = readRegister(L3G4200D_ADDRESS, 0x28);
-  GyroX = ((xMSB << 8) | xLSB);
-
-  byte yMSB = readRegister(L3G4200D_ADDRESS, 0x2B);
-  byte yLSB = readRegister(L3G4200D_ADDRESS, 0x2A);
-  GyroY = ((yMSB << 8) | yLSB);
-
-  byte zMSB = readRegister(L3G4200D_ADDRESS, 0x2D);
-  byte zLSB = readRegister(L3G4200D_ADDRESS, 0x2C);
-  GyroZ = ((zMSB << 8) | zLSB);
+  /*~~~~~~~~~~~~~~~~~~~~ GY80 ~~~~~~~~~~~~~~~~~~~~~~*/
+//  byte xMSB = readRegister(L3G4200D_ADDRESS, 0x29);
+//  byte xLSB = readRegister(L3G4200D_ADDRESS, 0x28);
+//  GyroX = ((xMSB << 8) | xLSB);
+//
+//  byte yMSB = readRegister(L3G4200D_ADDRESS, 0x2B);
+//  byte yLSB = readRegister(L3G4200D_ADDRESS, 0x2A);
+//  GyroY = ((yMSB << 8) | yLSB);
+//
+//  byte zMSB = readRegister(L3G4200D_ADDRESS, 0x2D);
+//  byte zLSB = readRegister(L3G4200D_ADDRESS, 0x2C);
+//  GyroZ = ((zMSB << 8) | zLSB);
+  
+  /*~~~~~~~~~~~~~~~~ Adafruit 9DOF ~~~~~~~~~~~~~~~~*/
+    sensors_event_t event;
+    gyro.getEvent(&event);
+    GyroX = event.gyro.x;
+    GyroY = event.gyro.y;
+    GyroZ = event.gyro.z;
 }
 
-// configure the Gyroscope
+// configure the Gyroscope (only used for GY80 IMU)
 int setupL3G4200D(int scale){
   //From  Jim Lindblom of Sparkfun's code
 
@@ -157,7 +165,7 @@ int setupL3G4200D(int scale){
   // if you'd like:
   writeRegister(L3G4200D_ADDRESS, CTRL_REG5, 0b00000000);
 }
-// writeRegister - used in gyroscope config
+// writeRegister - used in gyroscope config (only used for GY80 IMU)
 void writeRegister(int deviceAddress, byte address, byte val) {
     Wire.beginTransmission(deviceAddress); // start transmission to device 
     Wire.write(address);       // send register address
@@ -165,7 +173,7 @@ void writeRegister(int deviceAddress, byte address, byte val) {
     Wire.endTransmission();     // end transmission
 }
 
-// readRegister - used to read from the gyroscope module
+// readRegister - used to read from the gyroscope module (only used for GY80 IMU)
 int readRegister(int deviceAddress, byte address){
 
     int v;

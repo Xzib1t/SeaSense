@@ -9,14 +9,21 @@
 
     #include "SD.h"
     extern File SDfile;
-
+    /* IMU */
     #include "Adafruit_Sensor.h"
-    #include "Adafruit_HMC5883_U.h"
-    extern Adafruit_HMC5883_Unified mag;
-
-    #include "Adafruit_ADXL345_U.h"
-    extern Adafruit_ADXL345_Unified accel;
-
+    /* GY80 IMU */
+    //#include "Adafruit_HMC5883_U.h"
+    //extern Adafruit_HMC5883_Unified mag;
+    //#include "Adafruit_ADXL345_U.h"
+    //extern Adafruit_ADXL345_Unified accel;
+    /* Adafruit 9DOF IMU */
+    #include "Adafruit_LSM303_U.h"
+    #include "Adafruit_L3GD20_U.h"
+    extern Adafruit_LSM303_Accel_Unified accel;
+    extern Adafruit_LSM303_Mag_Unified mag;
+    extern Adafruit_L3GD20_Unified gyro;
+    
+    /* OLED Display */
     #include "Adafruit_GFX.h"
     #include "Adafruit_SSD1306.h"
     #if (SSD1306_LCDHEIGHT != 64)
