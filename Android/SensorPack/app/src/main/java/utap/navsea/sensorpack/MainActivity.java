@@ -20,6 +20,7 @@ import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
@@ -85,61 +86,59 @@ public class MainActivity  extends AppCompatActivity {
 		dialogCommands = new Dialog(this); //Create dialog to hold command options
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
+        fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
+        final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
+
+        if(socket==null){
+            fab.setVisibility(View.VISIBLE);
+            fabRight.setVisibility(View.INVISIBLE);
+            rtButton.setVisibility(View.INVISIBLE);
+        }
+        else if(!socket.isConnected()){
+            fab.setVisibility(View.VISIBLE);
+            fabRight.setVisibility(View.INVISIBLE);
+            rtButton.setVisibility(View.VISIBLE);
+        }
 
         final DisplayObject display = new DisplayObject();
         final DataObject data = new DataObject();
         data.addObserver(display);
         display.update(data, 10);
 
-        final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
-        if(socket!=null) rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
-        else rtButton.setVisibility(View.INVISIBLE);
 		rtButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-                sendFirst();
-                //rtThreadRunning = true;
-                //rtButton.setText(getResources().getString(R.string.start_dl_rt));
+                rtButton.setText(getResources().getString(R.string.start_dl_rt));
                 btnPressCount++;
-                if((btnPressCount % 2)!=0) {
-                    //rtButton.setText(getResources().getString(R.string.stop_dl_rt));
-                    //The following thread code in this method is modified from:
-                    //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-                    new Thread(new Runnable() { //TODO make sure this doesn't run more than once
-
-                        @Override
-                        public void run() {
-                            while ((btnPressCount % 2) != 0) {
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        data.setValue(); //TODO add timeout
-                                    }
-                                });
-
-                                try {
-                                    Thread.sleep(35);
-                                } catch (InterruptedException e) {
-                                    return;
-                                }
-                            }
-                        }
-                    }).start();
-                }
+                syncButton(); //If our button goes out of sync resync it
+                sendLogApp();
+				if((btnPressCount % 2)!=0) {
+					rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+					startRtDownload(data);
+				}
 			}
 		});
 
-		fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 				getDevice();
 				displayList();
-				fab.setVisibility(View.INVISIBLE); //Hide fab when we're done connecting
-				fabRight.setVisibility(View.VISIBLE); //Show our navigational fab
 			}
 		});
+
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() { //Deal with the buttons if we connect
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                if(socket!=null)
+                    if(socket.isConnected()) {
+                        fab.setVisibility(View.INVISIBLE); //Hide fab when we're done connecting
+                        fabRight.setVisibility(View.VISIBLE); //Show our navigational fab if we're connected
+                        rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
+                    }
+            }
+        });
 
 		assert fabRight != null;
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
@@ -190,14 +189,35 @@ public class MainActivity  extends AppCompatActivity {
                 float gyroX = Bluetooth.getGyroX().get(Bluetooth.getGyroX().size() - 1); //TODO bounds check
                 float gyroY = Bluetooth.getGyroY().get(Bluetooth.getGyroY().size() - 1);
                 float gyroZ = Bluetooth.getGyroZ().get(Bluetooth.getGyroZ().size() - 1);
+                gyroX = convert2deg(gyroX); //The values we get are in rads/sec
+                gyroY = convert2deg(gyroY);
+                gyroZ = convert2deg(gyroZ);
 
                 spinCompass(compass, heading); //TODO 180-?
-  //              controlSeaperchRt(gyroX, gyroY, gyroZ); //TODO getting data here, but display extremely delayed, or not changing at all
+                controlSeaperchRt(gyroX, gyroY, gyroZ); //TODO getting data here, but display extremely delayed, or not changing at all
                 System.out.println("Heading: " + heading);
-  //              System.out.println("Gyro x: " + gyroX);
-  //              System.out.println("Gyro y: " + gyroY);
-  //              System.out.println("Gyro z: " + gyroZ);
+                System.out.println("Gyro x: " + gyroX);
+                System.out.println("Gyro y: " + gyroY);
+                System.out.println("Gyro z: " + gyroZ);
             }
+        }
+    }
+
+    private float convert2deg(float num){
+        float pi = 3.14159265358979f;
+        num = num * (180f / pi);
+        return num;
+    }
+
+    private void syncButton(){
+        try {
+            boolean receivingData = false;
+            if(socket.getInputStream().available()!=0) receivingData = true;
+
+            if(Bluetooth.getHeading().isEmpty() && receivingData){ //handles the first run, if logapp was already running
+                sendLogApp();
+            }
+        }catch(IOException e){
         }
     }
 
@@ -218,7 +238,7 @@ public class MainActivity  extends AppCompatActivity {
         }
     }
 
-    private void sendFirst(){
+    private void sendLogApp(){
         try{
             if (socket != null) {
                 OutputStream outStream = socket.getOutputStream();
@@ -229,6 +249,29 @@ public class MainActivity  extends AppCompatActivity {
         }
     }
 
+	private void startRtDownload(final DataObject data){
+		//The following thread code in this method is modified from:
+		//https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+		new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+			@Override
+			public void run() {
+				while ((btnPressCount % 2) != 0) { //If it's an odd button press
+					runOnUiThread(new Runnable() {
+
+						@Override
+						public void run() {
+							data.setValue();
+						}
+					});
+					try {
+						Thread.sleep(35);
+					} catch (InterruptedException e) {
+						return;
+					}
+				}
+			}
+		}).start();
+	}
 
     /**
 	 * Send command to Bluno to start data transfer

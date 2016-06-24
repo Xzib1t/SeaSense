@@ -48,8 +48,6 @@ import java.util.Observer;
 public class TempCondActivity extends AppCompatActivity {
     private LineChart chartTemp = null;
     private LineChart chartCond = null;
-    private  ArrayList<Float> temperature = new ArrayList<Float>();
-    private ArrayList<Float> conductivity = new ArrayList<Float>();
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
     private int btnPressCount = 0;
 
@@ -65,12 +63,14 @@ public class TempCondActivity extends AppCompatActivity {
 
         //graphData();
         chartTemp = (LineChart) findViewById(R.id.chart2); //get the first chart
-        temperature.add(10f);
-        graphTest(chartTemp, convert2Entry(temperature), "Temperature (Deg C)", Color.RED);
+        //temperature.add(10f);
+        graphTest(chartTemp, convert2Entry(Bluetooth.getTemp()), "Temperature (Deg C)", Color.RED);
+        chartTemp.invalidate(); //Refresh graph
 
         chartCond = (LineChart) findViewById(R.id.chart3); //get the first chart
-        temperature.add(10f);
-        graphTest(chartCond, convert2Entry(conductivity), "Conductivity (S/m)", Color.BLACK);
+        //temperature.add(10f);
+        graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity (S/m)", Color.BLACK);
+        chartCond.invalidate(); //Refresh graph
 
         final Button rtButton = (Button) findViewById(R.id.rtbutton_tempcond);
         if(socket!=null) rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
@@ -175,7 +175,7 @@ public class TempCondActivity extends AppCompatActivity {
         if (data.size() > 20) {
             while (data.size() > 20) Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
         }
-        if (data.size() > 0) {
+        if (data.size() > 0 && chart!=null) {
             ArrayList<Entry> dataE = convert2Entry(Bluetooth.getTemp());
             chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
             chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
