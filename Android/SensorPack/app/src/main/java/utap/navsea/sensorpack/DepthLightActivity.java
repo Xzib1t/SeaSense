@@ -85,6 +85,7 @@ public class DepthLightActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
+                if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
                 btnPressCount++;
                 syncButton(); //If our button goes out of sync resync it
                 sendLogApp();
@@ -100,8 +101,10 @@ public class DepthLightActivity extends AppCompatActivity {
         fabLeft.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if((btnPressCount % 2) == 0)
-                changeActivity(TempCondActivity.class);
+                if((btnPressCount % 2) == 0) {
+                    flushStream();
+                    changeActivity(TempCondActivity.class);
+                }
                 else Snackbar.make(view, "Stop real time display before changing screens",
                         Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
@@ -113,13 +116,22 @@ public class DepthLightActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if((btnPressCount % 2) == 0)
-                changeActivity(MainActivity.class);
+                if((btnPressCount % 2) == 0) {
+                    flushStream();
+                    changeActivity(MainActivity.class);
+                }
                 else Snackbar.make(view, "Stop real time display before changing screens",
                         Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
+    }
+
+    private void flushStream(){
+        try {
+            socket.getInputStream().skip(socket.getInputStream().available());
+        } catch (IOException e) {
+        }
     }
 
     private class GraphObject implements Observer {

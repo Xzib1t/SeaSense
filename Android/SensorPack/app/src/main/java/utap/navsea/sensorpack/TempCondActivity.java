@@ -87,6 +87,7 @@ public class TempCondActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
+                if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
                 btnPressCount++; //Will get rt data when this number is odd, will stop when even
                 syncButton(); //If our button goes out of sync resync it
                 sendLogApp();
@@ -102,8 +103,10 @@ public class TempCondActivity extends AppCompatActivity {
         fabLeft.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if((btnPressCount % 2) == 0)
-                changeActivity(MainActivity.class);
+                if((btnPressCount % 2) == 0) {
+                    flushStream();
+                    changeActivity(MainActivity.class);
+                }
                 else Snackbar.make(view, "Stop real time display before changing screens",
                         Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
@@ -115,13 +118,22 @@ public class TempCondActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if((btnPressCount % 2) == 0)
-                changeActivity(DepthLightActivity.class);
+                if((btnPressCount % 2) == 0) {
+                    flushStream();
+                    changeActivity(DepthLightActivity.class);
+                }
                 else Snackbar.make(view, "Stop real time display before changing screens",
                         Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
+    }
+
+    private void flushStream(){
+        try {
+            socket.getInputStream().skip(socket.getInputStream().available());
+        } catch (IOException e) {
+        }
     }
 
     private class GraphObject implements Observer {
@@ -147,6 +159,7 @@ public class TempCondActivity extends AppCompatActivity {
         try {
             boolean receivingData = false;
             if(socket.getInputStream().available()!=0) receivingData = true;
+            System.out.println("Receiving data?: " + receivingData);
 
             if(Bluetooth.getTemp().isEmpty() && receivingData){ //handles the first run, if logapp was already running
                 sendLogApp();

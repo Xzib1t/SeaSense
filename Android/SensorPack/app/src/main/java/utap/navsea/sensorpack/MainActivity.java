@@ -121,6 +121,7 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.start_dl_rt));
+                if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
                 btnPressCount++;
                 syncButton(); //If our button goes out of sync resync it
                 sendLogApp();
@@ -156,8 +157,10 @@ public class MainActivity  extends AppCompatActivity {
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
 			public void onClick(View view) {
-                if((btnPressCount % 2) == 0)
+                if((btnPressCount % 2) == 0) {
+                    flushStream();
                     changeActivity(TempCondActivity.class); //Switches to TempCondActivity
+                }
                 else Snackbar.make(view, "Stop real time display before changing screens",
                         Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
@@ -193,6 +196,13 @@ public class MainActivity  extends AppCompatActivity {
 			public void onStopTrackingTouch(SeekBar seekBar) {}
 		});
 	}
+
+    private void flushStream(){
+        try {
+            socket.getInputStream().skip(socket.getInputStream().available());
+        } catch (IOException e) {
+        }
+    }
 
     private class DisplayObject implements Observer {
         @Override
