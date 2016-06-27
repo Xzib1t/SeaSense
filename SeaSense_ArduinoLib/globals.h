@@ -47,9 +47,9 @@
     /* OLED Display */
     #define OLED_MOSI 6    //D1 on wish board (Data on adafruit 128x64)
     #define OLED_CLK 5     //D0 on wish board (Clk on adafruit 128x64)
-    #define OLED_DC 11     //DC on wish board (SA0/DC on adafruit 128x64)
+    #define OLED_DC 49     //DC on wish board (SA0/DC on adafruit 128x64)
     #define OLED_CS 7      //CS on wish board (CS on adafruit 128x64)
-    #define OLED_RESET 13  //RES on wish board (Rst on adafruit 128x64)
+    #define OLED_RESET 48  //RES on wish board (Rst on adafruit 128x64)
     /* LED logging status indicator */
     #define LEDpin 22
     /* Low power mode wake pin */

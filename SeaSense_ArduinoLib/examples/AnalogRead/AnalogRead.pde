@@ -37,7 +37,7 @@
 
 #include <SeaSense.h>
 
-SeaSense seasense(48,49);
+SeaSense seasense(38,39);
 
 void setup(){
     // allow for users to modify the RTC time

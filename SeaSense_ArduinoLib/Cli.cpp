@@ -524,11 +524,13 @@ void cli_wdt_reset(int argc, char *argv[]) {
         Serial1.println(F("Stopped logging data to file"));
     }
     // enable the watchdog timer with a 500mS overflow
-    wdt_enable(WDTO_500MS);
-    // indicate that a system reset is on its way
-    Serial1.println(F("System reset in 500mS"));
+    //wdt_enable(WDTO_500MS); // may cause issue depending on bootloader (wdt reset but no timer)
+    Serial1.println(F("System reset ..."));
+    delay(15);
+    asm volatile ("  jmp 0"); 
+     
     // eat processor cycles until the wdt overflows
-    while(1); 
+  //Serial1.println(F("This functionality has been disabled - see Cli.cpp"));
 }
 
 // printDirectory - prints out all files and directories on the SD card to the serial monitor

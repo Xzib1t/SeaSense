@@ -56,7 +56,7 @@ int vBat; // current battery reading (from ADC)
 Sd2Card card; // sd card 
 File SDfile; // current file being logged to (addressable through SDfile.write(text))
 RTC_DS1307 rtc; // realtime clock module 
-Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); //SPI OLED display
+//SPI OLED display
 /*GY80 IMU*/
 //Adafruit_HMC5883_Unified mag; // magnometer sensor
 //Adafruit_ADXL345_Unified accel; // accelerometer sensor
@@ -64,6 +64,7 @@ Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); //S
 Adafruit_LSM303_Accel_Unified accel;
 Adafruit_LSM303_Mag_Unified mag;
 Adafruit_L3GD20_Unified gyro;
+Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); 
 //*********************************************************************************************
 
 // Initializations are done here automatically on calling the library
@@ -84,8 +85,14 @@ SeaSense::SeaSense(int light_s0, int light_s1){
     // read from (addresses this bug http://forum.arduino.cc/index.php?topic=28763.0)
     pinMode(10, OUTPUT); // per SD install instructions (ethernet chip CS)
     digitalWrite(10, HIGH); // de-assert chip select on ethernet chip (keeps spi lines clear)
-    pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
+    
     pinMode(SD_CS, OUTPUT); // ss pin for SD card on ethernet shield
+    pinMode(OLED_CLK,OUTPUT);
+    digitalWrite(OLED_CLK,HIGH);
+    digitalWrite(SD_CS,HIGH);
+    
+    pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
+    
     
     // LED indicator
     pinMode(LEDpin,OUTPUT);
@@ -117,8 +124,9 @@ SeaSense::SeaSense(int light_s0, int light_s1){
 * - initializes the SD card and RTC
 */ 
 void SeaSense::Initialize(){
+    
     /* Initialize the display */
-    digitalWrite(OLED_CS,LOW);
+    digitalWrite(OLED_CLK,LOW);
     display.begin(SSD1306_SWITCHCAPVCC);
     display.clearDisplay();
     display.setTextSize(1);
@@ -126,7 +134,8 @@ void SeaSense::Initialize(){
     display.setCursor(0,0);
     display.print("System init . . .\n");
     display.display();
-    digitalWrite(OLED_CS,HIGH); // disable the OLED disp. so that the SD card can be initialized
+    digitalWrite(OLED_CLK,HIGH); // disable the OLED disp. so that the SD card can be initialized
+    
     
     /* Perform all critical init with interrupts disabled */
     cli(); // disable global interrupts
@@ -167,7 +176,8 @@ void SeaSense::Initialize(){
     
     // initialize the SD card
     // first search for the actual card
-    digitalWrite(OLED_CS,HIGH);
+    digitalWrite(OLED_CLK,HIGH);
+    digitalWrite(SD_CS,LOW);
     Serial1.print(F("\tSearching for SD card ..."));
     if (!card.init(SPI_HALF_SPEED, SD_CS)) 
         Serial1.println(F(" card not found"));
@@ -182,7 +192,7 @@ void SeaSense::Initialize(){
             noSD = false;
         }
     }
-    
+    digitalWrite(SD_CS,HIGH);
     
     
     // initialize the light sensor (only matters if using TSL230r sensor)
@@ -212,7 +222,7 @@ void SeaSense::Initialize(){
     if(!mag.begin())
     {
         Serial1.println(F("\tNo magnetometer detected ... Check your wiring!"));
-        //while(1);
+        return;
     } else Serial1.println(F("\tMagnetometer successfully initialized"));
     
     /* Initialize the accelerometer */
@@ -221,7 +231,7 @@ void SeaSense::Initialize(){
     if(!accel.begin())
     {
         Serial1.println(F("\tNo accelerometer detected ... Check your wiring!"));
-        //while(1);
+        return;
     } else {
         Serial1.println(F("\tAccelerometer successfully initialized"));
         //accel.setRange(ADXL345_RANGE_4_G); // GY80
@@ -232,17 +242,17 @@ void SeaSense::Initialize(){
     gyro  = Adafruit_L3GD20_Unified(20); // Adafruit 9DOF
     if(!gyro.begin()){
         Serial1.println(F("\tNo gyroscope detected ... Check your wiring!"));
+        return;
     } else{
         Serial1.println(F("\tGyroscope successfully initialized"));
     }
     
     // indicate that initialization is done on the OLED display
     digitalWrite(SD_CS,HIGH);
-    digitalWrite(OLED_CS,LOW);
+    digitalWrite(OLED_CLK,LOW);
     display.print("done!\n");
     display.display();
-    digitalWrite(SD_CS,LOW);
-    digitalWrite(OLED_CS,HIGH);
+    digitalWrite(OLED_CLK,HIGH);
     
     newCli = true; // will write '>' for bt CLI on boot if true
     init = true; // indicate that initilization is complete (not actually used, but may be useful at some point)
@@ -483,14 +493,14 @@ void SeaSense::getHallEffect(){
         Serial1.println(F("Low power mode enabled - goodbye!"));
         Serial.println(F("Low power mode enabled - goodbye!"));
         digitalWrite(SD_CS,HIGH);
-        digitalWrite(OLED_CS,LOW);
+        digitalWrite(OLED_CLK,LOW);
         display.clearDisplay();
         display.setTextSize(1);
         display.setTextColor(WHITE);
         display.setCursor(25,28);
         display.print(F("low power mode"));
         display.display();
-        digitalWrite(OLED_CS,HIGH);
+        digitalWrite(OLED_CLK,HIGH);
         digitalWrite(SD_CS,LOW);
        
         delay(100);
@@ -541,7 +551,8 @@ void printAppData(){
 
 // print data readings to file
 void printFileData(){
-    digitalWrite(OLED_CS,HIGH); // make sure the OLED display isn't asserted
+    digitalWrite(OLED_CLK,HIGH); // make sure the OLED display isn't asserted
+    digitalWrite(SD_CS,LOW);
     SDfile.print(Timestamp); SDfile.print(F(","));
     SDfile.print(Temp); SDfile.print(F(","));
     SDfile.print(Depth); SDfile.print(F(","));
@@ -554,12 +565,15 @@ void printFileData(){
     SDfile.print(GyroX); SDfile.print(F(","));
     SDfile.print(GyroY); SDfile.print(F(","));
     SDfile.print(GyroZ); SDfile.print(F("\n\r"));
+    digitalWrite(SD_CS,HIGH);
+    digitalWrite(OLED_CLK,LOW); // make sure the OLED display isn't asserted
+    
 }
 
 // update content shown on the OLED display
 void printOLEDdata(){
     digitalWrite(SD_CS,HIGH);
-    digitalWrite(OLED_CS,LOW);
+    digitalWrite(OLED_CLK,LOW);
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(WHITE);
@@ -591,6 +605,6 @@ void printOLEDdata(){
     }
     drawBatInd();
     display.display();
-    digitalWrite(OLED_CS,HIGH);
+    digitalWrite(OLED_CLK,HIGH);
     digitalWrite(SD_CS,LOW);
 }
