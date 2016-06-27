@@ -25,6 +25,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
 import android.os.CountDownTimer;
+import android.support.v7.app.AlertDialog;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -33,6 +34,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -68,7 +70,8 @@ public class MainActivity  extends AppCompatActivity {
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-	private int btnPressCount = 0;
+	private static int btnPressCount = 0;
+    private static View thisView = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +93,8 @@ public class MainActivity  extends AppCompatActivity {
         fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
         final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
 
+        thisView = (RelativeLayout)findViewById(R.id.full_screen_tempcond);
+
         //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
         ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
         activitySwipeDetector.setDestinations(DepthLightActivity.class, TempCondActivity.class);
@@ -97,11 +102,13 @@ public class MainActivity  extends AppCompatActivity {
         layout.setOnTouchListener(activitySwipeDetector);
 
         if(socket==null){
+            showInstructions();
             fab.setVisibility(View.VISIBLE);
             fabRight.setVisibility(View.INVISIBLE);
             rtButton.setVisibility(View.INVISIBLE);
         }
         else if(!socket.isConnected()){
+            showInstructions();
             fab.setVisibility(View.VISIBLE);
             fabRight.setVisibility(View.INVISIBLE);
             rtButton.setVisibility(View.VISIBLE);
@@ -172,8 +179,9 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
-				displayCommands(); //Show list of clickable commands
-			}
+                displayCommands(); //Show list of clickable commands
+                showCommandInstructions(); //Display help menu
+            }
 		});
 
 		timeSlider = (SeekBar)findViewById(R.id.time_slider);
@@ -199,6 +207,7 @@ public class MainActivity  extends AppCompatActivity {
 
     private void flushStream(){
         try {
+            if(socket!=null)
             socket.getInputStream().skip(socket.getInputStream().available());
         } catch (IOException e) {
         }
@@ -228,10 +237,6 @@ public class MainActivity  extends AppCompatActivity {
 
                 spinCompass(compass, heading);
                 controlSeaperchRt(gyroX, gyroY, gyroZ);
-                System.out.println("Heading: " + heading);
-                System.out.println("Gyro x: " + gyroX);
-                System.out.println("Gyro y: " + gyroY);
-                System.out.println("Gyro z: " + gyroZ);
             }
         }
     }
@@ -240,6 +245,49 @@ public class MainActivity  extends AppCompatActivity {
         float pi = 3.14159265358979f;
         num = num * (180f / pi);
         return num;
+    }
+
+    private void showInstructions(){
+        AlertDialog.Builder helpPopup = new AlertDialog.Builder(
+            this);
+        helpPopup.setTitle("Instructions");
+        helpPopup.setMessage("Welcome to SensorPack!\n\n" + "-To begin, connect to a " +
+                        "device using the BT button in the bottom right hand" +
+                        " corner of the screen (the device must first be paired with your " +
+                        "Android device in the Bluetooth menu\n" + "-You may navigate windows" +
+                        " by swiping" +
+                        " left or right in whitespace, or by pressing arrows at the " +
+                        "bottom of the screen\n" + "-To stream real time data, simply press" +
+                        " one of the real time data buttons\n" + "-To read a file from the SD" +
+                        " card, open the command window (bottom left hand corner of the screen)" +
+                        " and select sd_dd\n")
+                .setCancelable(true)
+                .setPositiveButton("Close",new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog,int id) {
+                        dialog.cancel();
+                    }
+                });
+        helpPopup.create().show();
+    }
+
+    private void showCommandInstructions(){
+        AlertDialog.Builder helpPopup = new AlertDialog.Builder(
+                this);
+        helpPopup.setTitle("Command Instructions");
+        helpPopup.setMessage("This is the command list:\n\n" + "-To initialize the SD card" +
+                        " select the sd_init option.  Using this command is only necessary if" +
+                        " the SD card did not initialize properly on its own\n" +
+                        "-To download and read a file in the SD card, select the sd_dd option\n" +
+                        "-To being logging sensor data to an SD card file on the Arduino select" +
+                        " the logfile option.  This command must be run again to stop the logging" +
+                        " process\n" + "-To reset the Arduino, select the reset command")
+                .setCancelable(true)
+                .setPositiveButton("Close",new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog,int id) {
+                        dialog.cancel();
+                    }
+                });
+        helpPopup.create().show();
     }
 
     private void syncButton(){
@@ -253,6 +301,10 @@ public class MainActivity  extends AppCompatActivity {
         }catch(IOException e){
         }
     }
+
+	public static int getBtnState(){
+		return btnPressCount;
+	}
 
     private static void resizeArrays(ArrayList<Float> heading, ArrayList<Float> gyroX,
                                      ArrayList<Float> gyroY, ArrayList<Float> gyroZ) {
@@ -449,13 +501,10 @@ public class MainActivity  extends AppCompatActivity {
 	private void getDevice(){
 		dialog.setContentView(R.layout.device_list_popup);
 		dialog.setCancelable(true);
-		dialog.setTitle("Bluetooth Devices");
+		dialog.setTitle("Paired Bluetooth Devices");
 		dialog.show();
 		ProgressBar tempSpinner = (ProgressBar)dialog.findViewById(R.id.progressBar);
 		tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while we aren't connecting
-		Snackbar.make(dialog.findViewById(R.id.device_list_display),
-				"Paired Bluetooth devices", Snackbar.LENGTH_LONG)
-				.setAction("Action", null).show();
 
 		ListView lv = (ListView) dialog.findViewById(R.id.device_list_display);
 		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.device_list_popup));

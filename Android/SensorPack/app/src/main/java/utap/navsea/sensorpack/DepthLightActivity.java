@@ -29,7 +29,6 @@ import android.support.v7.app.AppCompatActivity;
 
 import android.view.View;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.github.mikephil.charting.charts.LineChart;
@@ -52,7 +51,8 @@ public class DepthLightActivity extends AppCompatActivity {
     private LineChart chartDepth = null;
     private LineChart chartLight = null;
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
-    private int btnPressCount = 0;
+    private static int btnPressCount = 0;
+    private static RelativeLayout thisView = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,10 +72,12 @@ public class DepthLightActivity extends AppCompatActivity {
         data.addObserver(graph);
         graph.update(data, 10);
 
+        thisView = (RelativeLayout)findViewById(R.id.full_screen_depthlight);
+
         //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
         ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
         activitySwipeDetector.setDestinations(TempCondActivity.class, MainActivity.class);
-        LinearLayout layout = (LinearLayout) findViewById(R.id.full_screen_depthlight);
+        RelativeLayout layout = (RelativeLayout) findViewById(R.id.full_screen_depthlight);
         layout.setOnTouchListener(activitySwipeDetector);
 
         final Button rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
@@ -129,6 +131,7 @@ public class DepthLightActivity extends AppCompatActivity {
 
     private void flushStream(){
         try {
+            if(socket!=null)
             socket.getInputStream().skip(socket.getInputStream().available());
         } catch (IOException e) {
         }
@@ -174,6 +177,16 @@ public class DepthLightActivity extends AppCompatActivity {
             }
         }catch(IOException e){
         }
+    }
+
+    public static int getBtnState(){
+        return btnPressCount;
+    }
+
+    public static void displayWarning(){
+        Snackbar.make(thisView, "Stop real time display before changing screens",
+                Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
     }
 
     private void startRtDownload(final DataObject data){

@@ -28,7 +28,6 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.github.mikephil.charting.charts.LineChart;
@@ -51,7 +50,8 @@ public class TempCondActivity extends AppCompatActivity {
     private LineChart chartTemp = null;
     private LineChart chartCond = null;
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
-    private int btnPressCount = 0;
+    private static int btnPressCount = 0;
+    private static View thisView = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,10 +74,12 @@ public class TempCondActivity extends AppCompatActivity {
         graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity (S/m)", Color.BLACK);
         chartCond.invalidate(); //Refresh graph
 
+        thisView = (RelativeLayout)findViewById(R.id.full_screen_tempcond);
+
         //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
         ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
         activitySwipeDetector.setDestinations(MainActivity.class, DepthLightActivity.class);
-        LinearLayout layout = (LinearLayout) findViewById(R.id.full_screen_tempcond);
+        RelativeLayout layout = (RelativeLayout) findViewById(R.id.full_screen_tempcond);
         layout.setOnTouchListener(activitySwipeDetector);
 
         final Button rtButton = (Button) findViewById(R.id.rtbutton_tempcond);
@@ -131,6 +133,7 @@ public class TempCondActivity extends AppCompatActivity {
 
     private void flushStream(){
         try {
+            if(socket!=null)
             socket.getInputStream().skip(socket.getInputStream().available());
         } catch (IOException e) {
         }
@@ -159,13 +162,21 @@ public class TempCondActivity extends AppCompatActivity {
         try {
             boolean receivingData = false;
             if(socket.getInputStream().available()!=0) receivingData = true;
-            System.out.println("Receiving data?: " + receivingData);
-
             if(Bluetooth.getTemp().isEmpty() && receivingData){ //handles the first run, if logapp was already running
                 sendLogApp();
             }
         }catch(IOException e){
         }
+    }
+
+    public static int getBtnState(){
+        return btnPressCount;
+    }
+
+    public static void displayWarning(){
+        Snackbar.make(thisView, "Stop real time display before changing screens",
+                Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
     }
 
     private void startRtDownload(final DataObject data){

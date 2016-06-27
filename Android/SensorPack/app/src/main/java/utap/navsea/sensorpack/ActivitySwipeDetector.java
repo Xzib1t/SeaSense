@@ -2,7 +2,6 @@ package utap.navsea.sensorpack;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -30,7 +29,6 @@ public class ActivitySwipeDetector implements View.OnTouchListener {
     }
 
     public void onRightSwipe(){
-        Log.i(logTag, "RightToLeftSwipe!");
         Intent intentApp = new Intent(activity, rightActivity);
         activity.startActivity(intentApp);
     }
@@ -47,47 +45,59 @@ public class ActivitySwipeDetector implements View.OnTouchListener {
     }
 
     public boolean onTouch(View v, MotionEvent event) {
-        switch(event.getAction()){
-            case MotionEvent.ACTION_DOWN: {
-                downX = event.getX();
-                downY = event.getY();
-                return true;
-            }
-            case MotionEvent.ACTION_UP: {
-                upX = event.getX();
-                upY = event.getY();
+        int btnPressCount = 0; //Check the state of the button on whatever activity we're currently on
+        if(leftActivity==TempCondActivity.class) btnPressCount = DepthLightActivity.getBtnState();
+        if(leftActivity==MainActivity.class) btnPressCount = TempCondActivity.getBtnState();
+        if(leftActivity==DepthLightActivity.class) btnPressCount = MainActivity.getBtnState();
 
-                float deltaX = downX - upX;
-                float deltaY = downY - upY;
-
-                // swipe horizontal?
-                if(Math.abs(deltaX) > Math.abs(deltaY))
-                {
-                    if(Math.abs(deltaX) > MIN_DISTANCE){
-                        // left or right
-                        if(deltaX > 0) { this.onRightSwipe(); return true; }
-                        if(deltaX < 0) { this.onLeftSwipe(); return true; }
-                    }
-                    else {
-                        Log.i(logTag, "Horizontal Swipe was only " + Math.abs(deltaX) + " long, need at least " + MIN_DISTANCE);
-                        return false; // We don't consume the event
-                    }
+        if((btnPressCount % 2) == 0) { //Make sure we aren't downloading data when we try to switch activities
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN: {
+                    downX = event.getX();
+                    downY = event.getY();
+                    return true;
                 }
-                // swipe vertical?
-                else
-                {
-                    if(Math.abs(deltaY) > MIN_DISTANCE){
-                        // top or down
-                        if(deltaY < 0) { this.onDownSwipe(); return true; }
-                        if(deltaY > 0) { this.onUpSwipe(); return true; }
-                    }
-                    else {
-                        Log.i(logTag, "Vertical Swipe was only " + Math.abs(deltaX) + " long, need at least " + MIN_DISTANCE);
-                        return false; // We don't consume the event
-                    }
-                }
+                case MotionEvent.ACTION_UP: {
+                    upX = event.getX();
+                    upY = event.getY();
 
-                return true;
+                    float deltaX = downX - upX;
+                    float deltaY = downY - upY;
+
+                    // swipe horizontal?
+                    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                        if (Math.abs(deltaX) > MIN_DISTANCE) {
+                            // left or right
+                            if (deltaX > 0) {
+                                this.onRightSwipe();
+                                return true;
+                            }
+                            if (deltaX < 0) {
+                                this.onLeftSwipe();
+                                return true;
+                            }
+                        } else {
+                            return false; // We don't consume the event
+                        }
+                    }
+                    // swipe vertical?
+                    else {
+                        if (Math.abs(deltaY) > MIN_DISTANCE) {
+                            // top or down
+                            if (deltaY < 0) {
+                                this.onDownSwipe();
+                                return true;
+                            }
+                            if (deltaY > 0) {
+                                this.onUpSwipe();
+                                return true;
+                            }
+                        } else {
+                            return false; // We don't consume the event
+                        }
+                    }
+                    return true;
+                }
             }
         }
         return false;
