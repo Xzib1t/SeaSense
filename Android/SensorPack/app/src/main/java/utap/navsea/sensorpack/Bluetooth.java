@@ -243,6 +243,7 @@ public class Bluetooth extends AppCompatActivity{
         return gyroZ;
     }
 
+
     /**
      * This method checks whether or not the eof has been reached
      * @param inputString

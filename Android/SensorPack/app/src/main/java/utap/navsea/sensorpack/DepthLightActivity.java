@@ -316,7 +316,6 @@ public class DepthLightActivity extends AppCompatActivity {
     private void formatChart(LineChart chart){
         chart.setEnabled(true);
         chart.setTouchEnabled(true);
-        chart.setDescription("Data over 24 hours");
 
         XAxis xAxis = chart.getXAxis();
         xAxis.setEnabled(true);
@@ -326,21 +325,22 @@ public class DepthLightActivity extends AppCompatActivity {
         xAxis.setGridColor(Color.BLACK);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setTextSize(10f);
-        xAxis.setTextColor(Color.BLACK);
+        xAxis.setTextColor(Color.RED);
 
         YAxis leftAxis = chart.getAxisLeft();
-        leftAxis.setTextColor(Color.BLACK);
+        leftAxis.setTextColor(Color.RED);
         leftAxis.setAxisLineColor(Color.BLACK);
         leftAxis.setEnabled(true);
 
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
-        chart.setMaxVisibleValueCount(0);
         chart.setBorderColor(Color.BLACK);
+        chart.setMaxVisibleValueCount(0);
 
         Legend legend = chart.getLegend();
         legend.setEnabled(true);
         legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
+        legend.setTextColor(Color.RED);
     }
 }
 

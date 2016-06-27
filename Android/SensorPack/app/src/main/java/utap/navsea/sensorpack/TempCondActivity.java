@@ -71,7 +71,7 @@ public class TempCondActivity extends AppCompatActivity {
 
         chartCond = (LineChart) findViewById(R.id.chart3); //get the first chart
         //temperature.add(10f);
-        graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity (S/m)", Color.BLACK);
+        graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity (S/m)", Color.GREEN);
         chartCond.invalidate(); //Refresh graph
 
         thisView = (RelativeLayout)findViewById(R.id.full_screen_tempcond);
@@ -88,10 +88,17 @@ public class TempCondActivity extends AppCompatActivity {
         rtButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                rtButton.setText(getResources().getString(R.string.graph_rt));
+                /*rtButton.setText(getResources().getString(R.string.graph_rt));
                 if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
                 btnPressCount++; //Will get rt data when this number is odd, will stop when even
                 syncButton(); //If our button goes out of sync resync it
+                sendLogApp();
+                if((btnPressCount % 2)!=0) {
+                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    startRtDownload(data);
+                }*/
+                rtButton.setText(getResources().getString(R.string.graph_rt));
+                btnPressCount++;
                 sendLogApp();
                 if((btnPressCount % 2)!=0) {
                     rtButton.setText(getResources().getString(R.string.stop_graph_rt));
@@ -171,12 +178,6 @@ public class TempCondActivity extends AppCompatActivity {
 
     public static int getBtnState(){
         return btnPressCount;
-    }
-
-    public static void displayWarning(){
-        Snackbar.make(thisView, "Stop real time display before changing screens",
-                Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show();
     }
 
     private void startRtDownload(final DataObject data){
@@ -310,7 +311,6 @@ public class TempCondActivity extends AppCompatActivity {
     private void formatChart(LineChart chart){
         chart.setEnabled(true);
         chart.setTouchEnabled(true);
-        chart.setDescription("Data over 24 hours");
 
         XAxis xAxis = chart.getXAxis();
         xAxis.setEnabled(true);
@@ -320,10 +320,10 @@ public class TempCondActivity extends AppCompatActivity {
         xAxis.setGridColor(Color.BLACK);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setTextSize(10f);
-        xAxis.setTextColor(Color.BLACK);
+        xAxis.setTextColor(Color.RED);
 
         YAxis leftAxis = chart.getAxisLeft();
-        leftAxis.setTextColor(Color.BLACK);
+        leftAxis.setTextColor(Color.RED);
         leftAxis.setAxisLineColor(Color.BLACK);
         leftAxis.setEnabled(true);
 
@@ -335,5 +335,6 @@ public class TempCondActivity extends AppCompatActivity {
         Legend legend = chart.getLegend();
         legend.setEnabled(true);
         legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
+        legend.setTextColor(Color.RED);
     }
 }

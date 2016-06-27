@@ -588,7 +588,9 @@ public class MainActivity  extends AppCompatActivity {
 	 * @param angle
      */
 	private void spinCompass(ImageView imageView, float angle){
-		imageView.setRotation(angle);
+		angle += 180; //Invert compass
+        if(angle>360) angle = 360 - angle;
+        imageView.setRotation(angle);
 	}
 
 	/**
