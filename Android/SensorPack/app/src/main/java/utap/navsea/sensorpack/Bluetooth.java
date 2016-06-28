@@ -76,7 +76,8 @@ public class Bluetooth extends AppCompatActivity{
             resetBuffers(true); //Resets all buffers to take in new data
 
             while (!eofFound) {
-                byte[] buffer = new byte[1024];  //buffer store for the stream
+                int size = Integer.MAX_VALUE;
+                byte[] buffer = new byte[size];  //buffer store for the stream
                 int bytes = inStream.read(buffer); //bytes returned from read()
                 downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
                 boolean check = check4eof(downloadedData);

@@ -21,6 +21,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
@@ -81,7 +82,7 @@ public class MainActivity  extends AppCompatActivity {
 		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText); //TODO change this to clock_display
 		serialReceivedText.setTextSize(80f); //Set font size for clock
 		serialReceivedText.setGravity(Gravity.CENTER_HORIZONTAL); //This is done here because wrap_content was used for the height
-
+        serialReceivedText.setTextColor(Color.RED);
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
 		seaperch = (ImageView) findViewById(R.id.seaperch); //get seaperch
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for BT devices
@@ -122,12 +123,11 @@ public class MainActivity  extends AppCompatActivity {
         final DisplayObject display = new DisplayObject();
         final DataObject data = new DataObject();
         data.addObserver(display);
-        display.update(data, 10);
 
 		rtButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-                rtButton.setText(getResources().getString(R.string.start_dl_rt));
+/*                rtButton.setText(getResources().getString(R.string.start_dl_rt));
                 if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
                 btnPressCount++;
                 syncButton(); //If our button goes out of sync resync it
@@ -135,7 +135,20 @@ public class MainActivity  extends AppCompatActivity {
 				if((btnPressCount % 2)!=0) {
 					rtButton.setText(getResources().getString(R.string.stop_dl_rt));
 					startRtDownload(data);
-				}
+				}*/
+
+                rtButton.setText(getResources().getString(R.string.start_dl_rt));
+                btnPressCount++;
+                if((btnPressCount % 2)!=0 && isGettingData()) {
+                    rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+                    startRtDownload(data);
+                }else if((btnPressCount % 2)!=0 && !isGettingData()){
+                    sendLogApp();
+                    rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+                    startRtDownload(data);
+                }else if((btnPressCount % 2)==0 && isGettingData()){
+                    sendLogApp();
+                }
 			}
 		});
 
@@ -213,6 +226,25 @@ public class MainActivity  extends AppCompatActivity {
         }
     }
 
+    private boolean isGettingData(){
+        try{
+            if(socket.getInputStream().available()>0) {
+                System.out.println("Before flush: " + socket.getInputStream().available());
+                flushStream();
+                Thread.sleep(500);
+            }
+            if(socket.getInputStream().available()>0){
+                System.out.println("After flush: " + socket.getInputStream().available());
+                return true;
+            }else return false;
+
+
+        }catch(IOException | InterruptedException e){
+            System.out.println("false");
+            return false; //Couldn't read stream because we aren't getting data
+        }
+    }
+
     private class DisplayObject implements Observer {
         @Override
         public void update(Observable observable, Object data) {
@@ -254,7 +286,7 @@ public class MainActivity  extends AppCompatActivity {
         helpPopup.setMessage("Welcome to SensorPack!\n\n" + "-To begin, connect to a " +
                         "device using the BT button in the bottom right hand" +
                         " corner of the screen (the device must first be paired with your " +
-                        "Android device in the Bluetooth menu\n" + "-You may navigate windows" +
+                        "Android device in the Bluetooth menu)\n" + "-You may navigate windows" +
                         " by swiping" +
                         " left or right in whitespace, or by pressing arrows at the " +
                         "bottom of the screen\n" + "-To stream real time data, simply press" +
@@ -706,10 +738,11 @@ public class MainActivity  extends AppCompatActivity {
 			spinner = (ProgressBar)dialog.findViewById(R.id.progressBar);
 			spinner.setVisibility(View.INVISIBLE);
 
-			if(socket!=null) //Check if we're connected after an attempt
-				Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connected", Snackbar.LENGTH_LONG)
-						.setAction("Action", null).show();
-
+            if(socket!=null) {
+                if (socket.isConnected()) //Check if we're connected after an attempt
+                    Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connected", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+            }
 			else Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connection attempt failed", Snackbar.LENGTH_LONG)
 					.setAction("Action", null).show();
 		}
@@ -771,6 +804,7 @@ public class MainActivity  extends AppCompatActivity {
 	protected void onDestroy() {
 		super.onDestroy();
 		try {
+			if(socket!=null)
 			socket.close();
 		}
 		catch(IOException e){

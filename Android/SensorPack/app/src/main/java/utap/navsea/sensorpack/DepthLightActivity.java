@@ -70,7 +70,6 @@ public class DepthLightActivity extends AppCompatActivity {
         final GraphObject graph = new GraphObject();
         final DataObject data = new DataObject();
         data.addObserver(graph);
-        graph.update(data, 10);
 
         thisView = (RelativeLayout)findViewById(R.id.full_screen_depthlight);
 
@@ -86,7 +85,7 @@ public class DepthLightActivity extends AppCompatActivity {
         rtButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                rtButton.setText(getResources().getString(R.string.graph_rt));
+              /*  rtButton.setText(getResources().getString(R.string.graph_rt));
                 if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
                 btnPressCount++;
                 syncButton(); //If our button goes out of sync resync it
@@ -94,6 +93,18 @@ public class DepthLightActivity extends AppCompatActivity {
                 if((btnPressCount % 2)!=0) {
                     rtButton.setText(getResources().getString(R.string.stop_graph_rt));
                     startRtDownload(data);
+                }*/
+                rtButton.setText(getResources().getString(R.string.graph_rt));
+                btnPressCount++;
+                if((btnPressCount % 2)!=0 && isGettingData()) {
+                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    startRtDownload(data);
+                }else if((btnPressCount % 2)!=0 && !isGettingData()){
+                    sendLogApp();
+                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    startRtDownload(data);
+                }else if((btnPressCount % 2)==0 && isGettingData()){
+                    sendLogApp();
                 }
             }
         });
@@ -134,6 +145,25 @@ public class DepthLightActivity extends AppCompatActivity {
             if(socket!=null)
             socket.getInputStream().skip(socket.getInputStream().available());
         } catch (IOException e) {
+        }
+    }
+
+    private boolean isGettingData(){
+        try{
+            if(socket.getInputStream().available()>0) {
+                System.out.println("Before flush: " + socket.getInputStream().available());
+                flushStream();
+                Thread.sleep(100);
+            }
+            if(socket.getInputStream().available()>0){
+                System.out.println("After flush: " + socket.getInputStream().available());
+                return true;
+            }else return false;
+
+
+        }catch(IOException | InterruptedException e){
+            System.out.println("false");
+            return false; //Couldn't read stream because we aren't getting data
         }
     }
 

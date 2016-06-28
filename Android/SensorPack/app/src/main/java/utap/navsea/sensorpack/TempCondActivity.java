@@ -61,7 +61,6 @@ public class TempCondActivity extends AppCompatActivity {
         final GraphObject graph = new GraphObject();
         final DataObject data = new DataObject();
         data.addObserver(graph);
-        graph.update(data, 10);
 
         //graphData();
         chartTemp = (LineChart) findViewById(R.id.chart2); //get the first chart
@@ -99,10 +98,19 @@ public class TempCondActivity extends AppCompatActivity {
                 }*/
                 rtButton.setText(getResources().getString(R.string.graph_rt));
                 btnPressCount++;
-                sendLogApp();
-                if((btnPressCount % 2)!=0) {
+                if((btnPressCount % 2)!=0 && isGettingData()) {
                     rtButton.setText(getResources().getString(R.string.stop_graph_rt));
                     startRtDownload(data);
+                    System.out.println("Want data, already getting data, no request sent");
+                }else if((btnPressCount % 2)!=0 && !isGettingData()){
+                    sendLogApp();
+                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    startRtDownload(data);
+                    System.out.println("Want data, not getting data, request sent");
+                }else if((btnPressCount % 2)==0 && isGettingData()){
+                    sendLogApp();
+                    //flushStream();
+                    System.out.println("Stopped");
                 }
             }
         });
@@ -162,6 +170,25 @@ public class TempCondActivity extends AppCompatActivity {
             downloadRtData();
             setChanged();
             notifyObservers();
+        }
+    }
+
+    private boolean isGettingData(){
+        try{
+            if(socket.getInputStream().available()>0) {
+                System.out.println("Before flush: " + socket.getInputStream().available());
+                flushStream();
+                Thread.sleep(100);
+            }
+            if(socket.getInputStream().available()>0){
+                System.out.println("After flush: " + socket.getInputStream().available());
+                return true;
+            }else return false;
+
+
+        }catch(IOException | InterruptedException e){
+            System.out.println("false");
+            return false; //Couldn't read stream because we aren't getting data
         }
     }
 
