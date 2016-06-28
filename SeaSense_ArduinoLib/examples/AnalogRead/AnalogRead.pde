@@ -22,11 +22,12 @@
 *  Pins used by the library include the following:
 *   - Pin 2: Hall Effect Sensor/LPM wake interrupt
 *   - Pin 4 used for SD card CS
-*   - Pins 5, 6, and 7 used for OLED
-*   - Pins 10, 11, 12, and 13 used for the SPI interface
+*   - Pins 5, 6, and 7 used for OLED clk, data, cs
 *   - Pins 18 and 19: Serial1 Tx and Rx to bluetooth module
 *   - Pin 22: Data logging indicator LED
 *   - Pin 47: Timer5 hardware edge counter (light sensor)
+*   - Pins 48, 49 for OLED rst, dc
+*   - Pins 50, 51, 52, used for the SPI interface
 *   - ADC10, ADC11, ADC12, ADC13 for the temperature, pressure, conductivity, and battery voltage sensors
 *   ~~ IN ORDER TO USE OTHER ADC CHANNELS YOU MUST MODIFY THE LIBRARY CODE ~~
 *   this is due to the internal configuration of ADC interrupts

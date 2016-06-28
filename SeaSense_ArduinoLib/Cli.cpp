@@ -226,7 +226,7 @@ void cli_sd_init(int argc, char *argv[])
         return;
     }
  
-    digitalWrite(OLED_CS,HIGH); //make sure the OLED CS isn't asserted
+    digitalWrite(OLED_CLK,HIGH); //make sure the OLED CS isn't asserted
     pinMode(10, OUTPUT); // per SD install instructions (ethernet chip CS)
     digitalWrite(10, HIGH); // de-assert chip select on ethernet chip (keeps spi lines clear)
     pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
@@ -487,7 +487,7 @@ void cli_log_file(int argc, char *argv[])
         
         // make sure the OLED is disabled before modifying the contents of the SD card
         // remember that they share the SPI bus
-        digitalWrite(OLED_CS,HIGH);
+        digitalWrite(OLED_CLK,HIGH);
         // create a new CSV file corresponding to the given filepath
         // this file is globally accessible, so any function/file can write to it
         SDfile = SD.open(fullpath,FILE_WRITE);
