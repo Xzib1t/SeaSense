@@ -20,16 +20,22 @@ import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.DialogInterface;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
 import android.os.CountDownTimer;
+import android.support.v7.app.AlertDialog;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -44,6 +50,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.Set;
 import java.util.UUID;
 
@@ -59,9 +67,12 @@ public class MainActivity  extends AppCompatActivity {
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
 	private SeekBar timeSlider = null;
+    private boolean rtThreadRunning = false;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+	private static int btnPressCount = 0;
+    private static View thisView = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +82,7 @@ public class MainActivity  extends AppCompatActivity {
 		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText); //TODO change this to clock_display
 		serialReceivedText.setTextSize(80f); //Set font size for clock
 		serialReceivedText.setGravity(Gravity.CENTER_HORIZONTAL); //This is done here because wrap_content was used for the height
-
+        serialReceivedText.setTextColor(Color.RED);
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
 		seaperch = (ImageView) findViewById(R.id.seaperch); //get seaperch
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for BT devices
@@ -80,23 +91,99 @@ public class MainActivity  extends AppCompatActivity {
 		dialogCommands = new Dialog(this); //Create dialog to hold command options
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
-		fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
+        fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
+        final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
+
+        thisView = (RelativeLayout)findViewById(R.id.full_screen_tempcond);
+
+        //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
+        ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
+        activitySwipeDetector.setDestinations(DepthLightActivity.class, TempCondActivity.class);
+        LinearLayout layout = (LinearLayout) findViewById(R.id.full_screen_main);
+        layout.setOnTouchListener(activitySwipeDetector);
+
+        if(socket==null){
+            showInstructions();
+            fab.setVisibility(View.VISIBLE);
+            fabRight.setVisibility(View.INVISIBLE);
+            rtButton.setVisibility(View.INVISIBLE);
+        }
+        else if(!socket.isConnected()){
+            showInstructions();
+            fab.setVisibility(View.VISIBLE);
+            fabRight.setVisibility(View.INVISIBLE);
+            rtButton.setVisibility(View.VISIBLE);
+        }
+        else if(socket.isConnected()){
+            fab.setVisibility(View.INVISIBLE);
+            fabRight.setVisibility(View.VISIBLE);
+            rtButton.setVisibility(View.VISIBLE);
+        }
+
+        final DisplayObject display = new DisplayObject();
+        final DataObject data = new DataObject();
+        data.addObserver(display);
+
+		rtButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+/*                rtButton.setText(getResources().getString(R.string.start_dl_rt));
+                if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
+                btnPressCount++;
+                syncButton(); //If our button goes out of sync resync it
+                sendLogApp();
+				if((btnPressCount % 2)!=0) {
+					rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+					startRtDownload(data);
+				}*/
+
+                rtButton.setText(getResources().getString(R.string.start_dl_rt));
+                btnPressCount++;
+                if((btnPressCount % 2)!=0 && isGettingData()) {
+                    rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+                    startRtDownload(data);
+                }else if((btnPressCount % 2)!=0 && !isGettingData()){
+                    sendLogApp();
+                    rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+                    startRtDownload(data);
+                }else if((btnPressCount % 2)==0 && isGettingData()){
+                    sendLogApp();
+                }
+			}
+		});
+
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 				getDevice();
 				displayList();
-				fab.setVisibility(View.INVISIBLE); //Hide fab when we're done connecting
-				fabRight.setVisibility(View.VISIBLE); //Show our navigational fab
 			}
 		});
+
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() { //Deal with the buttons if we connect
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                if(socket!=null)
+                    if(socket.isConnected()) {
+                        fab.setVisibility(View.INVISIBLE); //Hide fab when we're done connecting
+                        fabRight.setVisibility(View.VISIBLE); //Show our navigational fab if we're connected
+                        rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
+                    }
+            }
+        });
 
 		assert fabRight != null;
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
 			public void onClick(View view) {
-				changeActivity(TempCondActivity.class); //Switches to TempCondActivity
+                if((btnPressCount % 2) == 0) {
+                    flushStream();
+                    changeActivity(TempCondActivity.class); //Switches to TempCondActivity
+                }
+                else Snackbar.make(view, "Stop real time display before changing screens",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
 			}
 		});
 
@@ -105,8 +192,9 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
-				displayCommands(); //Show list of clickable commands
-			}
+                displayCommands(); //Show list of clickable commands
+                showCommandInstructions(); //Display help menu
+            }
 		});
 
 		timeSlider = (SeekBar)findViewById(R.id.time_slider);
@@ -114,7 +202,7 @@ public class MainActivity  extends AppCompatActivity {
 		timeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-				if(!Bluetooth.getHeading().isEmpty()) { //If we have heading data we also have accelerometer data
+				if(!Bluetooth.getHeading().isEmpty() && !rtThreadRunning) { //If we have heading data we also have accelerometer data, make sure we aren't pulling rt data
 					controlCompass(Bluetooth.getHeading(), timeSlider); //Show heading corresponding to time
 
 					controlSeaperch(Bluetooth.getGyroX(), Bluetooth.getGyroY(),
@@ -123,33 +211,196 @@ public class MainActivity  extends AppCompatActivity {
 					controlClock(Bluetooth.getTime(), timeSlider);
 				}
 			}
-
 			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-
-			}
-
+			public void onStartTrackingTouch(SeekBar seekBar) {}
 			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {
-
-			}
+			public void onStopTrackingTouch(SeekBar seekBar) {}
 		});
 	}
 
-	/**
+    private void flushStream(){
+        try {
+            if(socket!=null)
+            socket.getInputStream().skip(socket.getInputStream().available());
+        } catch (IOException e) {
+        }
+    }
+
+    private boolean isGettingData(){
+        try{
+            if(socket.getInputStream().available()>0) {
+                System.out.println("Before flush: " + socket.getInputStream().available());
+                flushStream();
+                Thread.sleep(500);
+            }
+            if(socket.getInputStream().available()>0){
+                System.out.println("After flush: " + socket.getInputStream().available());
+                return true;
+            }else return false;
+
+
+        }catch(IOException | InterruptedException e){
+            System.out.println("false");
+            return false; //Couldn't read stream because we aren't getting data
+        }
+    }
+
+    private class DisplayObject implements Observer {
+        @Override
+        public void update(Observable observable, Object data) {
+            float heading = 0;
+            float gyroX = 0;
+            float gyroY = 0;
+            float gyroZ = 0;
+
+            if(!Bluetooth.getHeading().isEmpty()) { //Check that we have data
+                resizeArrays(Bluetooth.getHeading(), Bluetooth.getGyroX(),
+                        Bluetooth.getGyroY(), Bluetooth.getGyroZ()); //Make sure arrays haven't grown too large
+            if(!Bluetooth.getHeading().isEmpty() && !Bluetooth.getGyroX().isEmpty()
+                    && !Bluetooth.getGyroY().isEmpty() && !Bluetooth.getGyroZ().isEmpty()) {
+                heading = Bluetooth.getHeading().get(Bluetooth.getHeading().size() - 1);
+                gyroX = Bluetooth.getGyroX().get(Bluetooth.getGyroX().size() - 1);
+                gyroY = Bluetooth.getGyroY().get(Bluetooth.getGyroY().size() - 1);
+                gyroZ = Bluetooth.getGyroZ().get(Bluetooth.getGyroZ().size() - 1);
+            }
+                gyroX = convert2deg(gyroX); //The values we get are in rads/sec
+                gyroY = convert2deg(gyroY);
+                gyroZ = convert2deg(gyroZ);
+
+                spinCompass(compass, heading);
+                controlSeaperchRt(gyroX, gyroY, gyroZ);
+            }
+        }
+    }
+
+    private float convert2deg(float num){
+        float pi = 3.14159265358979f;
+        num = num * (180f / pi);
+        return num;
+    }
+
+    private void showInstructions(){
+        AlertDialog.Builder helpPopup = new AlertDialog.Builder(
+            this);
+        helpPopup.setTitle("Instructions");
+        helpPopup.setMessage("Welcome to SensorPack!\n\n" + "-To begin, connect to a " +
+                        "device using the BT button in the bottom right hand" +
+                        " corner of the screen (the device must first be paired with your " +
+                        "Android device in the Bluetooth menu)\n" + "-You may navigate windows" +
+                        " by swiping" +
+                        " left or right in whitespace, or by pressing arrows at the " +
+                        "bottom of the screen\n" + "-To stream real time data, simply press" +
+                        " one of the real time data buttons\n" + "-To read a file from the SD" +
+                        " card, open the command window (bottom left hand corner of the screen)" +
+                        " and select sd_dd\n")
+                .setCancelable(true)
+                .setPositiveButton("Close",new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog,int id) {
+                        dialog.cancel();
+                    }
+                });
+        helpPopup.create().show();
+    }
+
+    private void showCommandInstructions(){
+        AlertDialog.Builder helpPopup = new AlertDialog.Builder(
+                this);
+        helpPopup.setTitle("Command Instructions");
+        helpPopup.setMessage("This is the command list:\n\n" + "-To initialize the SD card" +
+                        " select the sd_init option.  Using this command is only necessary if" +
+                        " the SD card did not initialize properly on its own\n" +
+                        "-To download and read a file in the SD card, select the sd_dd option\n" +
+                        "-To being logging sensor data to an SD card file on the Arduino select" +
+                        " the logfile option.  This command must be run again to stop the logging" +
+                        " process\n" + "-To reset the Arduino, select the reset command")
+                .setCancelable(true)
+                .setPositiveButton("Close",new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog,int id) {
+                        dialog.cancel();
+                    }
+                });
+        helpPopup.create().show();
+    }
+
+    private void syncButton(){
+        try {
+            boolean receivingData = false;
+            if(socket.getInputStream().available()!=0) receivingData = true;
+
+            if(Bluetooth.getHeading().isEmpty() && receivingData){ //handles the first run, if logapp was already running
+                sendLogApp();
+            }
+        }catch(IOException e){
+        }
+    }
+
+	public static int getBtnState(){
+		return btnPressCount;
+	}
+
+    private static void resizeArrays(ArrayList<Float> heading, ArrayList<Float> gyroX,
+                                     ArrayList<Float> gyroY, ArrayList<Float> gyroZ) {
+            while ((heading.size()>20) || (gyroX.size()>20) || (gyroY.size()>20)
+                    || (gyroZ.size()>20)) { //Shrink arrays down to 20
+                Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
+        }
+    }
+
+    private class DataObject extends Observable {
+
+        public void setValue() {
+            downloadRtData();
+            setChanged();
+            notifyObservers();
+        }
+    }
+
+    private void sendLogApp(){
+        try{
+            if (socket != null) {
+                OutputStream outStream = socket.getOutputStream();
+                Commands.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+            }
+        } catch (IOException e) {
+            //TODO
+        }
+    }
+
+	private void startRtDownload(final DataObject data){
+		//The following thread code in this method is modified from:
+		//https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+		new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+			@Override
+			public void run() {
+				while ((btnPressCount % 2) != 0) { //If it's an odd button press
+					runOnUiThread(new Runnable() {
+
+						@Override
+						public void run() {
+							data.setValue();
+						}
+					});
+					try {
+						Thread.sleep(35);
+					} catch (InterruptedException e) {
+						return;
+					}
+				}
+			}
+		}).start();
+	}
+
+    /**
 	 * Send command to Bluno to start data transfer
 	 * Receive data
 	 */
 	private void downloadRtData(){
 		try {
 			if (socket != null) {
-				OutputStream outStream = socket.getOutputStream();
-				Bluetooth.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
 				InputStream inStream = socket.getInputStream();
-				Bluetooth.readData(inStream, 12);
+				Bluetooth.readRtData(inStream, "MainActivity");
 			}
 		} catch (IOException e) {
-			System.out.println("OH?");
 			//TODO
 		}
 	}
@@ -162,12 +413,11 @@ public class MainActivity  extends AppCompatActivity {
 		try {
 			if (socket != null) {
 				OutputStream outStream = socket.getOutputStream();
-				Bluetooth.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
+                Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
 				InputStream inStream = socket.getInputStream();
 				Bluetooth.readData(inStream, 11);
 			}
 		} catch (IOException e) {
-			System.out.println("OH?1");
 			//TODO
 		}
 	}
@@ -204,14 +454,13 @@ public class MainActivity  extends AppCompatActivity {
 				try {
 					if(socket!=null) {
 						OutputStream outStream = socket.getOutputStream();
-						if(position==13 || position==8){ //if logapp or sd_dd were pressed
+						if(position==1){ //if sd_dd was pressed (for dev mode change number to 8)
 							DownloadTask Download = new DownloadTask();  //TODO make these tasks stop if dialog is destroyed
-							if(position==13) Download.mode = "logapp";
-							if(position==8) Download.mode = "sd_dd";
+                            Download.mode = "sd_dd";
 							Download.execute();
 
 						}
-						else Bluetooth.sendCommand(outStream, mCommandAdapter.getItem(position));
+						else Commands.sendCommand(outStream, mCommandAdapter.getItem(position));
 					}
 					else{
 						Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
@@ -267,7 +516,7 @@ public class MainActivity  extends AppCompatActivity {
 	 * Intent code from
 	 * http://stackoverflow.com/questions/6121797/android-how-to-change-layout-on-button-click
 	 */
-	void changeActivity(Class mClass){
+	private void changeActivity(Class mClass){
 		Intent intentApp = new Intent(MainActivity.this, mClass);
 		MainActivity.this.startActivity(intentApp);
 	}
@@ -284,13 +533,10 @@ public class MainActivity  extends AppCompatActivity {
 	private void getDevice(){
 		dialog.setContentView(R.layout.device_list_popup);
 		dialog.setCancelable(true);
-		dialog.setTitle("Bluetooth Devices");
+		dialog.setTitle("Paired Bluetooth Devices");
 		dialog.show();
 		ProgressBar tempSpinner = (ProgressBar)dialog.findViewById(R.id.progressBar);
 		tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while we aren't connecting
-		Snackbar.make(dialog.findViewById(R.id.device_list_display),
-				"Paired Bluetooth devices", Snackbar.LENGTH_LONG)
-				.setAction("Action", null).show();
 
 		ListView lv = (ListView) dialog.findViewById(R.id.device_list_display);
 		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.device_list_popup));
@@ -332,10 +578,10 @@ public class MainActivity  extends AppCompatActivity {
 
 	/**
 	 * This method loads the command ArrayAdapter with the
-	 * options that the user can choose
+	 * developer options that the user can choose
 	 * @param mCommandAdapter
 	 */
-	private void loadCommandPopup(ArrayAdapter<String> mCommandAdapter){
+	private void loadCommandPopupDevMode(ArrayAdapter<String> mCommandAdapter){
 		mCommandAdapter.clear();
 		mCommandAdapter.add("help");
 		mCommandAdapter.add("#");
@@ -355,13 +601,28 @@ public class MainActivity  extends AppCompatActivity {
 		mCommandAdapter.add("reset");
 	}
 
+    /**
+     * This method loads the command ArrayAdapter with the
+     * non-developer options that the user can choose
+     * @param mCommandAdapter
+     */
+    private void loadCommandPopup(ArrayAdapter<String> mCommandAdapter){
+        mCommandAdapter.clear();
+        mCommandAdapter.add("sd_init");
+        mCommandAdapter.add("sd_dd");
+        mCommandAdapter.add("logfile");
+        mCommandAdapter.add("reset");
+    }
+
 	/**
 	 * This method rotates the compass image to a desired angle
 	 * @param imageView
 	 * @param angle
      */
 	private void spinCompass(ImageView imageView, float angle){
-		imageView.setRotation(angle);
+		angle += 180; //Invert compass
+        if(angle>360) angle = 360 - angle;
+        imageView.setRotation(angle);
 	}
 
 	/**
@@ -429,6 +690,22 @@ public class MainActivity  extends AppCompatActivity {
 		}
 	}
 
+    /**
+     * Rotates the seaperch to received real time values
+     * @param x
+     * @param y
+     * @param z
+     */
+    private void controlSeaperchRt(float x, float z, float y){
+            float sampleTime = 0.1f; //approximate, 10Hz sample rate
+
+            x = x * sampleTime; //deg/sec * sec
+            y = y * sampleTime;
+            z = z * sampleTime;
+
+            rotateSeaperch(seaperch, x, z, y); //Z and Y are reversed here
+    }
+
 	/**
 	 * This method prints text to a text box on the MainActivity screen
 	 * @param theString
@@ -461,10 +738,11 @@ public class MainActivity  extends AppCompatActivity {
 			spinner = (ProgressBar)dialog.findViewById(R.id.progressBar);
 			spinner.setVisibility(View.INVISIBLE);
 
-			if(socket!=null) //Check if we're connected after an attempt
-				Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connected", Snackbar.LENGTH_LONG)
-						.setAction("Action", null).show();
-
+            if(socket!=null) {
+                if (socket.isConnected()) //Check if we're connected after an attempt
+                    Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connected", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+            }
 			else Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connection attempt failed", Snackbar.LENGTH_LONG)
 					.setAction("Action", null).show();
 		}
@@ -492,12 +770,13 @@ public class MainActivity  extends AppCompatActivity {
 				}
 				public void onFinish() {
 					// stop async task if not in progress
-					if(asyncObject!=null)
-					if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
-						spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
-						spinner.setVisibility(View.INVISIBLE);
-						asyncObject.cancel(false);
-					}
+                    if(asyncObject!=null) {
+                        if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
+                            spinner = (ProgressBar) dialogCommands.findViewById(R.id.progressBar1);
+                            spinner.setVisibility(View.INVISIBLE);
+                            asyncObject.cancel(false);
+                        }
+                    }
 				}
 			}.start();
 		}
@@ -525,6 +804,7 @@ public class MainActivity  extends AppCompatActivity {
 	protected void onDestroy() {
 		super.onDestroy();
 		try {
+			if(socket!=null)
 			socket.close();
 		}
 		catch(IOException e){

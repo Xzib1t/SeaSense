@@ -32,10 +32,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ArrayAdapter;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -58,7 +55,8 @@ public class Bluetooth extends AppCompatActivity{
     private static ArrayList<Float> gyroX = new ArrayList<Float>();
     private static ArrayList<Float> gyroY = new ArrayList<Float>();
     private static ArrayList<Float> gyroZ = new ArrayList<Float>();
-    public static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
+    private static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
+    public static StringBuffer downloadedStrings = new StringBuffer(); //TODO back to private
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -75,10 +73,11 @@ public class Bluetooth extends AppCompatActivity{
         try {
             boolean eofFound = false;
             StringBuffer downloadedStrings = new StringBuffer();
-            resetBuffers(); //Resets all buffers to take in new data
+            resetBuffers(true); //Resets all buffers to take in new data
 
             while (!eofFound) {
-                byte[] buffer = new byte[1024];  //buffer store for the stream
+                int size = Integer.MAX_VALUE;
+                byte[] buffer = new byte[size];  //buffer store for the stream
                 int bytes = inStream.read(buffer); //bytes returned from read()
                 downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
                 boolean check = check4eof(downloadedData);
@@ -101,20 +100,97 @@ public class Bluetooth extends AppCompatActivity{
         }
     }
 
-    private static void resetBuffers(){
+    /**
+     * Some pieces of this method were taken from:
+     * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
+     * Modifications were made to conform to the specifications of this app
+     */
+    public static void readRtData(InputStream inStream, String activity) {
+        try {
+            resetBuffers(false);
+            byte[] buffer;
+            if(activity.equals("MainActivity")) buffer = new byte[60]; //need a larger buffer to read gyro data
+            else buffer = new byte[30]; //need a smaller buffer for better speed
+            if(inStream.available()==0) return; //Make sure it's actually sending us data
+            int bytes = inStream.read(buffer); //bytes returned from read()
+
+            downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
+            downloadedStrings.setLength(0); //Reset buffer
+
+            for (String printStr : downloadedData) {
+                downloadedStrings.append(printStr);
+            }
+            if(activity.equals("TempCondActivity")) {
+                parseRtData(downloadedStrings.toString(), temperature, 10, 1);
+                parseRtData(downloadedStrings.toString(), conductivity, 10, 3);
+            }
+            if(activity.equals("DepthLightActivity")) {
+                parseRtData(downloadedStrings.toString(), depth, 50, 2);
+                parseRtData(downloadedStrings.toString(), light, 100, 4);
+            }
+            if(activity.equals("MainActivity")) {
+                parseRtData(downloadedStrings.toString(), heading, 100, 5);
+                parseRtData(downloadedStrings.toString(), gyroX, 100, 9);
+                parseRtData(downloadedStrings.toString(), gyroY, 100, 10);
+                parseRtData(downloadedStrings.toString(), gyroZ, 100, 11);
+            }
+
+        }catch(Exception e){
+            System.out.println("Read exception");
+        }
+    }
+
+    private static String separateLines(String input, int lineNumber){
+        String line = "";
+        String[] lineArray = {""};
+        if(input.length()>=20) {
+            lineArray = input.split("\\n");
+            if (lineNumber <= lineArray.length) line = lineArray[lineNumber];
+        }
+        return line;
+    }
+
+    /**
+     * Parses the real time CSV data, we drop some data with this method
+     * but we pull so much in it doesn't matter
+     * @param input
+     * @param arrayList
+     * @param errorRange
+     * @param position
+     */
+    private static void parseRtData(String input, ArrayList<Float> arrayList, int errorRange, int position){
+        if(separateLines(input, 0)!="") { //If we have data
+            String[] csvData = separateLines(input, 0).split(",");
+            if(csvData.length > position) { //Make sure we have enough data
+                if (!arrayList.isEmpty()) {
+                    Float lastValue = arrayList.get(arrayList.size() - 1);
+                    if ((Float.parseFloat(csvData[position]) < lastValue + errorRange) &&
+                            (Float.parseFloat(csvData[position]) > lastValue - errorRange)) //shouldn't change by more than 10 deg between samples, or it's garbage data
+                        arrayList.add(Float.parseFloat(csvData[position]));
+                } else {
+                    arrayList.add(Float.parseFloat(csvData[position]));
+                }
+            }
+        }
+    }
+
+    public static void resetBuffers(boolean includeSensors){
+        downloadedStrings.setLength(0);
         downloadedData.clear();
         time.clear();
-        temperature.clear();
-        depth.clear();
-        conductivity.clear();
-        light.clear();
-        heading.clear();
-        accelX.clear();
-        accelY.clear();
-        accelZ.clear();
-        gyroX.clear();
-        gyroY.clear();
-        gyroZ.clear();
+        if(includeSensors) {
+            temperature.clear();
+            depth.clear();
+            conductivity.clear();
+            light.clear();
+            heading.clear();
+            accelX.clear();
+            accelY.clear();
+            accelZ.clear();
+            gyroX.clear();
+            gyroY.clear();
+            gyroZ.clear();
+        }
     }
 
     public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}
@@ -123,6 +199,17 @@ public class Bluetooth extends AppCompatActivity{
 
     public static ArrayList<String> getTime(){
         return time;
+    }
+
+    public static void removeFirst(){
+        if(temperature.size()>20) temperature.remove(0);
+        if(conductivity.size()>20) conductivity.remove(0);
+        if(depth.size()>20) depth.remove(0);
+        if(light.size()>20) light.remove(0);
+        if(heading.size()>20) heading.remove(0);
+        if(gyroX.size()>20) gyroX.remove(0);
+        if(gyroY.size()>20) gyroY.remove(0);
+        if(gyroZ.size()>20) gyroZ.remove(0);
     }
 
     public static ArrayList<Float> getTemp(){
@@ -145,18 +232,6 @@ public class Bluetooth extends AppCompatActivity{
         return heading;
     }
 
-    public static ArrayList<Float> getAccelX(){
-        return accelX;
-    }
-
-    public static ArrayList<Float> getAccelY(){
-        return accelY;
-    }
-
-    public static ArrayList<Float> getAccelZ(){
-        return accelZ;
-    }
-
     public static ArrayList<Float> getGyroX(){
         return gyroX;
     }
@@ -169,419 +244,6 @@ public class Bluetooth extends AppCompatActivity{
         return gyroZ;
     }
 
-    /**
-     * This method sends commands to the Bluno that start desired events
-     * @param outStream
-     * @param selection
-     */
-    public static void sendCommand(OutputStream outStream, String selection){
-        DataOutputStream mmOutStream = new DataOutputStream(outStream);
-
-        switch(selection){
-            case "logfile":
-                sendLogFile(mmOutStream);
-                break;
-            case "logapp":
-                sendLogApp(mmOutStream);
-                break;
-            case "log":
-                sendLog(mmOutStream);
-                break;
-            case "help":
-                sendHelp(mmOutStream);
-                break;
-            case "#":
-                sendHashtag(mmOutStream);
-                break;
-            case "test":
-                byte[] testData = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 100, 50};
-                sendTest(mmOutStream, testData);
-                break;
-            case "rtc_get":
-                sendRtcGet(mmOutStream);
-                break;
-            case "rtc_set":
-                sendRtcSet(mmOutStream);
-                break;
-            case "sd_init":
-                sendSdInit(mmOutStream);
-                break;
-            case "sd_ls":
-                sendSdLs(mmOutStream);
-                break;
-            case "sd_cat":
-                sendSdCat(mmOutStream);
-                break;
-            case "sd_dd":
-                sendSdDd(mmOutStream);
-                break;
-            case "sd_append":
-                sendSdAppend(mmOutStream);
-                break;
-            case "sd_create":
-                sendSdCreate(mmOutStream);
-                break;
-            case "sd_del":
-                sendSdDel(mmOutStream);
-                break;
-            case "reset":
-                sendReset(mmOutStream);
-                break;
-            default:
-                break;
-        }
-
-    }
-
-    /**
-     * This is "logfile" in ASCII code, it is the command that
-     * automatically logs data to a file
-     * all log files need to be called again to stop them
-     * can run other commands while this command is running
-     * @param mmOutStream
-     */
-    private static void sendLogFile(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(108);
-            mmOutStream.write(111);
-            mmOutStream.write(103);
-            mmOutStream.write(102);
-            mmOutStream.write(105);
-            mmOutStream.write(108);
-            mmOutStream.write(101);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "logapp" in ASCII code, it is the command that
-     * causes the Arduino side to start sending continuous CSV data
-     * @param mmOutStream
-     */
-    private static void sendLogApp(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(108);
-            mmOutStream.write(111);
-            mmOutStream.write(103);
-            mmOutStream.write(97);
-            mmOutStream.write(112);
-            mmOutStream.write(112);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "log" in ASCII code, it is the command that logs data
-     * to the command line (same as logapp, but tab separated values)
-     * @param mmOutStream
-     */
-    private static void sendLog(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(108);
-            mmOutStream.write(111);
-            mmOutStream.write(103);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "help" in ASCII code
-     * Provides a list of commands
-     * @param mmOutStream
-     */
-    private static void sendHelp(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(104);
-            mmOutStream.write(101);
-            mmOutStream.write(108);
-            mmOutStream.write(112);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "#" in ASCII code
-     * Ignores everything after the "#"
-     * @param mmOutStream
-     */
-    private static void sendHashtag(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(35);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "test" in ASCII code, it is the command that
-     * sends a user chosen array of test data to the Bluno
-     * then causes the Bluno to send back this array
-     * @param mmOutStream
-     */
-    private static void sendTest(OutputStream mmOutStream, byte[] dataArray){
-        try {
-            mmOutStream.write(116);
-            mmOutStream.write(101);
-            mmOutStream.write(115);
-            mmOutStream.write(116);
-            mmOutStream.write(32); //space
-            mmOutStream.write(dataArray); //test data
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "rtc_get" in ASCII code, gets current time from Bluno
-     * @param mmOutStream
-     */
-    private static void sendRtcGet(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(114);
-            mmOutStream.write(116);
-            mmOutStream.write(99);
-            mmOutStream.write(95);
-            mmOutStream.write(103);
-            mmOutStream.write(101);
-            mmOutStream.write(116);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "rtc_set" in ASCII code
-     * only useable if autoset is turned off, otherwise automatically sets
-     * the time to the compiled time. Bluno will tell you if autoset is turned on.
-     * Format: rtc_set YYYY/MM/DD HH:MM:SS
-     * @param mmOutStream
-     */
-    private static void sendRtcSet(OutputStream mmOutStream){
-        //TODO add support for user input time and date
-        byte[] testDate = {10, 47, 17}; //MM/DD HH:MM:SS
-        byte[] testTime = {20, 58, 27, 58, 59};
-        try {
-            mmOutStream.write(114);
-            mmOutStream.write(116);
-            mmOutStream.write(99);
-            mmOutStream.write(95);
-            mmOutStream.write(115);
-            mmOutStream.write(101);
-            mmOutStream.write(116);
-            mmOutStream.write(32); //space
-            mmOutStream.write(1783);  //YYYY
-            mmOutStream.write(testDate); //slash
-            mmOutStream.write(32); //space
-            mmOutStream.write(testTime);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "sd_init" in ASCII code, if the Bluno doesn't see the
-     * SD card on boot we can try to force it with this
-     * @param mmOutStream
-     */
-    private static void sendSdInit(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(115);
-            mmOutStream.write(100);
-            mmOutStream.write(95);
-            mmOutStream.write(105);
-            mmOutStream.write(110);
-            mmOutStream.write(105);
-            mmOutStream.write(116);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "sd_ls" in ASCII code, it is the command that
-     * lists the files on the SD card
-     * @param mmOutStream
-     */
-    private static void sendSdLs(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(115);
-            mmOutStream.write(100);
-            mmOutStream.write(95);
-            mmOutStream.write(108);
-            mmOutStream.write(115);
-            mmOutStream.write(32); //space
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "sd_cat" in ASCII code, it is the command that
-     * prints a file to the monitor.
-     * Format: Takes in a file name sd_cat filename.csv
-     * @param mmOutStream
-     */
-    private static void sendSdCat(OutputStream mmOutStream){
-        //TODO add support for user input filenames
-        byte[] test = {116, 101, 115, 116, 46, 116, 120, 116}; //test.txt this file is always on the SD card
-        try {
-            mmOutStream.write(115);
-            mmOutStream.write(100);
-            mmOutStream.write(95);
-            mmOutStream.write(99);
-            mmOutStream.write(97);
-            mmOutStream.write(116);
-            mmOutStream.write(32); //space
-            mmOutStream.write(test); //test.txt
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "sd_dd" in ASCII code, it is the command that
-     * causes the Arduino to dump all the files on the SD card
-     * @param mmOutStream
-     */
-    private static void sendSdDd(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(115);
-            mmOutStream.write(100);
-            mmOutStream.write(95);
-            mmOutStream.write(100);
-            mmOutStream.write(100);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "sd_append" in ASCII code, it is the command that
-     * appends text to a chosen file.
-     * Format: filename sd_appened filename text (input buffer size is 100 ASCII chars)
-     * @param mmOutStream
-     */
-    private static void sendSdAppend(OutputStream mmOutStream){
-        //TODO add support for user input append text
-        byte test[] = {116, 101, 115, 116};
-        try {
-            mmOutStream.write(115);
-            mmOutStream.write(100);
-            mmOutStream.write(95);
-            mmOutStream.write(97);
-            mmOutStream.write(112);
-            mmOutStream.write(112);
-            mmOutStream.write(101);
-            mmOutStream.write(110);
-            mmOutStream.write(100);
-            mmOutStream.write(32); //space
-            mmOutStream.write(test);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "sd_create" in ASCII code, it is the command that
-     * creates a new file on the SD card.
-     * Format: sd_create filename
-     * @param mmOutStream
-     */
-    private static void sendSdCreate(OutputStream mmOutStream){
-        //TODO add support for user input filename
-        byte test[] = {116, 101, 115, 116, 46, 116, 120, 116}; //test.txt
-        try {
-            mmOutStream.write(115);
-            mmOutStream.write(100);
-            mmOutStream.write(95);
-            mmOutStream.write(99);
-            mmOutStream.write(114);
-            mmOutStream.write(101);
-            mmOutStream.write(97);
-            mmOutStream.write(116);
-            mmOutStream.write(101);
-            mmOutStream.write(32); //space
-            mmOutStream.write(test); //text.txt
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "sd_del" in ASCII code, it is the command that deletes a chosen file
-     * from the SD card
-     * Format: sd_del filename
-     * @param mmOutStream
-     */
-    private static void sendSdDel(OutputStream mmOutStream){
-        //TODO add support for user input filename
-        byte test[] = {116, 101, 115, 116, 46, 116, 120, 116}; //test.txt
-        try {
-            mmOutStream.write(115);
-            mmOutStream.write(100);
-            mmOutStream.write(95);
-            mmOutStream.write(100);
-            mmOutStream.write(101);
-            mmOutStream.write(108);
-            mmOutStream.write(32); //space
-            mmOutStream.write(test); //text.txt
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
-
-    /**
-     * This is "reset" in ASCII code, it is the command that
-     * resets the whole system
-     * @param mmOutStream
-     */
-    private static void sendReset(OutputStream mmOutStream){
-        try {
-            mmOutStream.write(114);
-            mmOutStream.write(101);
-            mmOutStream.write(115);
-            mmOutStream.write(101);
-            mmOutStream.write(116);
-            mmOutStream.write(13); //carriage return
-        }
-        catch(IOException e){
-            //TODO
-        }
-    }
 
     /**
      * This method checks whether or not the eof has been reached
@@ -743,7 +405,6 @@ public class Bluetooth extends AppCompatActivity{
 
         if(isFloat(check.toString())) return true; //The last chunk of the time string will be a number (like the 11 in 12:13:11)
         else return false;
-
     }
 
     /**

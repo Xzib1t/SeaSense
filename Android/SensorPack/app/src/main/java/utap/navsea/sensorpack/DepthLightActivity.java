@@ -19,13 +19,17 @@
 
 package utap.navsea.sensorpack;
 
+import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 
 import android.view.View;
+import android.widget.Button;
+import android.widget.RelativeLayout;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -36,18 +40,25 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
 
 public class DepthLightActivity extends AppCompatActivity {
-    public LineChart chartDepth = null;
-    public LineChart chartLight = null;
+    private LineChart chartDepth = null;
+    private LineChart chartLight = null;
+    private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
+    private static int btnPressCount = 0;
+    private static RelativeLayout thisView = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_depthlight);	        //set the Uart Baudrate on BLE chip to 115200
+        setContentView(R.layout.activity_depthlight);
 
-        //serialReceivedText=(TextView) findViewById(R.id.serialReceivedText);	//initial the EditText of the received data
         chartDepth = (LineChart) findViewById(R.id.chart4); //get the first chart
         chartLight = (LineChart) findViewById(R.id.chart5); //get the second chart
 
@@ -56,12 +67,60 @@ public class DepthLightActivity extends AppCompatActivity {
         graphTest(chartLight, convert2Entry(Bluetooth.getLight()), "Light (lux)", Color.YELLOW);
         chartLight.invalidate(); //refresh graph
 
+        final GraphObject graph = new GraphObject();
+        final DataObject data = new DataObject();
+        data.addObserver(graph);
+
+        thisView = (RelativeLayout)findViewById(R.id.full_screen_depthlight);
+
+        //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
+        ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
+        activitySwipeDetector.setDestinations(TempCondActivity.class, MainActivity.class);
+        RelativeLayout layout = (RelativeLayout) findViewById(R.id.full_screen_depthlight);
+        layout.setOnTouchListener(activitySwipeDetector);
+
+        final Button rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
+        if(socket!=null) rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
+        else rtButton.setVisibility(View.INVISIBLE);
+        rtButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+              /*  rtButton.setText(getResources().getString(R.string.graph_rt));
+                if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
+                btnPressCount++;
+                syncButton(); //If our button goes out of sync resync it
+                sendLogApp();
+                if((btnPressCount % 2)!=0) {
+                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    startRtDownload(data);
+                }*/
+                rtButton.setText(getResources().getString(R.string.graph_rt));
+                btnPressCount++;
+                if((btnPressCount % 2)!=0 && isGettingData()) {
+                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    startRtDownload(data);
+                }else if((btnPressCount % 2)!=0 && !isGettingData()){
+                    sendLogApp();
+                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    startRtDownload(data);
+                }else if((btnPressCount % 2)==0 && isGettingData()){
+                    sendLogApp();
+                }
+            }
+        });
+
         FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left2);
         assert fabLeft != null;
         fabLeft.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                changeActivity(TempCondActivity.class);
+                if((btnPressCount % 2) == 0) {
+                    flushStream();
+                    changeActivity(TempCondActivity.class);
+                }
+                else Snackbar.make(view, "Stop real time display before changing screens",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
             }
         });
 
@@ -70,9 +129,156 @@ public class DepthLightActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                changeActivity(MainActivity.class);
+                if((btnPressCount % 2) == 0) {
+                    flushStream();
+                    changeActivity(MainActivity.class);
+                }
+                else Snackbar.make(view, "Stop real time display before changing screens",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
             }
         });
+    }
+
+    private void flushStream(){
+        try {
+            if(socket!=null)
+            socket.getInputStream().skip(socket.getInputStream().available());
+        } catch (IOException e) {
+        }
+    }
+
+    private boolean isGettingData(){
+        try{
+            if(socket.getInputStream().available()>0) {
+                System.out.println("Before flush: " + socket.getInputStream().available());
+                flushStream();
+                Thread.sleep(100);
+            }
+            if(socket.getInputStream().available()>0){
+                System.out.println("After flush: " + socket.getInputStream().available());
+                return true;
+            }else return false;
+
+
+        }catch(IOException | InterruptedException e){
+            System.out.println("false");
+            return false; //Couldn't read stream because we aren't getting data
+        }
+    }
+
+    private class GraphObject implements Observer {
+        @Override
+        public void update(Observable observable, Object data) {
+            ArrayList<Float> dataCond = Bluetooth.getDepth();
+            ArrayList<Float> dataLight = Bluetooth.getLight();
+            graphRtData(dataCond, Bluetooth.getDepth(), chartDepth); //Graph temp
+            graphRtData(dataLight, Bluetooth.getLight(), chartLight); //Graph conductivity
+        }
+    }
+
+    private class DataObject extends Observable {
+
+        public void setValue() {
+            downloadRtData();
+            setChanged();
+            notifyObservers();
+        }
+    }
+
+    private void sendLogApp(){
+        try{
+            if (socket != null) {
+                OutputStream outStream = socket.getOutputStream();
+                Commands.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+            }
+        } catch (IOException e) {
+            //TODO
+        }
+    }
+
+    private void syncButton(){
+        try {
+            boolean receivingData = false;
+            if(socket.getInputStream().available()!=0) receivingData = true;
+
+            if(Bluetooth.getDepth().isEmpty() && receivingData){ //handles the first run, if logapp was already running
+                sendLogApp();
+            }
+        }catch(IOException e){
+        }
+    }
+
+    public static int getBtnState(){
+        return btnPressCount;
+    }
+
+    public static void displayWarning(){
+        Snackbar.make(thisView, "Stop real time display before changing screens",
+                Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
+    }
+
+    private void startRtDownload(final DataObject data){
+        //The following thread code in this method is modified from:
+        //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+        new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+            @Override
+            public void run() {
+                while ((btnPressCount % 2) != 0) { //If it's an odd button press
+                    runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            data.setValue();
+                        }
+                    });
+                    try {
+                        Thread.sleep(35);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * Send command to Bluno to start data transfer
+     * Receive data
+     */
+    private void downloadRtData(){
+        try {
+            if (socket != null) {
+                    InputStream inStream = socket.getInputStream();
+                    Bluetooth.readRtData(inStream, "DepthLightActivity");
+             }
+        } catch (IOException e) {
+            //TODO
+        }
+    }
+
+    private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
+        if (data.size() > 20) {
+            while (data.size() > 20) Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
+        }
+        if (data.size() > 0 && chart!=null) {
+            chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
+            chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
+
+            //The following code in this method is modified from:
+            //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
+            LineData graphData = chart.getData();
+
+            if (graphData != null) {
+                ILineDataSet set = graphData.getDataSetByIndex(0);
+                graphData.addXValue(graphData.getXValCount() + " "
+                        + graphData.getXValCount());
+                graphData.addEntry(new Entry(sensorData.get(sensorData.size()-1), set.getEntryCount()), 0);
+                chart.notifyDataSetChanged();
+                chart.invalidate(); //Refresh graph
+            }
+        }
     }
 
     /**
@@ -140,7 +346,6 @@ public class DepthLightActivity extends AppCompatActivity {
     private void formatChart(LineChart chart){
         chart.setEnabled(true);
         chart.setTouchEnabled(true);
-        chart.setDescription("");
 
         XAxis xAxis = chart.getXAxis();
         xAxis.setEnabled(true);
@@ -150,10 +355,10 @@ public class DepthLightActivity extends AppCompatActivity {
         xAxis.setGridColor(Color.BLACK);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setTextSize(10f);
-        xAxis.setTextColor(Color.BLACK);
+        xAxis.setTextColor(Color.RED);
 
         YAxis leftAxis = chart.getAxisLeft();
-        leftAxis.setTextColor(Color.BLACK);
+        leftAxis.setTextColor(Color.RED);
         leftAxis.setAxisLineColor(Color.BLACK);
         leftAxis.setEnabled(true);
 
@@ -161,14 +366,12 @@ public class DepthLightActivity extends AppCompatActivity {
         chart.setDrawBorders(true);
         chart.setMaxVisibleValueCount(0);
         chart.setBorderColor(Color.BLACK);
+        chart.setMaxVisibleValueCount(0);
 
         Legend legend = chart.getLegend();
         legend.setEnabled(true);
         legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
-    }
-
-    public void onSerialReceived(String theString) {    //Once connection data received, this function will be called
-
+        legend.setTextColor(Color.RED);
     }
 }
 

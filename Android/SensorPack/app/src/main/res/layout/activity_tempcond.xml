@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/full_screen_tempcond"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -16,7 +17,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:orientation="vertical"
-    android:weightSum="2">
+    android:weightSum="2.15">
 
     <com.github.mikephil.charting.charts.LineChart
         android:id="@+id/chart2"
@@ -28,7 +29,15 @@
         android:id="@+id/chart3"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1" />
+
+    <Button
+        android:id="@+id/rtbutton_tempcond"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:text="@string/button_realtime"
+        android:layout_weight="0.15" />
 </LinearLayout>
 
     <android.support.design.widget.FloatingActionButton

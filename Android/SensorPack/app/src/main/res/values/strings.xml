@@ -21,4 +21,11 @@
     <string name="menu_disconnect">Disconnect</string>
     <string name="menu_scan">Scan</string>
     <string name="menu_stop">Stop</string>
+
+    <string name="button_realtime">Graph real time data</string>
+    <string name="button_realtime_compgyro">Display real time data</string>
+    <string name="graph_rt">Graph real time data</string>
+    <string name="stop_graph_rt">Stop graphing</string>
+    <string name="stop_dl_rt">Stop getting data</string>
+    <string name="start_dl_rt">Display real time data</string>
 </resources>

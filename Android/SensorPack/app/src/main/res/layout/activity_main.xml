@@ -49,6 +49,14 @@
         app:backgroundTint="#ae0000"
         android:src="@drawable/ic_keyboard_arrow_right_black_24dp" />
 
+    <Button
+        android:id="@+id/rtbutton_main"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/fab_margin"
+        android:layout_gravity="bottom|center_horizontal"
+        android:text="@string/button_realtime_compgyro" />
+
     <include layout="@layout/content_main" />
     </android.support.design.widget.CoordinatorLayout>
 
