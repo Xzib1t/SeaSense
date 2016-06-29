@@ -69,7 +69,7 @@ void getADCreadings(){
             break;
         case 12: Cond = avg;
             break;
-        case 13: vBat = avg;
+        case 13: vBat = avg; // scaling handled in display.cpp
             break;
     }
     
