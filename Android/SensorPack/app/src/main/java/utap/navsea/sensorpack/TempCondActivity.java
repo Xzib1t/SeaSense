@@ -356,12 +356,15 @@ public class TempCondActivity extends AppCompatActivity {
 
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
+        chart.setMaxVisibleValueCount(0);
         chart.setBorderColor(Color.BLACK);
         chart.setMaxVisibleValueCount(0);
+
 
         Legend legend = chart.getLegend();
         legend.setEnabled(true);
         legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
         legend.setTextColor(Color.RED);
+
     }
 }

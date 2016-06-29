@@ -38,7 +38,6 @@
         android:layout_gravity="center_vertical|center_horizontal"
         android:text="@string/button_realtime"
         android:layout_weight="0.15" />
-
 </LinearLayout>
 
     <android.support.design.widget.FloatingActionButton

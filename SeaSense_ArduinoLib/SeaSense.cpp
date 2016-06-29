@@ -323,7 +323,8 @@ ISR(TIMER1_COMPA_vect)
     
     // log data to SD card
     if(sd_logData & SDfile){
-        digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
+      digitalWrite(OLED_CS,HIGH);
+      digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
       SDfile.print(Timestamp); SDfile.print(F(","));
       SDfile.print(Temp); SDfile.print(F(","));
       SDfile.print(Depth); SDfile.print(F(","));
@@ -341,7 +342,7 @@ ISR(TIMER1_COMPA_vect)
     else if(app_logData & !logData){
         digitalWrite(22,HIGH); // indicate config complete with LED on pin 13
       count2++;
-      if (count2 == 1) Serial1.print("Temperature"); Serial1.print("\n\r");
+      //if (count2 == 1) Serial1.print("Temperature"); Serial1.print("\n\r");
         
       Serial.println(F("Logging data to app"));
       Serial1.print(Timestamp); Serial1.print(F(","));
@@ -355,10 +356,10 @@ ISR(TIMER1_COMPA_vect)
       Serial1.print(AccelZ); Serial1.print(F(","));
       Serial1.print(GyroX); Serial1.print(F(","));
       Serial1.print(GyroY); Serial1.print(F(","));
-      Serial1.print(GyroZ); Serial1.print(F(","));
+      Serial1.print(GyroZ); Serial1.print(F(",\n"));
       //Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
       
-      if (count2 == 50) {app_logData = false; count2=0; Serial1.print(F("U+1F4A9")); Serial1.print(F(","));}
+      //if (count2 == 50) {app_logData = false; count2=0; Serial1.print(F("U+1F4A9")); Serial1.print(F(","));}
       //return;
     } 
     
@@ -382,8 +383,8 @@ ISR(TIMER1_COMPA_vect)
           Serial1.println(Head);
           //return;
       }
-        digitalWrite(4,HIGH);
-        digitalWrite(7,LOW);
+        digitalWrite(SD_CS,HIGH);
+        digitalWrite(OLED_CS,LOW);
         display.clearDisplay();
         display.setTextSize(1);
         display.setTextColor(WHITE);
@@ -415,8 +416,8 @@ ISR(TIMER1_COMPA_vect)
         }
         drawBatInd();
         display.display();
-        digitalWrite(7,HIGH);
-        digitalWrite(4,LOW);
+        digitalWrite(OLED_CS,HIGH);
+        digitalWrite(SD_CS,LOW);
     }
     
     if((!app_logData) & (!logData) & (!sd_logData))
