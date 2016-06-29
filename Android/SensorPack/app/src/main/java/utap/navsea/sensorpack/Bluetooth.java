@@ -34,6 +34,7 @@ import android.widget.ArrayAdapter;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.StringTokenizer;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
@@ -72,27 +73,39 @@ public class Bluetooth extends AppCompatActivity{
     public static void readData(InputStream inStream, int distinctDataPoints) {
         try {
             boolean eofFound = false;
+            int attempts = 0;
             StringBuffer downloadedStrings = new StringBuffer();
             resetBuffers(true); //Resets all buffers to take in new data
 
             while (!eofFound) {
-                int size = Integer.MAX_VALUE;
+                int size = 100000;
                 byte[] buffer = new byte[size];  //buffer store for the stream
-                int bytes = inStream.read(buffer); //bytes returned from read()
-                downloadedData.add(new String(buffer, 0, bytes)); //Add new strings to arraylist
-                boolean check = check4eof(downloadedData);
+                int count = inStream.read(buffer);
+                downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
+                boolean check = true; //= false;
+/*                if(inStream.available()==0){
+                    //check = check4eof(downloadedData);
+                    check = true;
+                }*/
 
                 if (check) {
                     downloadedStrings.setLength(0); //Reset buffer
                     for (String printStr : downloadedData) {
                         downloadedStrings.append(printStr);
                     }
-                    if(parseData(downloadedStrings.toString(), distinctDataPoints)){
+
+                    downloadedData.clear(); //Free up this buffer
+                if(!downloadedStrings.toString().isEmpty()) {
+                    if (parseData(downloadedStrings.toString(), distinctDataPoints)) {
+                        System.out.println("Heading size when we think the eof is reached " + heading.size());
+                        if(heading.size()!=0)
                         eofFound = true;
+                    } else { //Something went wrong when parsing or we timed out
+                        System.out.println("Missing time data: " + downloadedStrings.toString());
+                        attempts++;
+                        if(attempts>4) return; //Stop reading after we try 5 times
                     }
-                    else{ //Something went wrong when parsing or we timed out
-                        return; //Stop reading
-                    }
+                }
                 }
             }
         }catch(Exception e){
@@ -251,21 +264,23 @@ public class Bluetooth extends AppCompatActivity{
      * @return
      */
     private static boolean check4eof(ArrayList<String> inputString){
-        StringBuffer buffer = new StringBuffer();
-        buffer.setLength(0);
-
-        for (String printStr : inputString) {
-            buffer.append(printStr);
-        }
-
-        for(String splitVal : buffer.toString().split(",")) {
-            String[] newlineSplit = splitVal.split("\\n?\\r");
-            if (!(isFloat(splitVal) && isTime(buffer.toString()))){ //ignore the command data
+        for(String splitVal : inputString.toString().split(",")) {
+            String[] newlineSplit = splitVal.split("\\n?\\r"); //Just splitting by \\r here works too
+            if (!(isFloat(splitVal) && isTime(inputString.toString()))){ //ignore the command data
                 if(splitVal.trim().equals("U+1F4A9")) return true; //check for the eof
             }
             if(newlineSplit.length>=2) //Bounds check
                 if(newlineSplit[newlineSplit.length-1].trim().equals("U+1F4A9")) return true;
         }
+            /*String[] commaSplit = inputString.toString().split(",");
+            String[] newlineSplit = commaSplit.toString().split("\\r");
+        for(String splitVal : commaSplit) {
+            if (!(isFloat(splitVal) && isTime(inputString.toString()))) { //ignore the command data
+                if (splitVal.trim().equals("U+1F4A9")) return true; //check for the eof
+            }
+            if (newlineSplit.length >= 2) //Bounds check
+                if (newlineSplit[newlineSplit.length - 1].trim().equals("U+1F4A9")) return true;
+        }*/
         return false;
     }
 
@@ -294,7 +309,7 @@ public class Bluetooth extends AppCompatActivity{
                             if(isTime(buffer.toString())) //Only take if it's a time value
                                 time.add(buffer.toString()); //Grab the time value
                             else{
-                                return false; //TODO BACK UP HERE AND FIND THE REAL TIME, FIX PARSING
+                                return false;
                             }
 
                             for(String bufferStr : parsedData.get(curIndex).split("\\n?\\r")) { //ignore time data

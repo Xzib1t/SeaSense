@@ -62,9 +62,9 @@ public class DepthLightActivity extends AppCompatActivity {
         chartDepth = (LineChart) findViewById(R.id.chart4); //get the first chart
         chartLight = (LineChart) findViewById(R.id.chart5); //get the second chart
 
-        graphTest(chartDepth, convert2Entry(Bluetooth.getDepth()), "Depth (cm)", Color.BLUE);
+        graphTest(chartDepth, convert2Entry(Bluetooth.getDepth()), "Depth", Color.RED);
         chartDepth.invalidate(); //Refresh graph
-        graphTest(chartLight, convert2Entry(Bluetooth.getLight()), "Light (lux)", Color.YELLOW);
+        graphTest(chartLight, convert2Entry(Bluetooth.getLight()), "Light", Color.GREEN);
         chartLight.invalidate(); //refresh graph
 
         final GraphObject graph = new GraphObject();
@@ -364,7 +364,6 @@ public class DepthLightActivity extends AppCompatActivity {
 
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
-        chart.setMaxVisibleValueCount(0);
         chart.setBorderColor(Color.BLACK);
         chart.setMaxVisibleValueCount(0);
 

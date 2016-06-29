@@ -62,14 +62,11 @@ public class TempCondActivity extends AppCompatActivity {
         final DataObject data = new DataObject();
         data.addObserver(graph);
 
-        //graphData();
         chartTemp = (LineChart) findViewById(R.id.chart2); //get the first chart
-        //temperature.add(10f);
         graphTest(chartTemp, convert2Entry(Bluetooth.getTemp()), "Temperature (Deg C)", Color.RED);
         chartTemp.invalidate(); //Refresh graph
 
         chartCond = (LineChart) findViewById(R.id.chart3); //get the first chart
-        //temperature.add(10f);
         graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity (S/m)", Color.GREEN);
         chartCond.invalidate(); //Refresh graph
 
@@ -109,7 +106,6 @@ public class TempCondActivity extends AppCompatActivity {
                     System.out.println("Want data, not getting data, request sent");
                 }else if((btnPressCount % 2)==0 && isGettingData()){
                     sendLogApp();
-                    //flushStream();
                     System.out.println("Stopped");
                 }
             }
@@ -356,15 +352,12 @@ public class TempCondActivity extends AppCompatActivity {
 
         chart.setDrawGridBackground(true);
         chart.setDrawBorders(true);
-        chart.setMaxVisibleValueCount(0);
         chart.setBorderColor(Color.BLACK);
         chart.setMaxVisibleValueCount(0);
-
 
         Legend legend = chart.getLegend();
         legend.setEnabled(true);
         legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
         legend.setTextColor(Color.RED);
-
     }
 }

@@ -192,8 +192,8 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
-                displayCommands(); //Show list of clickable commands
-                showCommandInstructions(); //Display help menu
+            displayCommands(); //Show list of clickable commands
+            showCommandInstructions(); //Display help menu
             }
 		});
 
@@ -415,7 +415,7 @@ public class MainActivity  extends AppCompatActivity {
 				OutputStream outStream = socket.getOutputStream();
                 Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
 				InputStream inStream = socket.getInputStream();
-				Bluetooth.readData(inStream, 11);
+                Bluetooth.readData(inStream, 11);
 			}
 		} catch (IOException e) {
 			//TODO
@@ -452,10 +452,10 @@ public class MainActivity  extends AppCompatActivity {
 		lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			public void onItemClick(AdapterView<?> arg, View view, int position, long id){
 				try {
-					if(socket!=null) {
+					if(socket!=null && socket.isConnected()) {
 						OutputStream outStream = socket.getOutputStream();
 						if(position==1){ //if sd_dd was pressed (for dev mode change number to 8)
-							DownloadTask Download = new DownloadTask();  //TODO make these tasks stop if dialog is destroyed
+							DownloadTask Download = new DownloadTask();
                             Download.mode = "sd_dd";
 							Download.execute();
 
@@ -463,7 +463,7 @@ public class MainActivity  extends AppCompatActivity {
 						else Commands.sendCommand(outStream, mCommandAdapter.getItem(position));
 					}
 					else{
-						Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
+                        Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
 								.setAction("Action", null).show();
 					}
 				}
@@ -742,6 +742,8 @@ public class MainActivity  extends AppCompatActivity {
                 if (socket.isConnected()) //Check if we're connected after an attempt
                     Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connected", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
+                else Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connection attempt failed", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
             }
 			else Snackbar.make(dialog.findViewById(R.id.device_list_display), "Connection attempt failed", Snackbar.LENGTH_LONG)
 					.setAction("Action", null).show();
