@@ -48,5 +48,5 @@ void drawBatInd(){
     // 1024 / 93 ~= 11 pixel rows = bat ind scaling (1024=5v in to ADC -> added *2 to account for voltage divider) 
     // note that this assumes the battery discharges at a LINEAR scale, which is incorrect
     // however, it is easier on the CPU to do a simple divide rather than anything more complex
-    display.fillRect(112,3,((vBat<<1)/90),5,WHITE);
+    display.fillRect(112,3,((vBat<<1)/88),5,WHITE);
 }

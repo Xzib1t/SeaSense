@@ -82,17 +82,17 @@ void processCMD(char *command, int size)
     int argc = 0;
     
     // print out recieved command to the serial monitor
-    Serial.println(F("Recieved new entry: "));
+    // Serial.println(F("Recieved new entry: "));
     cli_argv[argc] = &command[0]; // argv[0] == base addr for given command
     command[size+1] = '\0'; // terminate input string with a null (so that string.h commands end at eos)
     // if no command was recieved, indicate so
     if(command[0] == '\0'){ 
-        Serial.println(F("Recieved blank entry"));
+       // Serial.println(F("Recieved blank entry"));
         return;
     }
     // otherwise, iterate through the input string and look for a command
     for(j=0;j<size;j++){ 
-        Serial.print(command[j]); // print each char to the serial monitor
+        //Serial.print(command[j]); // print each char to the serial monitor
         if (command[j]==' ') // treat spaces as argument separators
         {
             argc++; // increase num args for each spacce
@@ -102,7 +102,7 @@ void processCMD(char *command, int size)
             command[j] = '\0';
         }
     }
-    Serial.print('\n'); // new line after printing cmd
+    //Serial.print('\n'); // new line after printing cmd
    
     // search through commands list for a command matching the input
     for(j=0;j<num_cli_cmds;j++){
@@ -120,7 +120,7 @@ void processCMD(char *command, int size)
         }
     }
     // if the input doesn't match any valid commands, indicate so
-    Serial1.println(F("Error: Invalid Command\n\r"));
+    Serial.println(F("Error: Invalid Command\n\r"));
     return;
 }
 
@@ -128,14 +128,14 @@ void processCMD(char *command, int size)
 void cli_help(int argc, char *argv[])
 {
     int count;
-    Serial1.println(F("Help:\n"));
+    Serial.println(F("Help:\n"));
     // iterate through the commands list and print out each command name and description
     for(count=0;count<num_cli_cmds;count++)
     {
-        Serial1.print(F("\t"));
-        Serial1.print(cli_cmds[count].name);
-        Serial1.print(F(": "));
-        Serial1.println(cli_cmds[count].description);
+        Serial.print(F("\t"));
+        Serial.print(cli_cmds[count].name);
+        Serial.print(F(": "));
+        Serial.println(cli_cmds[count].description);
     }
     return;
 }
@@ -143,7 +143,7 @@ void cli_help(int argc, char *argv[])
 // cli_comment command - ignore all command line entry after a '#' char
 void cli_comment(int argc, char *argv[]) 
 {
-    Serial1.println(F(" "));
+    Serial.println(F(" "));
     return;
 }
 
@@ -151,15 +151,15 @@ void cli_comment(int argc, char *argv[])
 void cli_test(int argc, char *argv[]) 
 {
     //print an indicator that the command was recieved
-    Serial1.println(F("It's alive! This is only a test\n\rTry adding additional arguments\n\r"));
+    Serial.println(F("It's alive! This is only a test\n\rTry adding additional arguments\n\r"));
     // individually log each additional argument vector to show how commands are parsed
     int i;
     for (i=0;i<argc;i++)
     {
-        Serial1.print(F("argv["));
-        Serial1.print(i);
-        Serial1.print(F("] = "));
-        Serial1.println(argv[i+1]);
+        Serial.print(F("argv["));
+        Serial.print(i);
+        Serial.print(F("] = "));
+        Serial.println(argv[i+1]);
     }
     return;
 }
@@ -169,14 +169,14 @@ void cli_rtc_get(int argc, char *argv[])
 {
     // if the RTC isn't running, throw an error
     if (! rtc.isrunning()) { 
-        Serial1.println(F("Error: RTC is not running.\n\rPlease set RTC_AUTOSET to true or use the rtc_set command"));
+        Serial.println(F("Error: RTC is not running.\n\rPlease set RTC_AUTOSET to true or use the rtc_set command"));
     }
     // create a temporary buffer for storing the current time in
     char temp[25];
     // read the current time from the RTC and print it out
     DateTime now = rtc.now();
     sprintf(temp,"%04d/%02d/%02d - %02d:%02d:%02d\n",now.year(),now.month(),now.day(),now.hour(),now.minute(),now.second());
-    Serial1.println(temp);
+    Serial.println(temp);
     return;
 }
 
@@ -186,13 +186,13 @@ void cli_rtc_set(int argc, char *argv[])
 {
     // if autoset is turned on, don't allow for the time to be manipulated
     if (RTC_AUTOSET == 1){
-        Serial1.println(F("Error: RTC Autoset set to true"));
+        Serial.println(F("Error: RTC Autoset set to true"));
         return;
     }
     else{
         // if there aren't enough args don't parse a new time
         if(argc < 2 | argc > 2) {
-            Serial1.println(F("Error: incorrect number of arguments. Input should be yyyy/mm/dd hh:mm:ss"));
+            Serial.println(F("Error: incorrect number of arguments. Input should be yyyy/mm/dd hh:mm:ss"));
             return;
         }
         
@@ -205,12 +205,12 @@ void cli_rtc_set(int argc, char *argv[])
         // set the time based on the input and print it to the command line
         rtc.adjust(DateTime(year,month,day,hour,minute,second));
         sprintf(temp,"Set time to %04d/%02d/%02d %02d:%02d:%02d",year, month, day, hour, minute, second);
-        Serial1.println(temp);
+        Serial.println(temp);
         return; // exit upon setting the time
     }
     
     // if none of the above qualify, throw an error
-    Serial1.println(F("Error: input should be yyyy/mm/dd hh:mm:ss"));
+    Serial.println(F("Error: input should be yyyy/mm/dd hh:mm:ss"));
     return;
 }
 
@@ -222,7 +222,7 @@ void cli_sd_init(int argc, char *argv[])
 {   Sd2Card card; 
  
     if(sd_logData){ // don't mess up the memory card by resetting while writing
-        Serial1.print(F("Error: currently writing to SD card!"));
+        Serial.print(F("Error: currently writing to SD card!"));
         return;
     }
  
@@ -232,26 +232,26 @@ void cli_sd_init(int argc, char *argv[])
     pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
     
     // toggle the SD card CS
-    Serial1.println(F("\tToggling SD card ChipSelect"));
+    Serial.println(F("\tToggling SD card ChipSelect"));
     digitalWrite(SD_CS,HIGH);
     SPI.end();
     delay(50);
     
     // initialize the SD card
     // first search for the actual card
-    Serial1.print(F("\tSearching for SD card ..."));
+    Serial.print(F("\tSearching for SD card ..."));
     if (!card.init(SPI_HALF_SPEED, SD_CS)) 
-        Serial1.println(F(" card not found"));  
+        Serial.println(F(" card not found"));  
     else {
         // if the card is present, enable it on the SPI interface
-        Serial1.println(F(" card found"));
-        Serial1.print(F("\tInitializing SD card ..."));
+        Serial.println(F(" card found"));
+        Serial.print(F("\tInitializing SD card ..."));
         if (!SD.begin(SD_CS)){
-            Serial1.println(F(" failed."));
-            Serial1.println(F("\tHas the card already been initialized?\n\r\tThis operation can only be completed once"));
+            Serial.println(F(" failed."));
+            Serial.println(F("\tHas the card already been initialized?\n\r\tThis operation can only be completed once"));
         }
         else
-            Serial1.println(F(" done"));
+            Serial.println(F(" done"));
     }
     return;
 }
@@ -274,7 +274,7 @@ void cli_sd_cat(int argc, char *argv[])
     // if an incorrect number of arguments are given, throw an error and exit
     if(argc<1 | argc>1)
     {
-        Serial1.println(F("Error: incorrect number of args"));
+        Serial.println(F("Error: incorrect number of args"));
         return;
     }
     
@@ -283,15 +283,15 @@ void cli_sd_cat(int argc, char *argv[])
     // open to the given file argument
     currentFile = SD.open(argv[1]);
     if (currentFile){ // if the file is successfully opened, iterate through its contents and print
-        Serial1.print (F("Contents of ")); Serial1.print(argv[1]); Serial1.println(F(":"));
+        Serial.print (F("Contents of ")); Serial.print(argv[1]); Serial.println(F(":"));
         // read from the file until there's nothing else in it:
         while (currentFile.available()) {
-          Serial1.write(currentFile.read());
+          Serial.write(currentFile.read());
         }
-        Serial1.print(F("\n\r"));
+        Serial.print(F("\n\r"));
     } else {
         // if the file doesn't open, print an error:
-        Serial1.println(F("error opening file"));
+        Serial.println(F("error opening file"));
     }
     return;
 }
@@ -301,7 +301,7 @@ void cli_sd_dd(int argc, char *argv[])
 {
     // don't read from the card if it's being written to by the ISR
     if(sd_logData){
-        Serial1.println(F("Error: can't dump files while logging to SD card"));
+        Serial.println(F("Error: can't dump files while logging to SD card"));
         return;
     }
     // otherwise, create a new file instance, and point it to the top of the directory
@@ -312,7 +312,7 @@ void cli_sd_dd(int argc, char *argv[])
     dumpCSV(currentFile,0);
     // close the file instance upon finishing
     currentFile.close();
-    Serial1.print(F("\n\r"));
+    Serial.print(F("\n\r"));
     return;
 }
 
@@ -323,7 +323,7 @@ void cli_sd_append(int argc, char *argv[])
     // if an incorrect number of arguments are given, throw an error
     if(argc<2)
     {
-        Serial1.println(F("Error: incorrect number of args"));
+        Serial.println(F("Error: incorrect number of args"));
         return;
     }
     
@@ -333,7 +333,7 @@ void cli_sd_append(int argc, char *argv[])
     
     if(currentFile){ // if the file successfully opens, write the given argv to it
         // print the name of the file being written to
-        Serial1.print(F("Writing to file ")); Serial1.println(argv[1]);
+        Serial.print(F("Writing to file ")); Serial.println(argv[1]);
         
         // iterate through each argv and add each to the file, separated by a space
         int i;
@@ -349,9 +349,9 @@ void cli_sd_append(int argc, char *argv[])
         currentFile.print((char)0x92);
         currentFile.println((char)0xA9);
         currentFile.close();
-        Serial1.println(F("Write Complete"));
+        Serial.println(F("Write Complete"));
     } else { // if the file doesn't open, throw an error
-        Serial1.print(F("Error opening ")); Serial1.println(argv[1]);
+        Serial.print(F("Error opening ")); Serial.println(argv[1]);
     }
 }
 
@@ -360,7 +360,7 @@ void cli_sd_create(int argc, char *argv[]) {
     // if an incorrect number of arguments are given, throw an error and return
     if(argc<1 | argc>1)
     {
-        Serial1.println(F("Error: incorrect number of args"));
+        Serial.println(F("Error: incorrect number of args"));
         return;
     }
     // otherwise, create a new file instance 
@@ -368,9 +368,9 @@ void cli_sd_create(int argc, char *argv[]) {
     // open the given filename for writing (will create the file if it doesn't already exist)
     currentFile = SD.open(argv[1],FILE_WRITE);
     if(currentFile) { // if the file is created, indicate so 
-        Serial1.print(F("Created file ")); Serial1.println(argv[1]);
+        Serial.print(F("Created file ")); Serial.println(argv[1]);
     } else // otherwise, throw an error
-        Serial1.println(F("Error creating file. Does name conform to 8.3 convention?"));
+        Serial.println(F("Error creating file. Does name conform to 8.3 convention?"));
     currentFile.close(); // either way, close the file and exit
     return;
 }
@@ -380,7 +380,7 @@ void cli_sd_del(int argc, char *argv[]) {
     // if an incorrect number of args are given, throw an error
     if(argc<1 | argc>1)
     {
-        Serial1.println(F("Error: incorrect number of args"));
+        Serial.println(F("Error: incorrect number of args"));
         return;
     }
     // otherwise, check to see that the file or directory exists
@@ -398,20 +398,20 @@ void cli_sd_del(int argc, char *argv[]) {
             char* dir = (char*)calloc(10,sizeof(char));
             strcpy(dir,argv[1]);// strcat(dir,"/");
             // indicate that the directory is being removed, and attempt to delete it
-            Serial1.print(F("Removing dir: ")); Serial1.println(dir);
+            Serial.print(F("Removing dir: ")); Serial.println(dir);
             // if the directory can't be deleted, throw an error
-            if(!SD.rmdir(dir)) Serial1.println(F("Error: couldn't remove dir"));
+            if(!SD.rmdir(dir)) Serial.println(F("Error: couldn't remove dir"));
             free(dir); // free the memory containing the directory name
         }
         // if the file input isn't a directory...
         else{
             currentFile.close(); // close the open file
             SD.remove(argv[1]); // delete it
-            Serial1.print(F("Removed file ")); Serial1.println(argv[1]); // and indicate so
+            Serial.print(F("Removed file ")); Serial.println(argv[1]); // and indicate so
         }
     // if the given filename doesn't exist ...
     } else
-        Serial1.println(F("Error: given file doesn't exist"));
+        Serial.println(F("Error: given file doesn't exist"));
     return;
 }
 
@@ -420,14 +420,14 @@ void cli_log_data(int argc, char *argv[])
 {
     // if already logging data via the bluetooth serial port, indicate so and return
     if(app_logData){
-        Serial1.println(F("Error: already logging serial data!"));
+        Serial.println(F("Error: already logging serial data!"));
         return;
     }
     // otherwise, allow for the ISR to log data to the bluetooth port
     logData = !logData;
     
     if(logData) // if data logging has been enabled, print out a header for each column
-        Serial1.println(F("Time\t\tTemp\tDepth\tCond\tLight\tHead"));
+        Serial.println(F("Time\t\tTemp\tDepth\tCond\tLight\tHead"));
     return;
 }
 
@@ -436,14 +436,14 @@ void cli_log_app(int argc, char *argv[])
 {
     // if already logging data via the bluetooth serial port, indicate so and return
     if(logData){
-        Serial1.println(F("Error: already logging serial data!"));
+        Serial.println(F("Error: already logging serial data!"));
         return;
     }
     delay(10); // give the app a little wiggle room
     
     // if data logging is being turned OFF, send a EOF indicator to the android app
     if(app_logData){
-        Serial1.print(F("U+1F4A9")); Serial1.print(F(","));
+        Serial.print(F("U+1F4A9")); Serial.print(F(","));
     }
     
     // allow/prevent the ISR from logging data to the bluetooth port
@@ -477,7 +477,7 @@ void cli_log_file(int argc, char *argv[])
         // if the directory doesn't exist, create it and then add it to the filepath
         else{
             SD.mkdir(directory);
-            Serial1.print(F("Created directory ")); Serial1.println(directory);
+            Serial.print(F("Created directory ")); Serial.println(directory);
             fullpath = strcat(fullpath,directory);
         }
         // after the dir has been created, create a filename for the file using the newFile() function
@@ -494,7 +494,7 @@ void cli_log_file(int argc, char *argv[])
         // add a header to the CSV file
         SDfile.println(F("Time,Temp,Depth,Cond,Light,Head,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ"));
         // send the name of the filepath to the bluetooth serial port
-        Serial1.print(F("Logging data to ")); Serial1.println(fullpath);
+        Serial.print(F("Logging data to ")); Serial.println(fullpath);
         // free the memory occupied by the filename, directory, and filepath
         free(directory);
         free(filename);
@@ -507,7 +507,7 @@ void cli_log_file(int argc, char *argv[])
         SDfile.print(F(","));
         // close the file, and indicate that data logging has been disabled
         SDfile.close();
-        Serial1.println(F("Stopped logging data to file"));
+        Serial.println(F("Stopped logging data to file"));
     }
     return;
 }
@@ -516,21 +516,21 @@ void cli_log_file(int argc, char *argv[])
 void cli_wdt_reset(int argc, char *argv[]) {
     // don't mess up the memory card by resetting while writing
     if(sd_logData){ 
-        Serial1.print(F("Turning off data logging . . ."));
+        Serial.print(F("Turning off data logging . . ."));
         sd_logData = !sd_logData;
         SDfile.print(F("U+1F4A9")); 
         SDfile.print(F(","));
         SDfile.close();
-        Serial1.println(F("Stopped logging data to file"));
+        Serial.println(F("Stopped logging data to file"));
     }
     // enable the watchdog timer with a 500mS overflow
     //wdt_enable(WDTO_500MS); // may cause issue depending on bootloader (wdt reset but no timer)
-    Serial1.println(F("System reset ..."));
+    Serial.println(F("System reset ..."));
     delay(15);
     asm volatile ("  jmp 0"); 
      
     // eat processor cycles until the wdt overflows
-  //Serial1.println(F("This functionality has been disabled - see Cli.cpp"));
+  //Serial.println(F("This functionality has been disabled - see Cli.cpp"));
 }
 
 // printDirectory - prints out all files and directories on the SD card to the serial monitor
@@ -544,16 +544,16 @@ void printDirectory(File dir, int numTabs) {
           break;
         }
         for (uint8_t i = 0; i < numTabs; i++) {
-          Serial1.print(F("\t"));
+          Serial.print(F("\t"));
         }
-        Serial1.print(entry.name());
+        Serial.print(entry.name());
         if (entry.isDirectory()) {
-          Serial1.println(F("/"));
+          Serial.println(F("/"));
           printDirectory(entry, numTabs + 1);
         } else {
           // files have sizes, directories do not
-           Serial1.print(F("\t\t"));
-           Serial1.println(entry.size(), DEC);
+           Serial.print(F("\t\t"));
+           Serial.println(entry.size(), DEC);
         }
         entry.close();
   }
@@ -583,19 +583,19 @@ void dumpCSV(File dir, int numTabs)
                     strcat(fullfile,"/");
                     strcat(fullfile,entry.name());
                     // print the name of the file being dumped
-                    Serial1.print(F("File ")); 
-                    Serial1.print(fullfile);
-                    Serial1.print(F(":\n\r"));
+                    Serial.print(F("File ")); 
+                    Serial.print(fullfile);
+                    Serial.print(F(":\n\r"));
                     // open the file using its filepath
                     File currentFile;
                     currentFile = SD.open(fullfile);
                     if (currentFile){ // if the file opens, dump its contents
                         // read from the file until there's nothing else in it:
                         while (currentFile.available()) {
-                          Serial1.write(currentFile.read()); // print the file contents to the serial port
+                          Serial.write(currentFile.read()); // print the file contents to the serial port
                         }
                         // add a newline/return after each file dump
-                        Serial1.print(F("\n\r"));
+                        Serial.print(F("\n\r"));
                     } // end of if(currentFile)
                 } // end of if(isCSV(entry.name()))
             } // end of if(strchr(entry.name(),'~') == 0)
@@ -663,12 +663,12 @@ void rmSubFiles(File dir)
         strcat(fullfile,"/");
         strcat(fullfile,entry.name());
         // remove the file located at the filepath destination
-        Serial1.print(F("Removing file ")); 
-        Serial1.println(fullfile);
+        Serial.print(F("Removing file ")); 
+        Serial.println(fullfile);
         // close the entry for the next iteration
         entry.close();
         // throw an error if trying to delete a directory within a directory
-        if(!SD.remove(fullfile)) Serial1.println(F("Error: must delete sub-directories first"));
+        if(!SD.remove(fullfile)) Serial.println(F("Error: must delete sub-directories first"));
     }
     // free the filepath's memory when finished, and exit
     free(fullfile); 

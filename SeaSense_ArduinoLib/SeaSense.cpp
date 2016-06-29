@@ -140,7 +140,7 @@ void SeaSense::Initialize(){
     /* Perform all critical init with interrupts disabled */
     cli(); // disable global interrupts
     
-    Serial1.begin(115200); // turn on serial to bluetooth module
+    Serial.begin(115200); // turn on serial to bluetooth module
     
     // Timer 5 hardware hardware pulse count (used for light sensor)
     // see http://forum.arduino.cc/index.php?topic=259063.0 for more info
@@ -172,23 +172,23 @@ void SeaSense::Initialize(){
     
     ADCSRA |= (1 << ADSC);  // Start A2D Conversions
     
-    Serial1.println(F("System Initialization..."));
+    Serial.println(F("System Initialization..."));
     
     // initialize the SD card
     // first search for the actual card
     digitalWrite(OLED_CLK,HIGH);
     digitalWrite(SD_CS,LOW);
-    Serial1.print(F("\tSearching for SD card ..."));
+    Serial.print(F("\tSearching for SD card ..."));
     if (!card.init(SPI_HALF_SPEED, SD_CS)) 
-        Serial1.println(F(" card not found"));
+        Serial.println(F(" card not found"));
     else {
         // if the card is present, enable it on the SPI interface
-        Serial1.println(F(" card found"));
-        Serial1.print(F("\tInitializing SD card ..."));
+        Serial.println(F(" card found"));
+        Serial.print(F("\tInitializing SD card ..."));
         if (!(SD.begin(SD_CS)))
-            Serial1.println(F(" failed"));
+            Serial.println(F(" failed"));
         else{
-            Serial1.println(F(" done"));
+            Serial.println(F(" done"));
             noSD = false;
         }
     }
@@ -200,20 +200,20 @@ void SeaSense::Initialize(){
     
     // initialize the RTC
     if (! rtc.begin()) {
-        Serial1.println(F("\tError: Couldn't find RTC. Try a system reset"));
+        Serial.println(F("\tError: Couldn't find RTC. Try a system reset"));
         //while(1); // wait for RTC to init (could cause an issue if no RTC connected)
     }
     if ((! rtc.isrunning()) & (RTC_AUTOSET == 1)) {
-        Serial1.println(F("\tRTC is NOT running!"));
+        Serial.println(F("\tRTC is NOT running!"));
         // following line sets the RTC to the date & time this sketch was compiled
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        Serial1.println(F("\tRTC Autoset"));
+        Serial.println(F("\tRTC Autoset"));
     }
     else if ((! rtc.isrunning()) & (RTC_AUTOSET == 0)) {
-        Serial1.println(F("\tRTC unconfigured - please use rtc_set to configure the RTC"));
+        Serial.println(F("\tRTC unconfigured - please use rtc_set to configure the RTC"));
     }
     else
-        Serial1.println(F("\tRTC successfully initialized"));
+        Serial.println(F("\tRTC successfully initialized"));
     
     /* Initialize the magnetometer*/
     // mag = Adafruit_HMC5883_Unified(12345); // GY80
@@ -221,19 +221,19 @@ void SeaSense::Initialize(){
     
     if(!mag.begin())
     {
-        Serial1.println(F("\tNo magnetometer detected ... Check your wiring!"));
+        Serial.println(F("\tNo magnetometer detected ... Check your wiring!"));
         return;
-    } else Serial1.println(F("\tMagnetometer successfully initialized"));
+    } else Serial.println(F("\tMagnetometer successfully initialized"));
     
     /* Initialize the accelerometer */
     //accel = Adafruit_ADXL345_Unified(23456); // GY80
     accel = Adafruit_LSM303_Accel_Unified(30301); // Adafruit 9DOF
     if(!accel.begin())
     {
-        Serial1.println(F("\tNo accelerometer detected ... Check your wiring!"));
+        Serial.println(F("\tNo accelerometer detected ... Check your wiring!"));
         return;
     } else {
-        Serial1.println(F("\tAccelerometer successfully initialized"));
+        Serial.println(F("\tAccelerometer successfully initialized"));
         //accel.setRange(ADXL345_RANGE_4_G); // GY80
     }
     
@@ -241,10 +241,10 @@ void SeaSense::Initialize(){
     //setupL3G4200D(2000); // GY80 
     gyro  = Adafruit_L3GD20_Unified(20); // Adafruit 9DOF
     if(!gyro.begin()){
-        Serial1.println(F("\tNo gyroscope detected ... Check your wiring!"));
+        Serial.println(F("\tNo gyroscope detected ... Check your wiring!"));
         return;
     } else{
-        Serial1.println(F("\tGyroscope successfully initialized"));
+        Serial.println(F("\tGyroscope successfully initialized"));
     }
     
     // indicate that initialization is done on the OLED display
@@ -258,11 +258,11 @@ void SeaSense::Initialize(){
     init = true; // indicate that initilization is complete (not actually used, but may be useful at some point)
     
     /* prompt users to enter a new command */
-    Serial1.print(F("\tType in "));
-    Serial1.print((char)0x22); 
-    Serial1.print(F("help")); 
-    Serial1.print((char)0x22); 
-    Serial1.println(F(" for a list of commands"));
+    Serial.print(F("\tType in "));
+    Serial.print((char)0x22); 
+    Serial.print(F("help")); 
+    Serial.print((char)0x22); 
+    Serial.println(F(" for a list of commands"));
 }
 
 /* BluetoothClient - reads in new characters from the bluetooth 
@@ -270,11 +270,11 @@ void SeaSense::Initialize(){
 * '\r'. I've tested this to work with PuTTY and arduino's serial monitor
 */
 void SeaSense::BluetoothClient(){
-    if(Serial1.available()) // if a new byte has been transmitted 
+    if(Serial.available()) // if a new byte has been transmitted 
     {
         _i++; // leave room for '>' in the CLI character buffer
         if (_i == (MAX_INPUT_SIZE-1)) _i = 0; // wrap around if overflow
-        byte rxChar = Serial1.read(); // read in new char
+        byte rxChar = Serial.read(); // read in new char
         
         /* perform different operations based on the character recieved */
         switch(rxChar){
@@ -282,7 +282,7 @@ void SeaSense::BluetoothClient(){
             case 0x0D: 
                 _rxCmdSize = _i; // save the size of the input buffer (passed to processCMD)
                 newCli = true; // globally indicate that a new command has been entered
-                Serial1.print(F("\n\r")); // jump to a new line in the bluetooth command line interface
+                Serial.print(F("\n\r")); // jump to a new line in the bluetooth command line interface
               break;
                 
             /* if the backspace key is pressed, remove the char and realign the index */
@@ -295,7 +295,7 @@ void SeaSense::BluetoothClient(){
                     cli_rxBuf[0] = '>'; // add '>' char back in
                 }
                 else{ // clear out char being deleted and move the buffer index accordingly
-                    Serial1.print((char)rxChar);
+                    Serial.print((char)rxChar);
                     cli_rxBuf[_i-1]='\0';
                     _i-=2;
                 }
@@ -304,7 +304,7 @@ void SeaSense::BluetoothClient(){
             /* if any other keys are pressed, store them in the command buffer */
             default: // if any other keys are pressed
                 cli_rxBuf[_i] = (char)rxChar;
-                if(!app_logData) Serial1.print(cli_rxBuf[_i]);
+                if(!app_logData) Serial.print(cli_rxBuf[_i]);
         }
     }
     
@@ -321,7 +321,7 @@ void SeaSense::BluetoothClient(){
         }
         // print '>' char on newline (prompt a new input from the user)
         cli_rxBuf[0] = '>'; 
-        Serial1.print(cli_rxBuf);
+        Serial.print(cli_rxBuf);
         
         // reset the new command boolean so that this segment of code doesn't repeat
         newCli = false;
@@ -480,17 +480,17 @@ void SeaSense::getHallEffect(){
     boolean state = digitalRead(LPM_WAKE);
     if(state == 1){ // output pulled high (LED turned off)
         if(sd_logData){ 
-            Serial1.print(F("Turning off data logging . . ."));
+            Serial.print(F("Turning off data logging . . ."));
             sd_logData = !sd_logData;
             SDfile.print(F("U+1F4A9")); 
             SDfile.print(F(","));
             SDfile.close();
-            Serial1.println(F("Stopped logging data to file"));
+            Serial.println(F("Stopped logging data to file"));
             sd_logData = false;
         }
         app_logData = false;
         logData = false;
-        Serial1.println(F("Low power mode enabled - goodbye!"));
+        Serial.println(F("Low power mode enabled - goodbye!"));
         Serial.println(F("Low power mode enabled - goodbye!"));
         digitalWrite(SD_CS,HIGH);
         digitalWrite(OLED_CLK,LOW);
@@ -518,35 +518,35 @@ void SeaSense::getHallEffect(){
     
 void lpmWake(){
      // wake from low power mode
-    Serial1.println(F("Waking up from low power mode ..."));
+    Serial.println(F("Waking up from low power mode ..."));
     Serial.println(F("Waking up from low power mode ..."));
 }
     
 // print user-readable data readings to the bluetooth port
 void printVerboseData(){
-    Serial1.print(Timestamp); Serial1.print(F("\t"));
-    Serial1.print(Temp); Serial1.print(F("\t"));
-    Serial1.print(Depth); Serial1.print(F("\t"));
-    Serial1.print(Cond); Serial1.print(F("\t"));
-    Serial1.print(Light); Serial1.print(F("\t"));
-    Serial1.println(Head);
+    Serial.print(Timestamp); Serial.print(F("\t"));
+    Serial.print(Temp); Serial.print(F("\t"));
+    Serial.print(Depth); Serial.print(F("\t"));
+    Serial.print(Cond); Serial.print(F("\t"));
+    Serial.print(Light); Serial.print(F("\t"));
+    Serial.println(Head);
 }
 
 // print data readings to the android app
 void printAppData(){
-    Serial.println(F("Logging data to app"));
-    Serial1.print(Timestamp); Serial1.print(F(","));
-    Serial1.print(Temp); Serial1.print(F(","));
-    Serial1.print(Depth); Serial1.print(F(","));
-    Serial1.print(Cond); Serial1.print(F(","));
-    Serial1.print(Light); Serial1.print(F(","));
-    Serial1.print(Head); Serial1.print(F(","));
-    Serial1.print(AccelX); Serial1.print(F(","));
-    Serial1.print(AccelY); Serial1.print(F(","));
-    Serial1.print(AccelZ); Serial1.print(F(","));
-    Serial1.print(GyroX); Serial1.print(F(","));
-    Serial1.print(GyroY); Serial1.print(F(","));
-    Serial1.print(GyroZ); Serial1.print(F(",\n"));
+    //Serial.println(F("Logging data to app"));
+    Serial.print(Timestamp); Serial.print(F(","));
+    Serial.print(Temp); Serial.print(F(","));
+    Serial.print(Depth); Serial.print(F(","));
+    Serial.print(Cond); Serial.print(F(","));
+    Serial.print(Light); Serial.print(F(","));
+    Serial.print(Head); Serial.print(F(","));
+    Serial.print(AccelX); Serial.print(F(","));
+    Serial.print(AccelY); Serial.print(F(","));
+    Serial.print(AccelZ); Serial.print(F(","));
+    Serial.print(GyroX); Serial.print(F(","));
+    Serial.print(GyroY); Serial.print(F(","));
+    Serial.print(GyroZ); Serial.print(F(",\n"));
 }
 
 // print data readings to file
