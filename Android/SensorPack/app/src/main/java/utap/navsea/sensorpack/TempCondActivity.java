@@ -63,6 +63,7 @@ public class TempCondActivity extends AppCompatActivity {
         data.addObserver(graph);
 
         chartTemp = (LineChart) findViewById(R.id.chart2); //get the first chart
+        //TODO add time on the x axis
         graphTest(chartTemp, convert2Entry(Bluetooth.getTemp()), "Temperature (Deg C)", Color.RED);
         chartTemp.invalidate(); //Refresh graph
 

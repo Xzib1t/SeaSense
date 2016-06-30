@@ -412,8 +412,8 @@ public class MainActivity  extends AppCompatActivity {
 	private void downloadSdDump(){
 		try {
 			if (socket != null) {
-				OutputStream outStream = socket.getOutputStream();
-                Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
+/*				OutputStream outStream = socket.getOutputStream();
+                Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer*/
 				InputStream inStream = socket.getInputStream();
                 Bluetooth.readData(inStream, 11);
 			}

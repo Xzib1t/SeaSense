@@ -32,9 +32,11 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ArrayAdapter;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.StringTokenizer;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
@@ -71,45 +73,57 @@ public class Bluetooth extends AppCompatActivity{
      * Modifications were made to conform to the specifications of this app
      */
     public static void readData(InputStream inStream, int distinctDataPoints) {
+            String[] sdInfo = getSdInfo(inStream);
+            String firstFileSize = "";
+            if(sdInfo.length>=1) firstFileSize = sdInfo[1];
+            System.out.println("First file size: " + firstFileSize);
+
         try {
+            OutputStream outStream = socket.getOutputStream();
+            Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
             boolean eofFound = false;
             int attempts = 0;
             StringBuffer downloadedStrings = new StringBuffer();
             resetBuffers(true); //Resets all buffers to take in new data
 
             while (!eofFound) {
-                int size = 100000;
-                byte[] buffer = new byte[size];  //buffer store for the stream
-                int count = inStream.read(buffer);
-                downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
+            int size = 1000000; //TODO handle when we need more space
+            byte[] buffer = new byte[size];  //buffer store for the stream
+            int count = inStream.read(buffer, 0, buffer.length);
+            downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
+            System.out.println("Data size " + count);
+
                 boolean check = true; //= false;
-/*                if(inStream.available()==0){
+                if(inStream.available()==0){
                     //check = check4eof(downloadedData);
                     check = true;
-                }*/
+                }
 
                 if (check) {
                     downloadedStrings.setLength(0); //Reset buffer
                     for (String printStr : downloadedData) {
                         downloadedStrings.append(printStr);
                     }
-
                     downloadedData.clear(); //Free up this buffer
-                if(!downloadedStrings.toString().isEmpty()) {
-                    if (parseData(downloadedStrings.toString(), distinctDataPoints)) {
-                        System.out.println("Heading size when we think the eof is reached " + heading.size());
-                        if(heading.size()!=0)
-                        eofFound = true;
-                    } else { //Something went wrong when parsing or we timed out
-                        System.out.println("Missing time data: " + downloadedStrings.toString());
-                        attempts++;
-                        if(attempts>4) return; //Stop reading after we try 5 times
+                    if(!downloadedStrings.toString().isEmpty()) {
+                        if (parseData(downloadedStrings.toString(), distinctDataPoints)) {
+                            System.out.println("Time size when we think the eof is reached " + time.size());
+                            System.out.println("Time data: " + time.toString());
+                            if(heading.size()!=0)
+                            eofFound = true;
+                        } else { //Something went wrong when parsing or we timed out
+                            System.out.println("Missing time data: " + downloadedStrings.toString());
+                            return;
+                            //TODO if we have filled the buffer reading, we know there's more data coming, keep reading
+                            //TODO we can do this to avoid getting the array size
+
+                            //TODO doing it this way ignores eofs so find a way to separate the files
+                        }
                     }
                 }
-                }
             }
-        }catch(Exception e){
-            System.out.println("Read exception");
+        }catch(IOException | NullPointerException e){
+            System.out.println("Read exception or null pointer exception");
         }
     }
 
@@ -186,6 +200,43 @@ public class Bluetooth extends AppCompatActivity{
             }
         }
     }
+
+    /**
+     * This method gets the number of files on the SD card, and
+     * the sizes of those files in bytes
+     */
+    private static String[] getSdInfo(InputStream inStream) {
+                String numOfFiles = "";
+                int count = 1;
+                int size = 1024; //Just in case we have a large number of files
+                byte[] buffer = new byte[size];
+                boolean doneDownloading = false;
+                String[] separatedData = {""};
+                StringBuffer sdInfo = new StringBuffer();
+                String fileData = "";
+                    try {
+                        OutputStream outStream = socket.getOutputStream();
+                        Commands.sendCommand(outStream, "fileInfo"); //TODO might have to send this every time, but clear buffer
+                        while (!doneDownloading) { //TODO error handling when fileInfo isn't sent correctly, or just a timeout
+                        count = inStream.read(buffer, 0, buffer.length);
+                        sdInfo.append(new String(buffer, 0, count));
+                        System.out.println("Array contents: " + sdInfo.toString());
+                            String[] check = sdInfo.toString().split(",");
+                            if(check.length!=0)
+                            if(check[check.length-1].equals(">")) {
+                                String[] firstSplit = sdInfo.toString().split("\\n\\r");
+                                if(firstSplit.length>=1) fileData = firstSplit[1];
+                                separatedData = fileData.split(",");
+                                numOfFiles = separatedData[0];
+
+                                System.out.println("The number of files is: " + numOfFiles);
+                                doneDownloading = true;
+                            }
+                        }
+                    } catch(IOException e){
+                }
+                    return separatedData;
+            }
 
     public static void resetBuffers(boolean includeSensors){
         downloadedStrings.setLength(0);
@@ -272,15 +323,6 @@ public class Bluetooth extends AppCompatActivity{
             if(newlineSplit.length>=2) //Bounds check
                 if(newlineSplit[newlineSplit.length-1].trim().equals("U+1F4A9")) return true;
         }
-            /*String[] commaSplit = inputString.toString().split(",");
-            String[] newlineSplit = commaSplit.toString().split("\\r");
-        for(String splitVal : commaSplit) {
-            if (!(isFloat(splitVal) && isTime(inputString.toString()))) { //ignore the command data
-                if (splitVal.trim().equals("U+1F4A9")) return true; //check for the eof
-            }
-            if (newlineSplit.length >= 2) //Bounds check
-                if (newlineSplit[newlineSplit.length - 1].trim().equals("U+1F4A9")) return true;
-        }*/
         return false;
     }
 
@@ -309,7 +351,8 @@ public class Bluetooth extends AppCompatActivity{
                             if(isTime(buffer.toString())) //Only take if it's a time value
                                 time.add(buffer.toString()); //Grab the time value
                             else{
-                                return false;
+                                dataType = 0; //Keep resetting until we actually get some time data
+                                continue;//return false;
                             }
 
                             for(String bufferStr : parsedData.get(curIndex).split("\\n?\\r")) { //ignore time data
