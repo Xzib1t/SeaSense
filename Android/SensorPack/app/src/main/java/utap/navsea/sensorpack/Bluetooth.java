@@ -32,11 +32,11 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ArrayAdapter;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 public class Bluetooth extends AppCompatActivity{
@@ -60,6 +60,7 @@ public class Bluetooth extends AppCompatActivity{
     private static ArrayList<Float> gyroZ = new ArrayList<Float>();
     private static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
     public static StringBuffer downloadedStrings = new StringBuffer(); //TODO back to private
+    public static boolean dialogOpen = true;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -74,45 +75,60 @@ public class Bluetooth extends AppCompatActivity{
      */
     public static void readData(InputStream inStream, int distinctDataPoints) {
             String[] sdInfo = getSdInfo(inStream);
-            String firstFileSize = "";
-            if(sdInfo.length>=1) firstFileSize = sdInfo[1];
-            System.out.println("First file size: " + firstFileSize);
+            //String firstFileSize = "";
+            //if(sdInfo.length>1) firstFileSize = sdInfo[1];
+            int fileSizeSum = 0;
+            for(int i=0; i<sdInfo.length-2; i++){
+                fileSizeSum+=Integer.parseInt(sdInfo[i]);
+            }
+
+            StringBuffer dlStrings = new StringBuffer();
+            System.out.println("SD info contents: " + Arrays.toString(sdInfo));
 
         try {
             OutputStream outStream = socket.getOutputStream();
             Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
             boolean eofFound = false;
             int attempts = 0;
-            StringBuffer downloadedStrings = new StringBuffer();
             resetBuffers(true); //Resets all buffers to take in new data
 
-            while (!eofFound) {
             int size = 1000000; //TODO handle when we need more space
             byte[] buffer = new byte[size];  //buffer store for the stream
-            int count = inStream.read(buffer, 0, buffer.length);
-            downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
-            System.out.println("Data size " + count);
+            int count = 0;
+            int sum = 0;
+            int iFirstFileSize = 0;
+            int readStop = 0;
+            //if(firstFileSize!="")
+            //    iFirstFileSize= Integer.parseInt(firstFileSize);
+            while(sum<fileSizeSum && dialogOpen){//while (!eofFound) {
+              //for(int i=0; i<2; i++){
+                if(fileSizeSum>buffer.length) readStop = buffer.length;
+                else readStop = fileSizeSum; //make sure that the data size isn't larger than our buffer
+                //TODO reset when this happens
+                count = inStream.read(buffer, 0, readStop);
+                sum+=count;
+                System.out.println("Data points: " + sum);
+                downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
 
                 boolean check = true; //= false;
-                if(inStream.available()==0){
+/*                if(inStream.available()==0){
                     //check = check4eof(downloadedData);
                     check = true;
-                }
+                }*/
 
                 if (check) {
-                    downloadedStrings.setLength(0); //Reset buffer
+                    dlStrings.setLength(0); //Reset buffer
                     for (String printStr : downloadedData) {
-                        downloadedStrings.append(printStr);
+                        dlStrings.append(printStr);
                     }
                     downloadedData.clear(); //Free up this buffer
-                    if(!downloadedStrings.toString().isEmpty()) {
-                        if (parseData(downloadedStrings.toString(), distinctDataPoints)) {
-                            System.out.println("Time size when we think the eof is reached " + time.size());
-                            System.out.println("Time data: " + time.toString());
+                    if(!dlStrings.toString().isEmpty()) {
+                        if (parseData(dlStrings.toString(), distinctDataPoints)) {
+                           // System.out.println("Time size when we think the eof is reached " + time.size());
                             if(heading.size()!=0)
                             eofFound = true;
                         } else { //Something went wrong when parsing or we timed out
-                            System.out.println("Missing time data: " + downloadedStrings.toString());
+                            System.out.println("Missing time data: " + dlStrings.toString());
                             return;
                             //TODO if we have filled the buffer reading, we know there's more data coming, keep reading
                             //TODO we can do this to avoid getting the array size
@@ -210,17 +226,18 @@ public class Bluetooth extends AppCompatActivity{
                 int count = 1;
                 int size = 1024; //Just in case we have a large number of files
                 byte[] buffer = new byte[size];
+
                 boolean doneDownloading = false;
                 String[] separatedData = {""};
                 StringBuffer sdInfo = new StringBuffer();
+                sdInfo.setLength(0); //Make sure it's clear
                 String fileData = "";
                     try {
                         OutputStream outStream = socket.getOutputStream();
-                        Commands.sendCommand(outStream, "fileInfo"); //TODO might have to send this every time, but clear buffer
-                        while (!doneDownloading) { //TODO error handling when fileInfo isn't sent correctly, or just a timeout
+                        Commands.sendCommand(outStream, "fileInfo");
+                        while (!doneDownloading && dialogOpen) { //TODO error handling when fileInfo isn't sent correctly
                         count = inStream.read(buffer, 0, buffer.length);
                         sdInfo.append(new String(buffer, 0, count));
-                        System.out.println("Array contents: " + sdInfo.toString());
                             String[] check = sdInfo.toString().split(",");
                             if(check.length!=0)
                             if(check[check.length-1].equals(">")) {
@@ -228,8 +245,6 @@ public class Bluetooth extends AppCompatActivity{
                                 if(firstSplit.length>=1) fileData = firstSplit[1];
                                 separatedData = fileData.split(",");
                                 numOfFiles = separatedData[0];
-
-                                System.out.println("The number of files is: " + numOfFiles);
                                 doneDownloading = true;
                             }
                         }
