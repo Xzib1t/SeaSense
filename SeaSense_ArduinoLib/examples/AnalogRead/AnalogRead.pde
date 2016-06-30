@@ -20,11 +20,12 @@
 
 /* Create a new instanse of the SeaSense library "seasense"
 *  Pins used by the library include the following:
+*   - Pins 0 and 1: Serial1 Tx and Rx to bluetooth module
 *   - Pin 2: Hall Effect Sensor/LPM wake interrupt
+*   - Pin 3: Data logging indicator LED
 *   - Pin 4 used for SD card CS
 *   - Pins 5, 6, and 7 used for OLED clk, data, cs
-*   - Pins 18 and 19: Serial1 Tx and Rx to bluetooth module
-*   - Pin 22: Data logging indicator LED
+*   - Pin 38: Bluetooth module power
 *   - Pin 47: Timer5 hardware edge counter (light sensor)
 *   - Pins 48, 49 for OLED rst, dc
 *   - Pins 50, 51, 52, used for the SPI interface

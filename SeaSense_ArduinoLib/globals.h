@@ -31,6 +31,8 @@
     #endif
     extern Adafruit_SSD1306 display;
 
+    /* Bluetooth power pin (helpful for low power mode) */
+    #define BT_PWR 38
     #define MAX_INPUT_SIZE 80
     #define MAX_CLI_ARGV 10
     #define SD_CS 4
@@ -51,9 +53,13 @@
     #define OLED_CS 7      //CS on wish board (CS on adafruit 128x64)
     #define OLED_RESET 48  //RES on wish board (Rst on adafruit 128x64)
     /* LED logging status indicator */
-    #define LEDpin 22
+    #define LEDpin 3
     /* Low power mode wake pin */
     #define LPM_WAKE 2
+
+    /*Controls for turning off the display/bluetooth based on depth*/
+    #define LOW_PWR_DEPTH -5
+    extern boolean lowPowerLogging;
 
     /*Data values for writing to the SD card/serial log*/
     extern boolean noSD;

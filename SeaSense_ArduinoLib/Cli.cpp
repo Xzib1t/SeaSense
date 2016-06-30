@@ -13,6 +13,9 @@
 static int cli_argc;
 static char* cli_argv[MAX_CLI_ARGV]; 
 
+// number of CSV files in the directory
+int _numCSV = 0;
+
 /* Create a type for each CLI command. */
 struct CLI_CMD
 {
@@ -58,6 +61,10 @@ char* newFile(int filenum,char* directory);
 void dumpCSV(File dir, int numTabs); 
 bool isCSV(char* filename);
 void rmSubFiles(File dir);
+void dumpCSVinfo(File dir, int numTabs);
+void numCSVfiles(File dir, int numTabs);
+void dangerzone();
+
 
 // Generate the list of CLI commands. 
 //      note that converting "text like this" to a char* is a
@@ -104,6 +111,35 @@ void processCMD(char *command, int size)
     }
     //Serial.print('\n'); // new line after printing cmd
    
+    
+   
+    //***** commands not added to CLI_CORE_CMD_LIST (hidden from help menu) *******
+    // easter came early
+    if ((strcmp("danger",strlwr(command)) == 0)
+                || (strcmp("dangerzone",strlwr(command)) == 0)
+                || (strcmp("something",strlwr(cli_argv[1])) == 0)
+                || (strcmp("zone",strlwr(cli_argv[1])) == 0)
+        ){
+            dangerzone();
+            return;
+        }
+    // dump number of files and size of each (for android app)
+    else if (strcmp("fileinfo",strlwr(cli_argv[0])) == 0){
+            _numCSV = 0; // reset count of CSV files stored on the card
+            File currentFile;
+            currentFile.seek(0);
+            currentFile = SD.open("/");
+            numCSVfiles(currentFile,0);
+            Serial.print(_numCSV); Serial.print(F(","));
+            currentFile.seek(0); // go to the top directory of the SD card
+            currentFile = SD.open("/"); // open the root directory of the SD card
+            dumpCSVinfo(currentFile, 0);
+            currentFile.close(); // close file upon exit
+            // get the number of .CSV files stored on the card
+            return;
+        }
+    //***** end of non CLI_CORE_CMD_LIST cmds *******
+    
     // search through commands list for a command matching the input
     for(j=0;j<num_cli_cmds;j++){
         if(argc == 1){ // if only one arg is given...
@@ -112,7 +148,9 @@ void processCMD(char *command, int size)
                 return cli_cmds[j].cli_function(argc,&cli_argv[0]);
             } 
         }
+        
         else { // if multiple args are given...
+            // commands contianed in CLI_CORE_CMD_LIST
             if(strcmp(cli_cmds[j].name,command) == 0){ // search for a corresponding command
                 // call the command, passing in a string starting with the second input argument
                 return cli_cmds[j].cli_function(argc,cli_argv);
@@ -157,7 +195,7 @@ void cli_test(int argc, char *argv[])
     for (i=0;i<argc;i++)
     {
         Serial.print(F("argv["));
-        Serial.print(i);
+        Serial.print(i+1);
         Serial.print(F("] = "));
         Serial.println(argv[i+1]);
     }
@@ -524,7 +562,7 @@ void cli_wdt_reset(int argc, char *argv[]) {
         Serial.println(F("Stopped logging data to file"));
     }
     // enable the watchdog timer with a 500mS overflow
-    //wdt_enable(WDTO_500MS); // may cause issue depending on bootloader (wdt reset but no timer)
+    // wdt_enable(WDTO_500MS); // may cause issue depending on bootloader (wdt reset but no timer reset - will get stuck in infinite wdt reset loop)
     Serial.println(F("System reset ..."));
     delay(15);
     asm volatile ("  jmp 0"); 
@@ -606,6 +644,54 @@ void dumpCSV(File dir, int numTabs)
   return; // exit
 }
 
+// print the filesize of each .csv file
+void dumpCSVinfo(File dir, int numTabs)
+{
+    dir.seek(0); // start at the top directory of the SD card
+
+    while (true) { // while there are still more files/dirs to iterate through...
+        File entry =  dir.openNextFile(); // open the next available file.dir
+        if (! entry) { // if the dir is empty (no more files), break
+          break;
+        }
+        if (entry.isDirectory()) { // if the entry is a directory, iterate through its contents
+          dumpCSVinfo(entry, numTabs + 1);
+        } else { // if the entry is a file...
+            if(strchr(entry.name(),'~') == 0){ // don't count INDEXE~1 as a filename
+                if(isCSV(entry.name())) // only return .csv files
+                {
+                    Serial.print(entry.size(), DEC);
+                    Serial.print(F(","));
+                } // end of if(isCSV(entry.name()))
+            } // end of if(strchr(entry.name(),'~') == 0)
+        } // end of <if entry is file>
+        entry.close(); // close each entry before moving on to the next
+  } // when there are no more memory contents left to read from...
+  return; // exit
+}
+
+void numCSVfiles(File dir, int numTabs) {
+    dir.seek(0);
+    while (true) { // while there are still more files/dirs to iterate through...
+    File entry =  dir.openNextFile(); // open the next available file.dir
+    if (! entry) { // if the dir is empty (no more files), break
+      break;
+    }
+    if (entry.isDirectory()) { // if the entry is a directory, iterate through its contents
+      numCSVfiles(entry, numTabs + 1);
+    } else { // if the entry is a file...
+        if(strchr(entry.name(),'~') == 0){ // don't count INDEXE~1 as a filename
+            if(isCSV(entry.name())) // only return .csv files
+            {
+               _numCSV++;
+            } // end of if(isCSV(entry.name()))
+        } // end of if(strchr(entry.name(),'~') == 0)
+    } // end of <if entry is file>
+    entry.close(); // close each entry before moving on to the next
+  } // when there are no more memory contents left to read from...
+}
+
+
 // newfile - scans SD card for a filename in the format of YYMMDDxx.csv contained within the given directory
 // returns a pointer to a new 8.3 filename containing YYMMDD and a number (00-99)
 char* newFile(int filenum, char* directory){
@@ -673,4 +759,58 @@ void rmSubFiles(File dir)
     // free the filepath's memory when finished, and exit
     free(fullfile); 
     return;
+}
+
+// I see you've found the easter egg
+void dangerzone()
+{
+    int quote = random();
+    quote %= 14; // num cases + 1
+    switch(quote){
+        case 0: 
+            Serial.println(F("For I am a sinner in the hands of an angry God. Bloody Mary, full of vodka, blessed are you among cocktails."));
+            break;
+        case 1:
+            Serial.println(F("I told you to buy lemon curd, Woodhouse. Now what am I going to spread on my toast? Your tears?"));
+            break;
+        case 2:
+            Serial.println(F("I'm scared if I stop all at once, the cumulative hangover will literally kill me"));
+            break;
+        case 3:
+            Serial.println(F("Danger zone!"));
+            break;
+        case 4:
+            Serial.println(F("I swear to god I had something for this"));
+            break;
+        case 5:
+            Serial.println(F("That's how you get ants"));
+            break;
+        case 6:
+            Serial.println(F("Boop"));
+            break;
+        case 7: 
+            Serial.println(F("I'm Pacman Jones!"));
+            break;
+        case 8:
+            Serial.println(F("Big whoop. I’m spooning a Barrett .50-cal. I could kill a building"));
+            break;
+        case 9:
+            Serial.println(F("I've been working on miniaturization for years!\n\rKrieger, those were shrinky dinks.\n\rIt's the same principle!"));
+            break;
+        case 10: 
+            Serial.println(F("That wasn't a brain chip. That was a just a sticker of the backpack of a little Lego spaceman"));
+            break;
+        case 11:
+            Serial.println(F("My head feels like a bunch of monkeys fighting over a bucket of marbles"));
+            break;
+        case 12:
+            Serial.println(F("Look, auditory hallucinations aren't going to make you any less delicious"));
+            break;
+        case 13:
+            Serial.println(F("Why don't you go back to Jamaica?\n\rA) Because I got deported."));
+            break;
+        default:
+            Serial.println(F("Something, something, danger zone! I know. I’m not even trying anymore"));
+    }
+    
 }

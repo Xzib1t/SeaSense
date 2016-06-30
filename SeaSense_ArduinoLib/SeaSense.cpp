@@ -17,6 +17,10 @@
 #include <avr/sleep.h>
 #include <string.h>
 
+// macro for converting unsigned depth to signed number
+// remember; negatives evaluate to true in an if statement
+#define _UNSIGNED(X) ((X) + 32768)
+
 // function prototypes
 //void getHallEffect();
 void printVerboseData();
@@ -33,6 +37,7 @@ boolean sd_logData; // log data to a file on the SD card
 boolean app_logData; // log data to the cli for the andriod app 
 boolean noSD; // indicates whether or not an SD card has been located
 boolean adc_ready; // indicates if the ADC is ready to perform new conversions
+boolean lowPowerLogging; // indicator for turning on/off bt and lcd based on Depth
 
 // data buffer management (Bluetooth command char buffer, ADC sample buffer)
 char cli_rxBuf[MAX_INPUT_SIZE]; // input character buffer
@@ -105,6 +110,10 @@ SeaSense::SeaSense(int light_s0, int light_s1){
     
     // low power mode disable interrupt pin
     pinMode(LPM_WAKE, INPUT);
+
+    // turn on the bluetooth module
+    pinMode(BT_PWR,OUTPUT);
+    digitalWrite(BT_PWR,HIGH);
     
     init = false; // set to true after SeaSense.Initialize() has been called
     // the states of these booleans dictate whether or not data is written to the SD card or serial port
@@ -124,6 +133,7 @@ SeaSense::SeaSense(int light_s0, int light_s1){
 * - initializes the SD card and RTC
 */ 
 void SeaSense::Initialize(){
+    lowPowerLogging = false; // keep bluetooth and the LCD on by default
     
     /* Initialize the display */
     digitalWrite(OLED_CLK,LOW);
@@ -193,7 +203,6 @@ void SeaSense::Initialize(){
         }
     }
     digitalWrite(SD_CS,HIGH);
-    
     
     // initialize the light sensor (only matters if using TSL230r sensor)
     light_sensor_init(_s0,_s1);
@@ -397,38 +406,67 @@ int SeaSense::ReadAnalogPin(int pin){
     return value;
 }
 
-// Interrupt is called once every 100mS - checks to see if any type of
-// serial or file logging is enabled and acts accordingly.
-// File logs will be updated every ISR; serial logs every 10 ISRs
+// Interrupt is called once every 100mS - checks to see if any type of serial or file logging is enabled and acts accordingly.
 ISR(TIMER1_COMPA_vect) 
 {
     if(init == false) return; // if initialization hasn't finished, immediately exit the ISR
     
     getLight(); // read in light from hardware counter exactly every 100ms
-    //getHallEffect(); // check if file logging should be enabled
     
-    if(sd_logData & SDfile){ // log data to SD card (highest priority logging)
-        printFileData();
-    } else if(app_logData & !logData){ // log data to the andriod app (second highest priority logging)
+    if(app_logData & !logData){ // log data to the andriod app
         printAppData();
     } 
-
+    
     // keep a rolling count of the number of interrupts triggered (every 10 counts = 1 second)
     if(count<9) {
         count++;
-    } else { // log data over the bluetooth port every time the count rolls over
+    // all code contained within the corresponding else statement will run once per second
+    } else { 
         count = 0; // don't forget to reset the counter
         
-        printOLEDdata(); // update the OLED display with new sensor readings
-        
-        if(logData & !app_logData){ // log verbose output to the command line if enabled 
-          printVerboseData();
+        // to speed up sampling by a factor of 10, move any of these conditionals outside of this if:else statement
+        if(sd_logData & SDfile){ // log data to SD card (highest priority logging)
+            printFileData();
+        } else if(logData & !app_logData){ // log verbose output to the command line if enabled 
+            printVerboseData();
         }
+        
+        // turn off the LCD and bluetooth if below a certain depth
+        // see globals.h to set LOW_POWER_DEPTH
+        // guess what - negative numbers are converted to true within conditional statements! 
+        if((_UNSIGNED(Depth) < _UNSIGNED(LOW_PWR_DEPTH)) && (!lowPowerLogging)) {
+            lowPowerLogging = true;
+
+            // turn off any bluetooth logging 
+            logData = false;
+            app_logData = false;
+
+            // turn off bluetooth
+            digitalWrite(BT_PWR,LOW); 
+
+            // clear the LDC screen (turn all pixels off)
+            digitalWrite(SD_CS,HIGH);
+            digitalWrite(OLED_CLK,LOW);
+            display.clearDisplay();
+            display.display();
+            digitalWrite(OLED_CLK,HIGH);
+            digitalWrite(SD_CS,LOW);
+            
+        // turn on the LCD and bluetooth if above a certain depth 
+        } else if ((_UNSIGNED(Depth) > _UNSIGNED(LOW_PWR_DEPTH)) && lowPowerLogging){
+            lowPowerLogging = false;
+            digitalWrite(BT_PWR,HIGH);
+        }
+        
+        // update the OLED display with new sensor readings 
+        if(!lowPowerLogging) printOLEDdata(); 
     }
     
     // update the logging indicator LED
-    if((!app_logData) & (!logData) & (!sd_logData)) digitalWrite(LEDpin,LOW); // turn off data logging indicator
-    else digitalWrite(LEDpin,HIGH); // turn on data logging indicator
+    if((!app_logData) & (!logData) & (!sd_logData))  
+        digitalWrite(LEDpin,LOW); // turn off data logging indicator
+    else 
+        digitalWrite(LEDpin,HIGH); // turn on data logging indicator
 
 }
 
@@ -491,7 +529,7 @@ void SeaSense::getHallEffect(){
         app_logData = false;
         logData = false;
         Serial.println(F("Low power mode enabled - goodbye!"));
-        Serial.println(F("Low power mode enabled - goodbye!"));
+        delay(100);
         digitalWrite(SD_CS,HIGH);
         digitalWrite(OLED_CLK,LOW);
         display.clearDisplay();
@@ -502,6 +540,8 @@ void SeaSense::getHallEffect(){
         display.display();
         digitalWrite(OLED_CLK,HIGH);
         digitalWrite(SD_CS,LOW);
+        
+        digitalWrite(BT_PWR,LOW); // turn off the bluetooth module
        
         delay(100);
         set_sleep_mode(SLEEP_MODE_PWR_DOWN); // max power savings
@@ -509,17 +549,20 @@ void SeaSense::getHallEffect(){
         attachInterrupt(0, lpmWake, LOW); // int0 = pin 2 = LPM_WAKE
         sleep_mode(); // put micro to sleep
         
-        sleep_disable(); // resumes here on wake...
+        sleep_disable(); // resumes here on wake, runs lpmwake
         detachInterrupt(0);
         this->Initialize();
     }
     
 }
-    
+
+//lpmWake - called automatically when waking back up from low power mode
+// NOTE that this *function* is called multiple times on wake, so there isn't
+// any internal way to run a process a single time unless you use globals
 void lpmWake(){
-     // wake from low power mode
-    Serial.println(F("Waking up from low power mode ..."));
-    Serial.println(F("Waking up from low power mode ..."));
+        // wake from low power mode
+        digitalWrite(BT_PWR,HIGH); // turn on the bluetooth module
+        Serial.println(F("Waking up from low power mode ..."));
 }
     
 // print user-readable data readings to the bluetooth port
