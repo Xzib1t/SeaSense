@@ -426,23 +426,6 @@ public class MainActivity  extends AppCompatActivity {
 	}
 
 	/**
-	 * Send command to Bluno to start data transfer of SD card csv files
-	 * Receive data
-	 */
-	private void downloadSdDump(){
-		try {
-			if (socket != null) {
-/*				OutputStream outStream = socket.getOutputStream();
-                Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer*/
-				InputStream inStream = socket.getInputStream();
-                Bluetooth.readData(inStream, 11);
-			}
-		} catch (IOException e) {
-			//TODO
-		}
-	}
-
-	/**
 	 * This method creates a list of paired Bluetooth devices
 	 * in a dialog box and maxes the options clickable
 	 */
@@ -496,11 +479,6 @@ public class MainActivity  extends AppCompatActivity {
 		dialogCommands.show();
         Bluetooth.dialogOpen = true;
 		loadCommandPopup(mCommandAdapter); //populates popup with options
-
-/*		ListView commandListView = (ListView)
-				dialogCommands.findViewById(R.id.command_list_display);
-		commandListView.setAdapter(mCommandAdapter);
-		commandListView.setClickable(true);*/
         lv.setAdapter(mCommandAdapter);
         lv.setClickable(true);
 
@@ -865,7 +843,7 @@ public class MainActivity  extends AppCompatActivity {
 				downloadRtData();
 			}
 			if(mode.equals("sd_dd")){
-				downloadSdDump();
+
 			}
 			return "done";
 		}
