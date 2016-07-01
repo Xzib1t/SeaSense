@@ -16,6 +16,7 @@
 
 package utap.navsea.sensorpack;
 
+import android.animation.FloatArrayEvaluator;
 import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -68,6 +69,7 @@ public class MainActivity  extends AppCompatActivity {
 	private Dialog fileDialog;
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
+
 	private SeekBar timeSlider = null;
     private boolean rtThreadRunning = false;
 	//Below UUID is the standard SSP UUID:
@@ -75,6 +77,7 @@ public class MainActivity  extends AppCompatActivity {
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 	private static int btnPressCount = 0;
     private static View thisView = null;
+    private static int btnLogCount = 0;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +96,8 @@ public class MainActivity  extends AppCompatActivity {
 		dialog = new Dialog(this); //Create dialog to hold BT device list
 		dialogCommands = new Dialog(this); //Create dialog to hold command options
 		fileDialog = new Dialog(this); //Create a dialog to show the files on the SD card
+        FloatingActionButton fabReset = (FloatingActionButton) findViewById(R.id.fab_reset);
+        FloatingActionButton fabLogfile = (FloatingActionButton) findViewById(R.id.fab_logfile);
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
         fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
@@ -196,6 +201,57 @@ public class MainActivity  extends AppCompatActivity {
                         .setAction("Action", null).show();
 			}
 		});
+
+        assert fabReset != null;
+        fabReset.setOnClickListener(new View.OnClickListener() { //Fab for changing view
+            @Override
+            public void onClick(View view) {
+                if (socket != null && socket.isConnected()) {
+                    try {
+                        OutputStream outStream = socket.getOutputStream();
+                        Commands.sendCommand(outStream, "reset", "");
+                        Snackbar.make(view, "Arduino reset",
+                                Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
+                    } catch (IOException e) {
+                    }
+                }
+                else{
+                    Snackbar.make(view, "Not connected",
+                            Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+            }
+        });
+
+
+        assert fabLogfile != null;
+        fabLogfile.setOnClickListener(new View.OnClickListener() { //Fab for changing view
+            @Override
+            public void onClick(View view) {
+                if (socket != null && socket.isConnected()) {
+                    try {
+                        btnLogCount++;
+                        OutputStream outStream = socket.getOutputStream();
+                        Commands.sendCommand(outStream, "logfile", "");
+                        if((btnLogCount % 2) != 0) //If it's odd we're logging
+                            Snackbar.make(view, "Logging sensor data, press again to stop logging",
+                                    Snackbar.LENGTH_LONG)
+                                    .setAction("Action", null).show();
+                        else Snackbar.make(view, "Stopped logging sensor data, press again to start logging" +
+                                " to a new file",
+                                Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
+                    } catch (IOException e) {
+                    }
+                }
+                else{
+                    Snackbar.make(view, "Not connected",
+                            Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+            }
+        });
 
 		FloatingActionButton fabTC = (FloatingActionButton) findViewById(R.id.fabTC);
 		assert fabTC != null;
