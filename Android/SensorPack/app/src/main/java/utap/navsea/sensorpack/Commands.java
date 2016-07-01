@@ -26,7 +26,7 @@ public class Commands {
      * @param outStream
      * @param selection
      */
-    public static void sendCommand(OutputStream outStream, String selection){
+    public static void sendCommand(OutputStream outStream, String selection, String filename){
         DataOutputStream mmOutStream = new DataOutputStream(outStream);
 
         switch(selection){
@@ -62,7 +62,7 @@ public class Commands {
                 sendSdLs(mmOutStream);
                 break;
             case "sd_cat":
-                sendSdCat(mmOutStream);
+                sendSdCat(mmOutStream, filename);
                 break;
             case "sd_dd":
                 sendSdDd(mmOutStream);
@@ -302,9 +302,8 @@ public class Commands {
      * Format: Takes in a file name sd_cat filename.csv
      * @param mmOutStream
      */
-    private static void sendSdCat(OutputStream mmOutStream){
-        //TODO add support for user input filenames
-        byte[] test = {116, 101, 115, 116, 46, 116, 120, 116}; //test.txt this file is always on the SD card
+    private static void sendSdCat(OutputStream mmOutStream, String filename){
+        byte[] filenameBytes = filename.getBytes();
         try {
             mmOutStream.write(115);
             mmOutStream.write(100);
@@ -313,7 +312,7 @@ public class Commands {
             mmOutStream.write(97);
             mmOutStream.write(116);
             mmOutStream.write(32); //space
-            mmOutStream.write(test); //test.txt
+            mmOutStream.write(filenameBytes);
             mmOutStream.write(13); //carriage return
         }
         catch(IOException e){

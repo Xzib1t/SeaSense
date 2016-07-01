@@ -91,7 +91,7 @@ public class Bluetooth extends AppCompatActivity{
 
         try {
             OutputStream outStream = socket.getOutputStream();
-            Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
+            Commands.sendCommand(outStream, "sd_dd", ""); //Send sd_dd command to start data transfer
             boolean eofFound = false;
             int attempts = 0;
             resetBuffers(true); //Resets all buffers to take in new data
@@ -144,6 +144,82 @@ public class Bluetooth extends AppCompatActivity{
                     }
                 }
                 System.out.println("End of loop");
+        }catch(IOException | NullPointerException e){
+            System.out.println("Read exception or null pointer exception");
+        }
+    }
+
+    /**
+     * Some pieces of this method were taken from:
+     * http://stackoverflow.com/questions/25443297/how-to-read-from-the-inputstream-of-a-bluetooth-on-android
+     * Modifications were made to conform to the specifications of this app
+     */
+    public static void readSdCat(InputStream inStream, int distinctDataPoints, String fileName,
+                                 int position) {
+        String[] sdInfo = getSdInfo(inStream);
+        int arrayPosition = (position * 2) + 2; //Calculate array index of file size from order of filenames
+        int fileSize = Integer.parseInt(sdInfo[arrayPosition]);
+        fileSize += 64; //account for extra non-csv data
+
+        StringBuffer dlStrings = new StringBuffer();
+        dlStrings.setLength(0); //Reset buffer
+        downloadedData.clear();
+        System.out.println("SD info contents: " + Arrays.toString(sdInfo));
+
+        try {
+            OutputStream outStream = socket.getOutputStream();
+            Commands.sendCommand(outStream, "sd_cat", fileName);
+            boolean eofFound = false;
+            int attempts = 0;
+            resetBuffers(true); //Resets all buffers to take in new data
+
+            int size = 1000000; //TODO handle when we need more space
+            byte[] buffer = new byte[size];  //buffer store for the stream
+            int count = 0;
+            int sum = 0;
+            int readStop = 0;
+            if (fileSize > buffer.length) readStop = buffer.length;
+            else
+                readStop = fileSize; //make sure that the data size isn't larger than our buffer
+            //if(firstFileSize!="")
+            //    iFirstFileSize= Integer.parseInt(firstFileSize);
+            while((sum<=fileSize) && dialogOpen) {//while (!eofFound) {
+
+                //TODO reset when this happens
+                count = inStream.read(buffer, 0, readStop);
+                sum += count;
+                System.out.println("Data points: " + sum + " File size sum: " + fileSize);
+                downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
+                System.out.println("Read success");
+            }
+            boolean check = true; //= false;
+/*                if(inStream.available()==0){
+                    //check = check4eof(downloadedData);
+                    check = true;
+                }*/
+
+            if (check) {
+                dlStrings.setLength(0); //Reset buffer
+                for (String printStr : downloadedData) {
+                    dlStrings.append(printStr);
+                }
+                //downloadedData.clear(); //Free up this buffer
+                if(!dlStrings.toString().isEmpty()) {
+                    if (parseData(dlStrings.toString(), distinctDataPoints)) {
+                        // System.out.println("Time size when we think the eof is reached " + time.size());
+                        if(heading.size()!=0)
+                            eofFound = true;
+                    } else { //Something went wrong when parsing or we timed out
+                        System.out.println("Missing time data: " + dlStrings.toString());
+                        return;
+                        //TODO if we have filled the buffer reading, we know there's more data coming, keep reading
+                        //TODO we can do this to avoid getting the array size
+
+                        //TODO doing it this way ignores eofs so find a way to separate the files
+                    }
+                }
+            }
+            System.out.println("End of loop");
         }catch(IOException | NullPointerException e){
             System.out.println("Read exception or null pointer exception");
         }
@@ -245,7 +321,7 @@ public class Bluetooth extends AppCompatActivity{
                 String fileData = "";
                     try {
                         OutputStream outStream = socket.getOutputStream();
-                        Commands.sendCommand(outStream, "fileInfo");
+                        Commands.sendCommand(outStream, "fileInfo", "");
                         while (!doneDownloading && dialogOpen) { //TODO error handling when fileInfo isn't sent correctly
                         count = inStream.read(buffer, 0, buffer.length);
                         sdInfo.append(new String(buffer, 0, count));

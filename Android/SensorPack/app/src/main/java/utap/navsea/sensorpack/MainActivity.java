@@ -214,9 +214,7 @@ public class MainActivity  extends AppCompatActivity {
 			public void onClick(View view) {
             /*displayCommands(); //Show list of clickable commands
             showCommandInstructions(); //Display help menu*/
-                displayFiles();
-                mFileNameAdapter = mFileNameAdapter;
-                System.out.println("LOLOLOL");
+            displayFiles();
             }
 		});
 
@@ -381,7 +379,7 @@ public class MainActivity  extends AppCompatActivity {
         try{
             if (socket != null) {
                 OutputStream outStream = socket.getOutputStream();
-                Commands.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+                Commands.sendCommand(outStream, "logapp", ""); //Send logapp command to start data transfer
             }
         } catch (IOException e) {
             //TODO
@@ -482,7 +480,7 @@ public class MainActivity  extends AppCompatActivity {
 							Download.execute();
 
 						}
-						else Commands.sendCommand(outStream, mCommandAdapter.getItem(position));
+						else Commands.sendCommand(outStream, mCommandAdapter.getItem(position), "");
 					}
 					else{
                         Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
@@ -526,11 +524,8 @@ public class MainActivity  extends AppCompatActivity {
             public void onItemClick(AdapterView<?> arg, View view, int position, long id){
                 try {
                     if(socket!=null && socket.isConnected()) {
-                        OutputStream outStream = socket.getOutputStream();
-                        if(position==1){ //if sd_dd was pressed
-
-                        }
-                        else Commands.sendCommand(outStream, mFileNameAdapter.getItem(position));
+                        Bluetooth.readSdCat(socket.getInputStream(), 11,
+                                mFileNameAdapter.getItem(position), position);
                     }
                     else{
                         Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)

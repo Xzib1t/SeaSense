@@ -190,7 +190,7 @@ public class DepthLightActivity extends AppCompatActivity {
         try{
             if (socket != null) {
                 OutputStream outStream = socket.getOutputStream();
-                Commands.sendCommand(outStream, "logapp"); //Send logapp command to start data transfer
+                Commands.sendCommand(outStream, "logapp", ""); //Send logapp command to start data transfer
             }
         } catch (IOException e) {
             //TODO
