@@ -79,6 +79,12 @@ public class Commands {
             case "reset":
                 sendReset(mmOutStream);
                 break;
+            case "fileInfo":
+                sendFileInfo(mmOutStream);
+                break;
+            case "dz":
+                sendDz(mmOutStream);
+                break;
             default:
                 break;
         }
@@ -427,6 +433,52 @@ public class Commands {
             mmOutStream.write(115);
             mmOutStream.write(101);
             mmOutStream.write(116);
+            mmOutStream.write(13); //carriage return
+        }
+        catch(IOException e){
+            //TODO
+        }
+    }
+
+    /**
+     * This is "fileInfo" in ASCII code, it is the command that
+     * tells us how many files are on the SD card and the size of those files
+     * @param mmOutStream
+     */
+    private static void sendFileInfo(OutputStream mmOutStream){
+        try {
+            mmOutStream.write(102);
+            mmOutStream.write(105);
+            mmOutStream.write(108);
+            mmOutStream.write(101);
+            mmOutStream.write(73);
+            mmOutStream.write(110);
+            mmOutStream.write(102);
+            mmOutStream.write(111);
+            mmOutStream.write(13); //carriage return
+        }
+        catch(IOException e){
+            //TODO
+        }
+    }
+
+    /**
+     * ??? It's a mystery
+     * @param mmOutStream
+     */
+    private static void sendDz(OutputStream mmOutStream){
+        try {
+            mmOutStream.write(100);
+            mmOutStream.write(97);
+            mmOutStream.write(110);
+            mmOutStream.write(103);
+            mmOutStream.write(101);
+            mmOutStream.write(114);
+            mmOutStream.write(32);
+            mmOutStream.write(122);
+            mmOutStream.write(111);
+            mmOutStream.write(110);
+            mmOutStream.write(101);
             mmOutStream.write(13); //carriage return
         }
         catch(IOException e){

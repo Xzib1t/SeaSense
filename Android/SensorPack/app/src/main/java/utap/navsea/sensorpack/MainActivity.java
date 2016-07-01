@@ -173,6 +173,14 @@ public class MainActivity  extends AppCompatActivity {
             }
         });
 
+        dialogCommands.setOnDismissListener(new DialogInterface.OnDismissListener() { //Deal with the buttons if we connect
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                System.out.println("Dialog dismissed");
+                Bluetooth.dialogOpen = false;
+            }
+        });
+
 		assert fabRight != null;
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
@@ -237,7 +245,6 @@ public class MainActivity  extends AppCompatActivity {
                 System.out.println("After flush: " + socket.getInputStream().available());
                 return true;
             }else return false;
-
 
         }catch(IOException | InterruptedException e){
             System.out.println("false");
@@ -412,8 +419,8 @@ public class MainActivity  extends AppCompatActivity {
 	private void downloadSdDump(){
 		try {
 			if (socket != null) {
-				OutputStream outStream = socket.getOutputStream();
-                Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer
+/*				OutputStream outStream = socket.getOutputStream();
+                Commands.sendCommand(outStream, "sd_dd"); //Send sd_dd command to start data transfer*/
 				InputStream inStream = socket.getInputStream();
                 Bluetooth.readData(inStream, 11);
 			}
@@ -474,6 +481,7 @@ public class MainActivity  extends AppCompatActivity {
 		});
 
 		dialogCommands.show();
+        Bluetooth.dialogOpen = true;
 		loadCommandPopup(mCommandAdapter); //populates popup with options
 
 		ListView commandListView = (ListView)
