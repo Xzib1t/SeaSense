@@ -264,6 +264,25 @@ public class Bluetooth extends AppCompatActivity{
                     return separatedData;
             }
 
+    /**
+     * This method pulls the filename data from the SD info that we download
+     */
+    public static ArrayList<String> extractFileNames() {
+        ArrayList<String> fileNameList = new ArrayList<String>();
+        try {
+            if (socket != null && socket.isConnected()) {
+                String[] separatedData = getSdInfo(socket.getInputStream());
+                if (separatedData.length != 0) {
+                    for (int i = 0; i < separatedData.length - 1; i++) {
+                        if ((i % 2) != 0) //There's a filename at every odd index, except for the end
+                            fileNameList.add(separatedData[i]);
+                    }
+                }
+            }
+        }catch(IOException e){}
+        return fileNameList;
+    }
+
     public static void resetBuffers(boolean includeSensors){
         downloadedStrings.setLength(0);
         downloadedData.clear();

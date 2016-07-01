@@ -61,9 +61,11 @@ public class MainActivity  extends AppCompatActivity {
 	private ImageView seaperch = null;
 	private ArrayAdapter<String> mArrayAdapter;
 	private ArrayAdapter<String> mCommandAdapter;
+    private ArrayAdapter<String> mFileNameAdapter;
 	private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
 	private Dialog dialog;
 	private Dialog dialogCommands;
+	private Dialog fileDialog;
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
 	private SeekBar timeSlider = null;
@@ -87,8 +89,10 @@ public class MainActivity  extends AppCompatActivity {
 		seaperch = (ImageView) findViewById(R.id.seaperch); //get seaperch
 		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for BT devices
 		mCommandAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for commands
+        mFileNameAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for filenames
 		dialog = new Dialog(this); //Create dialog to hold BT device list
 		dialogCommands = new Dialog(this); //Create dialog to hold command options
+		fileDialog = new Dialog(this); //Create a dialog to show the files on the SD card
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
 		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
         fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
@@ -181,6 +185,14 @@ public class MainActivity  extends AppCompatActivity {
             }
         });
 
+		fileDialog.setOnDismissListener(new DialogInterface.OnDismissListener() { //Deal with the buttons if we connect
+			@Override
+			public void onDismiss(DialogInterface dialogInterface) {
+				System.out.println("Dialog dismissed");
+				Bluetooth.dialogOpen = false;
+			}
+		});
+
 		assert fabRight != null;
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
@@ -200,8 +212,11 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
-            displayCommands(); //Show list of clickable commands
-            showCommandInstructions(); //Display help menu
+            /*displayCommands(); //Show list of clickable commands
+            showCommandInstructions(); //Display help menu*/
+                displayFiles();
+                mFileNameAdapter = mFileNameAdapter;
+                System.out.println("LOLOLOL");
             }
 		});
 
@@ -484,14 +499,59 @@ public class MainActivity  extends AppCompatActivity {
         Bluetooth.dialogOpen = true;
 		loadCommandPopup(mCommandAdapter); //populates popup with options
 
-		ListView commandListView = (ListView)
+/*		ListView commandListView = (ListView)
 				dialogCommands.findViewById(R.id.command_list_display);
 		commandListView.setAdapter(mCommandAdapter);
-		commandListView.setClickable(true);
+		commandListView.setClickable(true);*/
+        lv.setAdapter(mCommandAdapter);
+        lv.setClickable(true);
 
 		ProgressBar tempSpinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
 		tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while data isn't being downloaded
 	}
+
+    /**
+     * This method creates a list of SD card filenames in a dialog
+     * box and makes the options clickable
+     */
+    private void displayFiles(){
+        fileDialog.setContentView(R.layout.file_list_popup);
+        fileDialog.setCancelable(true);
+        fileDialog.setTitle("SD card files");
+
+        ListView lv = (ListView) fileDialog.findViewById(R.id.file_list_display);
+        lv.setAdapter(new ArrayAdapter<String> (this, R.layout.file_list_popup));
+
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> arg, View view, int position, long id){
+                try {
+                    if(socket!=null && socket.isConnected()) {
+                        OutputStream outStream = socket.getOutputStream();
+                        if(position==1){ //if sd_dd was pressed
+
+                        }
+                        else Commands.sendCommand(outStream, mFileNameAdapter.getItem(position));
+                    }
+                    else{
+                        Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
+                    }
+                }
+                catch(IOException e){
+                    //TODO
+                }
+            }
+        });
+
+        fileDialog.show();
+        Bluetooth.dialogOpen = true;
+        loadFileNamePopup(mFileNameAdapter); //populates popup with options
+        lv.setAdapter(mFileNameAdapter);
+        lv.setClickable(true);
+
+        ProgressBar tempSpinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
+        tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while data isn't being downloaded
+    }
 
 	/**
 	 * This method gets paired devices and stores them
@@ -620,6 +680,20 @@ public class MainActivity  extends AppCompatActivity {
         mCommandAdapter.add("sd_dd");
         mCommandAdapter.add("logfile");
         mCommandAdapter.add("reset");
+    }
+
+    /**
+     * This method loads the filename ArrayAdapter with the
+     * filename options that the user can choose
+     * @param mFileNameAdapter
+     */
+    private void loadFileNamePopup(ArrayAdapter<String> mFileNameAdapter) {
+        if(mFileNameAdapter!=null) mFileNameAdapter.clear();
+        ArrayList<String> fileNames = Bluetooth.extractFileNames();
+        for(String fileName : fileNames){
+            if(mFileNameAdapter!=null)
+                mFileNameAdapter.add(fileName);
+        }
     }
 
 	/**
