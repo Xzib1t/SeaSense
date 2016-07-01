@@ -29,7 +29,7 @@
         android:layout_gravity="bottom|left"
         android:layout_margin="@dimen/fab_margin"
         app:backgroundTint="#ae0000"
-        android:src="@drawable/ic_file_download_black_24dp" />
+        android:src="@drawable/ic_sd_upload_black_24dp" />
 
         <android.support.design.widget.FloatingActionButton
            android:id="@+id/fab"

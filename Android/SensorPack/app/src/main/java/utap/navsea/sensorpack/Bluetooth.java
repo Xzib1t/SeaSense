@@ -81,8 +81,12 @@ public class Bluetooth extends AppCompatActivity{
             for(int i=0; i<sdInfo.length-2; i++){
                 fileSizeSum+=Integer.parseInt(sdInfo[i]);
             }
+            fileSizeSum += (31 * Integer.parseInt(sdInfo[0])); //account for extra data like filenames
+            fileSizeSum += 10; //account for sd_dd and \n\n> at the end of the file
 
             StringBuffer dlStrings = new StringBuffer();
+            dlStrings.setLength(0); //Reset buffer
+            downloadedData.clear();
             System.out.println("SD info contents: " + Arrays.toString(sdInfo));
 
         try {
@@ -98,18 +102,20 @@ public class Bluetooth extends AppCompatActivity{
             int sum = 0;
             int iFirstFileSize = 0;
             int readStop = 0;
+            if (fileSizeSum > buffer.length) readStop = buffer.length;
+            else
+                readStop = fileSizeSum; //make sure that the data size isn't larger than our buffer
             //if(firstFileSize!="")
             //    iFirstFileSize= Integer.parseInt(firstFileSize);
-            while(sum<fileSizeSum && dialogOpen){//while (!eofFound) {
-              //for(int i=0; i<2; i++){
-                if(fileSizeSum>buffer.length) readStop = buffer.length;
-                else readStop = fileSizeSum; //make sure that the data size isn't larger than our buffer
+            while((sum<=fileSizeSum) && dialogOpen) {//while (!eofFound) {
+
                 //TODO reset when this happens
                 count = inStream.read(buffer, 0, readStop);
-                sum+=count;
-                System.out.println("Data points: " + sum);
+                sum += count;
+                System.out.println("Data points: " + sum + " File size sum: " + fileSizeSum);
                 downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
-
+                System.out.println("Read success");
+            }
                 boolean check = true; //= false;
 /*                if(inStream.available()==0){
                     //check = check4eof(downloadedData);
@@ -121,7 +127,7 @@ public class Bluetooth extends AppCompatActivity{
                     for (String printStr : downloadedData) {
                         dlStrings.append(printStr);
                     }
-                    downloadedData.clear(); //Free up this buffer
+                    //downloadedData.clear(); //Free up this buffer
                     if(!dlStrings.toString().isEmpty()) {
                         if (parseData(dlStrings.toString(), distinctDataPoints)) {
                            // System.out.println("Time size when we think the eof is reached " + time.size());
@@ -137,7 +143,7 @@ public class Bluetooth extends AppCompatActivity{
                         }
                     }
                 }
-            }
+                System.out.println("End of loop");
         }catch(IOException | NullPointerException e){
             System.out.println("Read exception or null pointer exception");
         }
@@ -222,6 +228,11 @@ public class Bluetooth extends AppCompatActivity{
      * the sizes of those files in bytes
      */
     private static String[] getSdInfo(InputStream inStream) {
+        try {
+            if (socket != null)
+                socket.getInputStream().skip(socket.getInputStream().available());
+        }
+        catch(IOException e){}
                 String numOfFiles = "";
                 int count = 1;
                 int size = 1024; //Just in case we have a large number of files
