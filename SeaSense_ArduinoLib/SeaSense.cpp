@@ -22,7 +22,6 @@
 #define _UNSIGNED(X) ((X) + 32768)
 
 // function prototypes
-//void getHallEffect();
 void printVerboseData();
 void printAppData();
 void printFileData();
@@ -55,7 +54,7 @@ unsigned long Light = 0; // current light sensor reading
 int Head = 0; // current heading
 float AccelX = 0,AccelY = 0,AccelZ = 0; // current accelerometer (reading units of m/s^2)
 float GyroX = 0,GyroY = 0,GyroZ = 0; // current compass reading (units of microTeslas)
-int vBat; // current battery reading (from ADC) 
+int vBat; // current battery reading (from ADC)
 
 // library objects
 Sd2Card card; // sd card 
@@ -272,6 +271,8 @@ void SeaSense::Initialize(){
     Serial.print(F("help")); 
     Serial.print((char)0x22); 
     Serial.println(F(" for a list of commands"));
+    
+    *_prevCmd = '\0'; // initialize previous command to NULL
 }
 
 /* BluetoothClient - reads in new characters from the bluetooth 
@@ -309,19 +310,42 @@ void SeaSense::BluetoothClient(){
                     _i-=2;
                 }
                break;
-                
+            /* if the up arrow key is pressed, replace the command buffer with the prev cmd*/
+            case 27:
+                rxChar = Serial.read ();
+                if(rxChar == 91){
+                    rxChar = Serial.read();
+                    if(rxChar == 65){  
+                       // flush input buffer (pad with \0s)
+                       while(_i > 0){ 
+                            cli_rxBuf[_i] = '\0';
+                            _i--;
+                       }
+                       Serial.write(0x7F); // delete ">" char from console
+                       Serial.print(_prevCmd); // print the previous command...
+                       sprintf(cli_rxBuf,"%s",_prevCmd); //... fill the input buffer with the previoud command
+                       _i = strlen(cli_rxBuf)-1; //set the buffer index to the right position
+                    }
+                }
+                break;
+            
             /* if any other keys are pressed, store them in the command buffer */
             default: // if any other keys are pressed
                 cli_rxBuf[_i] = (char)rxChar;
                 if(!app_logData) Serial.print(cli_rxBuf[_i]);
         }
     }
-    
+                
     /* if a carriage return is detected, search cli_rxBuf[] for a matching command */
     if (newCli == true)
     {
+        free(_prevCmd); // get rid of old previous command
+        _prevCmd = (char*)calloc(strlen(cli_rxBuf),sizeof(char)); // clear out previous command buffer
+        sprintf(_prevCmd,cli_rxBuf); // put new command in prevCmd buffer
+    
         // look for a matching cli command and excecute it if possible (see Cli.cpp)
         processCMD(&cli_rxBuf[1],_rxCmdSize); 
+        
         
         // after running the intended command, flush the buffer and prepare it for new input
         while(_i>0){ 

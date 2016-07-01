@@ -82,7 +82,7 @@ void rmSubFiles(File dir);
 // print the number of CSV files contained on the sd card
 void numCSVfiles(File dir, int numTabs);
 // print the file size of each CSV file contained on the sd card
-void dumpCSVinfo(File dir, int numTabs);
+void dumpCSVinfo(File dir, int numTabs, char* dirName);
 // something something... uhh I'm not sure how this got here
 void dangerzone(); 
 /************************************************************************/
@@ -139,7 +139,7 @@ void processCMD(char *command, int size)
             Serial.print(_numCSV); Serial.print(F(","));
             currentFile.seek(0); // go to the top directory of the SD card
             currentFile = SD.open("/"); // open the root directory of the SD card
-            dumpCSVinfo(currentFile, 0);
+            dumpCSVinfo(currentFile, 0,"/");
             currentFile.close(); // close file upon exit
             // get the number of .CSV files stored on the card
             return;
@@ -672,7 +672,7 @@ void dumpCSV(File dir, int numTabs)
 }
 
 // print the filesize of each .csv file
-void dumpCSVinfo(File dir, int numTabs)
+void dumpCSVinfo(File dir, int numTabs,char* dirName)
 {
     dir.seek(0); // start at the top directory of the SD card
 
@@ -682,11 +682,15 @@ void dumpCSVinfo(File dir, int numTabs)
           break;
         }
         if (entry.isDirectory()) { // if the entry is a directory, iterate through its contents
-          dumpCSVinfo(entry, numTabs + 1);
+          dumpCSVinfo(entry, numTabs + 1,entry.name());
         } else { // if the entry is a file...
             if(strchr(entry.name(),'~') == 0){ // don't count INDEXE~1 as a filename
                 if(isCSV(entry.name())) // only return .csv files
                 {
+                    Serial.print(dirName);
+                    Serial.print(F("/"));
+                    Serial.print(entry.name());
+                    Serial.print(F(","));
                     Serial.print(entry.size(), DEC);
                     Serial.print(F(","));
                 } // end of if(isCSV(entry.name()))
