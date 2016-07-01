@@ -85,15 +85,6 @@ public class DepthLightActivity extends AppCompatActivity {
         rtButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-              /*  rtButton.setText(getResources().getString(R.string.graph_rt));
-                if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
-                btnPressCount++;
-                syncButton(); //If our button goes out of sync resync it
-                sendLogApp();
-                if((btnPressCount % 2)!=0) {
-                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
-                    startRtDownload(data);
-                }*/
                 rtButton.setText(getResources().getString(R.string.graph_rt));
                 btnPressCount++;
                 if((btnPressCount % 2)!=0 && isGettingData()) {
@@ -194,18 +185,6 @@ public class DepthLightActivity extends AppCompatActivity {
             }
         } catch (IOException e) {
             //TODO
-        }
-    }
-
-    private void syncButton(){
-        try {
-            boolean receivingData = false;
-            if(socket.getInputStream().available()!=0) receivingData = true;
-
-            if(Bluetooth.getDepth().isEmpty() && receivingData){ //handles the first run, if logapp was already running
-                sendLogApp();
-            }
-        }catch(IOException e){
         }
     }
 

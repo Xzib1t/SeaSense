@@ -87,7 +87,7 @@ public class Bluetooth extends AppCompatActivity{
 
         try {
             OutputStream outStream = socket.getOutputStream();
-            Commands.sendCommand(outStream, "sd_cat", fileName);
+            Commands.sendCommand(outStream, "sd_cat", fileName); //TODO add a timeout, or check that the command was sent successfully
             resetBuffers(true); //Resets all buffers to take in new data
 
             int size = 1000000; //TODO handle when we need more space
@@ -101,9 +101,7 @@ public class Bluetooth extends AppCompatActivity{
             while((sum<=fileSize) && dialogOpen) {
                 count = inStream.read(buffer, 0, readStop);
                 sum += count;
-                System.out.println("Data points: " + sum + " File size sum: " + fileSize);
                 downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
-                System.out.println("Read success");
             }
                 dlStrings.setLength(0); //Reset buffer
                 for (String printStr : downloadedData) {
@@ -205,7 +203,6 @@ public class Bluetooth extends AppCompatActivity{
                 socket.getInputStream().skip(socket.getInputStream().available());
         }
         catch(IOException e){}
-                String numOfFiles = "";
                 int count = 1;
                 int size = 1024; //Just in case we have a large number of files
                 byte[] buffer = new byte[size];
@@ -227,7 +224,6 @@ public class Bluetooth extends AppCompatActivity{
                                 String[] firstSplit = sdInfo.toString().split("\\n\\r");
                                 if(firstSplit.length>=1) fileData = firstSplit[1];
                                 separatedData = fileData.split(",");
-                                numOfFiles = separatedData[0];
                                 doneDownloading = true;
                             }
                         }

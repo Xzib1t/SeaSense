@@ -131,16 +131,6 @@ public class MainActivity  extends AppCompatActivity {
 		rtButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-/*                rtButton.setText(getResources().getString(R.string.start_dl_rt));
-                if((btnPressCount % 2)!=0) flushStream(); //Reset stream if we're stopping it
-                btnPressCount++;
-                syncButton(); //If our button goes out of sync resync it
-                sendLogApp();
-				if((btnPressCount % 2)!=0) {
-					rtButton.setText(getResources().getString(R.string.stop_dl_rt));
-					startRtDownload(data);
-				}*/
-
                 rtButton.setText(getResources().getString(R.string.start_dl_rt));
                 btnPressCount++;
                 if((btnPressCount % 2)!=0 && isGettingData()) {
@@ -212,9 +202,13 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
-            /*displayCommands(); //Show list of clickable commands
-            showCommandInstructions(); //Display help menu*/
-            displayFiles();
+                /*displayCommands(); //Show list of clickable commands
+                showCommandInstructions(); //Display help menu*/
+                if(socket!=null && socket.isConnected())
+                    displayFiles();
+                else Snackbar.make(view, "Not connected",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
             }
 		});
 
@@ -250,12 +244,10 @@ public class MainActivity  extends AppCompatActivity {
     private boolean isGettingData(){
         try{
             if(socket.getInputStream().available()>0) {
-                System.out.println("Before flush: " + socket.getInputStream().available());
                 flushStream();
-                Thread.sleep(500);
+                Thread.sleep(100);
             }
             if(socket.getInputStream().available()>0){
-                System.out.println("After flush: " + socket.getInputStream().available());
                 return true;
             }else return false;
 
@@ -311,8 +303,8 @@ public class MainActivity  extends AppCompatActivity {
                         " left or right in whitespace, or by pressing arrows at the " +
                         "bottom of the screen\n" + "-To stream real time data, simply press" +
                         " one of the real time data buttons\n" + "-To read a file from the SD" +
-                        " card, open the command window (bottom left hand corner of the screen)" +
-                        " and select sd_dd\n")
+                        " card, open the file selection menu (bottom left hand corner of the screen)" +
+                        " and select a file\n")
                 .setCancelable(true)
                 .setPositiveButton("Close",new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog,int id) {
@@ -340,18 +332,6 @@ public class MainActivity  extends AppCompatActivity {
                     }
                 });
         helpPopup.create().show();
-    }
-
-    private void syncButton(){
-        try {
-            boolean receivingData = false;
-            if(socket.getInputStream().available()!=0) receivingData = true;
-
-            if(Bluetooth.getHeading().isEmpty() && receivingData){ //handles the first run, if logapp was already running
-                sendLogApp();
-            }
-        }catch(IOException e){
-        }
     }
 
 	public static int getBtnState(){
@@ -457,13 +437,7 @@ public class MainActivity  extends AppCompatActivity {
 				try {
 					if(socket!=null && socket.isConnected()) {
 						OutputStream outStream = socket.getOutputStream();
-						if(position==1){ //if sd_dd was pressed (for dev mode change number to 8)
-							DownloadTask Download = new DownloadTask();
-                            Download.mode = "sd_dd";
-							Download.execute();
-
-						}
-						else Commands.sendCommand(outStream, mCommandAdapter.getItem(position), "");
+						Commands.sendCommand(outStream, mCommandAdapter.getItem(position), "");
 					}
 					else{
                         Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
@@ -500,18 +474,15 @@ public class MainActivity  extends AppCompatActivity {
 
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> arg, View view, int position, long id){
-                try {
-                    if(socket!=null && socket.isConnected()) {
-                        Bluetooth.readSdCat(socket.getInputStream(), 11,
-                                mFileNameAdapter.getItem(position), position);
-                    }
-                    else{
-                        Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
-                    }
+                if(socket!=null && socket.isConnected()) {
+                    DownloadTask Download = new DownloadTask();
+                    Download.fileName = mFileNameAdapter.getItem(position);
+                    Download.selection = position;
+                    Download.execute();
                 }
-                catch(IOException e){
-                    //TODO
+                else{
+                    Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
                 }
             }
         });
@@ -811,13 +782,14 @@ public class MainActivity  extends AppCompatActivity {
 	 */
 	class DownloadTask extends AsyncTask<Integer, Integer, String> {
 		private ProgressBar spinner;
-		private String mode = "";
+		private String fileName = "";
+        private int selection = 0;
 		private DownloadTask asyncObject;
 		@Override
 		protected void onPreExecute() {
-			spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
+			spinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
 			spinner.setVisibility(View.VISIBLE);
-			Snackbar.make(dialogCommands.findViewById(R.id.command_list_display),
+			Snackbar.make(fileDialog.findViewById(R.id.file_list_display),
 					"Downloading data", Snackbar.LENGTH_LONG)
 					.setAction("Action", null).show();
 
@@ -829,7 +801,7 @@ public class MainActivity  extends AppCompatActivity {
 					// stop async task if not in progress
                     if(asyncObject!=null) {
                         if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
-                            spinner = (ProgressBar) dialogCommands.findViewById(R.id.progressBar1);
+                            spinner = (ProgressBar) fileDialog.findViewById(R.id.progressBar2);
                             spinner.setVisibility(View.INVISIBLE);
                             asyncObject.cancel(false);
                         }
@@ -839,17 +811,15 @@ public class MainActivity  extends AppCompatActivity {
 		}
 		@Override
 		protected String doInBackground(Integer... params) {
-			if(mode.equals("logapp")) {
-				downloadRtData();
-			}
-			if(mode.equals("sd_dd")){
-
-			}
+            try {
+                Bluetooth.readSdCat(socket.getInputStream(), 11,
+                        fileName, selection);
+            }catch(IOException e){}
 			return "done";
 		}
 		@Override
 		protected void onPostExecute(String result) {
-			spinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
+			spinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
 			spinner.setVisibility(View.INVISIBLE);
 		}
 	}
