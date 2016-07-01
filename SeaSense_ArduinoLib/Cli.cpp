@@ -29,7 +29,6 @@ typedef struct CLI_CMD cli_cmd_t;
 // generate all available commands and their associated content using a macro
 #define CLI_CORE_CMD_LIST	\
         CLI_CMD("help", "Show a list of commands", cli_help) \
-        CLI_CMD("#", "Comment", cli_comment) \
 		CLI_CMD("test", "A test command", cli_test) \
         /* Realtime Clock commands. */ \
         CLI_CMD("rtc_get", "Get the RTC time", cli_rtc_get) \
@@ -39,7 +38,7 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("sd_ls", "List all files on the SD card", cli_sd_ls) \
         CLI_CMD("sd_cat", "Dump a file", cli_sd_cat) \
         CLI_CMD("sd_dd", "Dump all .csv files", cli_sd_dd) \
-        CLI_CMD("sd_append", "Append to a file", cli_sd_append) \
+        CLI_CMD("sd_append", "Append a comment to a file", cli_sd_append) \
         CLI_CMD("sd_create", "Create a file", cli_sd_create) \
         CLI_CMD("sd_del", "Delete a file or folder of files", cli_sd_del) \
         /* Data logging commands */ \
@@ -50,21 +49,10 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("reset", "Reset the SeaSense (BE CAREFUL - KILLS ALL PROCESSES)", cli_wdt_reset) \
         
 
-// Generate the list of function prototypes using the CLI_COME_CMD_LIST
+// Generate a list of function prototypes for everything in CLI_COME_CMD_LIST
 #undef CLI_CMD
 #define CLI_CMD(cmd, desc, func) void func(int argc, char *argv[]);		
 CLI_CORE_CMD_LIST
-
-// misc. function prototypes
-void printDirectory(File dir, int numTabs);
-char* newFile(int filenum,char* directory);
-void dumpCSV(File dir, int numTabs); 
-bool isCSV(char* filename);
-void rmSubFiles(File dir);
-void dumpCSVinfo(File dir, int numTabs);
-void numCSVfiles(File dir, int numTabs);
-void dangerzone();
-
 
 // Generate the list of CLI commands. 
 //      note that converting "text like this" to a char* is a
@@ -78,6 +66,27 @@ cli_cmd_t cli_cmds[] = {
 
 /* Calculate the number of CLI commands based upon the sizes. */
 int num_cli_cmds = sizeof(cli_cmds)/sizeof(cli_cmds[0]);
+
+
+/************************  function prototypes *************************/
+// print all files/folders/filesizes of what's on the SD card
+void printDirectory(File dir, int numTabs);
+// create a new YYMMDD##.CSV file in folder YYYYMMDD/ 
+char* newFile(int filenum,char* directory);
+// dump all CSV files contained on the SD card
+void dumpCSV(File dir, int numTabs); 
+// check to see if a file is .csv format
+bool isCSV(char* filename);
+// remove all files within a dir (SD.delete() doesn't work on a full dir)
+void rmSubFiles(File dir);
+// print the number of CSV files contained on the sd card
+void numCSVfiles(File dir, int numTabs);
+// print the file size of each CSV file contained on the sd card
+void dumpCSVinfo(File dir, int numTabs);
+// something something... uhh I'm not sure how this got here
+void dangerzone(); 
+/************************************************************************/
+
 
 // processCMD:
 //  consumes a pointer to an entry from the bluetooth serial port and the 
@@ -109,9 +118,6 @@ void processCMD(char *command, int size)
             command[j] = '\0';
         }
     }
-    //Serial.print('\n'); // new line after printing cmd
-   
-    
    
     //***** commands not added to CLI_CORE_CMD_LIST (hidden from help menu) *******
     // easter came early
@@ -175,13 +181,6 @@ void cli_help(int argc, char *argv[])
         Serial.print(F(": "));
         Serial.println(cli_cmds[count].description);
     }
-    return;
-}
-
-// cli_comment command - ignore all command line entry after a '#' char
-void cli_comment(int argc, char *argv[]) 
-{
-    Serial.println(F(" "));
     return;
 }
 
@@ -297,6 +296,11 @@ void cli_sd_init(int argc, char *argv[])
 // cli_sd_ls - prints all files and directories saved on the SD card
 void cli_sd_ls(int argc, char *argv[])
 {
+    if(sd_logData){
+        Serial.println(F("Error: turn off data logging first!"));
+        return;
+    }
+    
     File currentFile; // create a new 'File' instance
     currentFile.seek(0); // go to the top directory of the SD card
     currentFile = SD.open("/"); // open the root directory of the SD card
@@ -316,11 +320,20 @@ void cli_sd_cat(int argc, char *argv[])
         return;
     }
     
+    if(sd_logData){
+        Serial.println(F("Error: turn off data logging first!"));
+        return;
+    }
+    
     // otherwise, create a new file instance 
     File currentFile;
     // open to the given file argument
     currentFile = SD.open(argv[1]);
     if (currentFile){ // if the file is successfully opened, iterate through its contents and print
+        if(currentFile.isDirectory()){
+            Serial.println(F("Error: given dir instead of file"));
+            return;
+        }
         Serial.print (F("Contents of ")); Serial.print(argv[1]); Serial.println(F(":"));
         // read from the file until there's nothing else in it:
         while (currentFile.available()) {
@@ -354,7 +367,7 @@ void cli_sd_dd(int argc, char *argv[])
     return;
 }
 
-// cli_sd_append - append to a file
+// cli_sd_append - append a comment to a file
 // argv[1] = filename, argv[2]-argv[MAX_CLI_ARGV] = text to be written to file
 void cli_sd_append(int argc, char *argv[])
 {
@@ -365,36 +378,46 @@ void cli_sd_append(int argc, char *argv[])
         return;
     }
     
+    if(sd_logData){
+        Serial.println(F("Error: turn off data logging first!"));
+        return;
+    }
+    
     // otherwise, create a new file instance and open the given file argument
     File currentFile;
     currentFile = SD.open(argv[1],FILE_WRITE);
-    
+
     if(currentFile){ // if the file successfully opens, write the given argv to it
+        if(currentFile.isDirectory()){
+            Serial.println(F("Error: given dir instead of file"));
+            return;
+        }
         // print the name of the file being written to
         Serial.print(F("Writing to file ")); Serial.println(argv[1]);
         
         // iterate through each argv and add each to the file, separated by a space
         int i;
+        currentFile.print('#'); // add a .csv comment indicator before the actual text being appended
         for(i=1;i<argc;i++)
         {
             currentFile.print(argv[i+1]);
             currentFile.print(F(" ")); //argv parsing removes spaces, so reinsert them!
         }
         currentFile.print(F("\n\r")); // add a new line after appending text
-        // add a special EOF emoji
-        currentFile.print((char)0xF0);
-        currentFile.print((char)0x9F);
-        currentFile.print((char)0x92);
-        currentFile.println((char)0xA9);
         currentFile.close();
         Serial.println(F("Write Complete"));
     } else { // if the file doesn't open, throw an error
         Serial.print(F("Error opening ")); Serial.println(argv[1]);
+        Serial.println(F("Don't forget to specify file directories"));
     }
 }
 
 // cli_sd_create create a new file on the SD card
 void cli_sd_create(int argc, char *argv[]) {
+    if(sd_logData){
+        Serial.println(F("Error: turn off data logging first!"));
+        return;
+    }
     // if an incorrect number of arguments are given, throw an error and return
     if(argc<1 | argc>1)
     {
@@ -414,7 +437,11 @@ void cli_sd_create(int argc, char *argv[]) {
 }
 
 // cli_sd_del delete a file or directory from the SD card
-void cli_sd_del(int argc, char *argv[]) {
+void cli_sd_del(int argc, char *argv[]) {  
+    if(sd_logData){
+        Serial.println(F("Error: turn off data logging first!"));
+        return;
+    }
     // if an incorrect number of args are given, throw an error
     if(argc<1 | argc>1)
     {

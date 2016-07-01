@@ -59,9 +59,9 @@ void loop(){
     
     // Get readings from your analog pins
     // Be careful! ReadAnalogPin disables ISRs, so the more frequently you call it, the more other processes will slow down
-    Serial.print("Pin A5 Value: ");
+    Serial.print(F("Pin A5 Value: "));
     Serial.println(seasense.ReadAnalogPin(5));
-    Serial.print("Pin A15 Value: ");
+    Serial.print(F("Pin A15 Value: "));
     Serial.println(seasense.ReadAnalogPin(15));
     
 }
