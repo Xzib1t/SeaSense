@@ -35,9 +35,18 @@ import android.widget.ArrayAdapter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class Bluetooth extends AppCompatActivity{
     private static ArrayAdapter<String> mArrayAdapter;
@@ -61,6 +70,7 @@ public class Bluetooth extends AppCompatActivity{
     private static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
     public static StringBuffer downloadedStrings = new StringBuffer(); //TODO back to private
     public static boolean dialogOpen = true;
+    private static boolean timedOut = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -76,8 +86,18 @@ public class Bluetooth extends AppCompatActivity{
     public static void readSdCat(InputStream inStream, int distinctDataPoints, String fileName,
                                  int position) {
         String[] sdInfo = getSdInfo(inStream);
-        int arrayPosition = (position * 2) + 2; //Calculate array index of file size from order of filenames
-        int fileSize = Integer.parseInt(sdInfo[arrayPosition]);
+        int arrayPosition = 0;
+        int fileSize = 0;
+        if(sdInfo.length > (position * 2) + 2); //Bounds check
+            arrayPosition = (position * 2) + 2; //Calculate array index of file size from order of filenames
+
+        try { //TODO test this
+            fileSize = Integer.parseInt(sdInfo[arrayPosition]);
+            System.out.println("Filesize: " + fileSize + " bytes");
+        }catch(NumberFormatException e){
+            System.out.println("Invalid int");
+            return;
+        }
         fileSize += 64; //account for extra non-csv data
 
         StringBuffer dlStrings = new StringBuffer();
@@ -202,7 +222,9 @@ public class Bluetooth extends AppCompatActivity{
             if (socket != null)
                 socket.getInputStream().skip(socket.getInputStream().available());
         }
-        catch(IOException e){}
+        catch(IOException e){
+            System.out.println("Failed to skip available bytes in the input stream");
+        }
                 int count = 1;
                 int size = 1024; //Just in case we have a large number of files
                 byte[] buffer = new byte[size];
@@ -215,19 +237,31 @@ public class Bluetooth extends AppCompatActivity{
                     try {
                         OutputStream outStream = socket.getOutputStream();
                         Commands.sendCommand(outStream, "fileInfo", "");
-                        while (!doneDownloading && dialogOpen) { //TODO error handling when fileInfo isn't sent correctly
-                        count = inStream.read(buffer, 0, buffer.length);
-                        sdInfo.append(new String(buffer, 0, count));
+                        timedOut = false; //reset flag
+                        while (!doneDownloading && !timedOut) {
+                            try {
+                                //count = readWithTimeout(inStream, buffer, 0, buffer.length);
+                                //TODO return something to toggle doneDownloading status
+                                if(count<0) return new String[]{""}; //exception thrown
+                                count = inStream.read(buffer, 0, buffer.length); //TODO the program hangs here when the button is mashed
+                                //TODO if this fails return something that tells us it failed, then display a snackbar message
+                                sdInfo.append(new String(buffer, 0, count));
+                            }catch(IOException e){
+                                System.out.println("No data available");
+                                //this handles the case when we expect data and none comes
+                                //TODO handle when we expect data and it's wrong/incomplete
+                            }
                             String[] check = sdInfo.toString().split(",");
                             if(check.length!=0)
                             if(check[check.length-1].equals(">")) {
                                 String[] firstSplit = sdInfo.toString().split("\\n\\r");
-                                if(firstSplit.length>=1) fileData = firstSplit[1];
+                                if(firstSplit.length>1) fileData = firstSplit[1];
                                 separatedData = fileData.split(",");
                                 doneDownloading = true;
                             }
                         }
                     } catch(IOException e){
+                        System.out.println("Failed to send command");
                 }
                     return separatedData;
             }
@@ -268,6 +302,41 @@ public class Bluetooth extends AppCompatActivity{
             gyroY.clear();
             gyroZ.clear();
         }
+    }
+
+    /**
+     * Most of the code in this method was taken from:
+     * http://stackoverflow.com/questions/804951/is-it-possible-to-read-from-a-inputstream-with-a-timeout
+     * @param inStream
+     */
+    private static int readWithTimeout(final InputStream inStream, final byte[] buffer,
+                                       final int start, final int bufferLength){
+        try {
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            final PipedOutputStream outputStream = new PipedOutputStream();
+            final PipedInputStream inputStream = new PipedInputStream(outputStream);
+
+            int readByte = 1;
+            final ArrayList<String> sdInfo = new ArrayList<String>();
+            // Read data with timeout
+            Callable<Integer> readTask = new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    int count =  inStream.read(buffer, start, bufferLength);
+                    return count;
+                }
+            };
+            while (readByte >= 0) {
+                Future<Integer> future = executor.submit(readTask);
+                readByte = future.get(2000, TimeUnit.MILLISECONDS);
+                if (readByte >= 0)
+                    System.out.println("Read: " + readByte);
+            }
+        }catch(IOException | InterruptedException | ExecutionException | TimeoutException e){
+            System.out.println("Exception");
+            return -1;
+        }
+        return 0;
     }
 
     public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}

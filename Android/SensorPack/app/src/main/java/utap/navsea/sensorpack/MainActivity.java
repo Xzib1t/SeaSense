@@ -530,7 +530,7 @@ public class MainActivity  extends AppCompatActivity {
 
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> arg, View view, int position, long id){
-                if(socket!=null && socket.isConnected()) {
+                if(socket!=null && socket.isConnected()) { //TODO find a way to see if we've dropped the socket
                     DownloadTask Download = new DownloadTask();
                     Download.fileName = mFileNameAdapter.getItem(position);
                     Download.selection = position;
