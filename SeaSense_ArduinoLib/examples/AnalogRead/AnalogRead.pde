@@ -33,13 +33,11 @@
 *   ~~ IN ORDER TO USE OTHER ADC CHANNELS YOU MUST MODIFY THE LIBRARY CODE ~~
 *   this is due to the internal configuration of ADC interrupts
 *
-*  Input arguments for "SeaSense NAME(ARG1,ARG2)" :
-*   - ARG1 and ARG2: S0 and S1 pins for use with older TSL230R sensor
 */ 
 
 #include <SeaSense.h>
 
-SeaSense seasense(38,39);
+SeaSense seasense;
 
 void setup(){
     // allow for users to modify the RTC time

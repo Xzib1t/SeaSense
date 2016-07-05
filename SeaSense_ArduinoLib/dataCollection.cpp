@@ -11,25 +11,15 @@
 int carryOut = 0;
 
 // function prototypes
-void light_sensitivity(int scale, int s0, int s1);
+#ifdef TSL230R 
+    void light_sensitivity(int scale, int s0, int s1);
+#endif
 void resetADC();
 
 // getTime - update the current timestamp stored in global var Timestamp
 void getTime(){
     DateTime now = rtc.now();
     sprintf(Timestamp,"%02d:%02d:%02d",now.hour(),now.minute(),now.second());
-    return;
-}
-
-// initialize light sensor scaling rate (only used for TSL230r sensor)
-void light_sensor_init(int light_s0, int light_s1){
-    // light sensor config
-    pinMode(light_s0,OUTPUT);
-    pinMode(light_s1,OUTPUT);
-    
-    // set sensitivity to 1x
-    // NOTE this fxn only matters for the outdated TSL230r sensor
-    light_sensitivity(1,light_s0,light_s1);
     return;
 }
 
@@ -115,107 +105,125 @@ void getAccel(){
 
 // getGyro - get a new reading from the gyroscope
 void getGyro(){
-  /*~~~~~~~~~~~~~~~~~~~~ GY80 ~~~~~~~~~~~~~~~~~~~~~~*/
-//  byte xMSB = readRegister(L3G4200D_ADDRESS, 0x29);
-//  byte xLSB = readRegister(L3G4200D_ADDRESS, 0x28);
-//  GyroX = ((xMSB << 8) | xLSB);
-//
-//  byte yMSB = readRegister(L3G4200D_ADDRESS, 0x2B);
-//  byte yLSB = readRegister(L3G4200D_ADDRESS, 0x2A);
-//  GyroY = ((yMSB << 8) | yLSB);
-//
-//  byte zMSB = readRegister(L3G4200D_ADDRESS, 0x2D);
-//  byte zLSB = readRegister(L3G4200D_ADDRESS, 0x2C);
-//  GyroZ = ((zMSB << 8) | zLSB);
-  
-  /*~~~~~~~~~~~~~~~~ Adafruit 9DOF ~~~~~~~~~~~~~~~~*/
-    sensors_event_t event;
-    gyro.getEvent(&event);
-    GyroX = event.gyro.x;
-    GyroY = event.gyro.y;
-    GyroZ = event.gyro.z;
+    #ifdef GY80
+    /*~~~~~~~~~~~~~~~~~~~~ GY80 ~~~~~~~~~~~~~~~~~~~~~~*/
+        byte xMSB = readRegister(L3G4200D_ADDRESS, 0x29);
+        byte xLSB = readRegister(L3G4200D_ADDRESS, 0x28);
+        GyroX = ((xMSB << 8) | xLSB);
+
+        byte yMSB = readRegister(L3G4200D_ADDRESS, 0x2B);
+        byte yLSB = readRegister(L3G4200D_ADDRESS, 0x2A);
+        GyroY = ((yMSB << 8) | yLSB);
+
+        byte zMSB = readRegister(L3G4200D_ADDRESS, 0x2D);
+        byte zLSB = readRegister(L3G4200D_ADDRESS, 0x2C);
+        GyroZ = ((zMSB << 8) | zLSB);
+    #else
+    /*~~~~~~~~~~~~~~~~ Adafruit 9DOF ~~~~~~~~~~~~~~~~*/
+        sensors_event_t event;
+        gyro.getEvent(&event);
+        GyroX = event.gyro.x;
+        GyroY = event.gyro.y;
+        GyroZ = event.gyro.z;
+    #endif
 }
 
-// configure the Gyroscope (only used for GY80 IMU)
-int setupL3G4200D(int scale){
-  //From  Jim Lindblom of Sparkfun's code
+// GY80 gyroscope configuration (see globals.h for GY80)
+#ifdef GY80
+    // configure the Gyroscope (only used for GY80 IMU)
+    int setupL3G4200D(int scale){
+      //From  Jim Lindblom of Sparkfun's code
 
-  // Enable x, y, z and turn off power down:
-  writeRegister(L3G4200D_ADDRESS, CTRL_REG1, 0b00001111);
+      // Enable x, y, z and turn off power down:
+      writeRegister(L3G4200D_ADDRESS, CTRL_REG1, 0b00001111);
 
-  // If you'd like to adjust/use the HPF, you can edit the line below to configure CTRL_REG2:
-  writeRegister(L3G4200D_ADDRESS, CTRL_REG2, 0b00000000);
+      // If you'd like to adjust/use the HPF, you can edit the line below to configure CTRL_REG2:
+      writeRegister(L3G4200D_ADDRESS, CTRL_REG2, 0b00000000);
 
-  // Configure CTRL_REG3 to generate data ready interrupt on INT2
-  // No interrupts used on INT1, if you'd like to configure INT1
-  // or INT2 otherwise, consult the datasheet:
-  writeRegister(L3G4200D_ADDRESS, CTRL_REG3, 0b00001000);
+      // Configure CTRL_REG3 to generate data ready interrupt on INT2
+      // No interrupts used on INT1, if you'd like to configure INT1
+      // or INT2 otherwise, consult the datasheet:
+      writeRegister(L3G4200D_ADDRESS, CTRL_REG3, 0b00001000);
 
-  // CTRL_REG4 controls the full-scale range, among other things:
+      // CTRL_REG4 controls the full-scale range, among other things:
 
-  if(scale == 250){
-    writeRegister(L3G4200D_ADDRESS, CTRL_REG4, 0b00000000);
-  }else if(scale == 500){
-    writeRegister(L3G4200D_ADDRESS, CTRL_REG4, 0b00010000);
-  }else{
-    writeRegister(L3G4200D_ADDRESS, CTRL_REG4, 0b00110000);
-  }
+      if(scale == 250){
+        writeRegister(L3G4200D_ADDRESS, CTRL_REG4, 0b00000000);
+      }else if(scale == 500){
+        writeRegister(L3G4200D_ADDRESS, CTRL_REG4, 0b00010000);
+      }else{
+        writeRegister(L3G4200D_ADDRESS, CTRL_REG4, 0b00110000);
+      }
 
-  // CTRL_REG5 controls high-pass filtering of outputs, use it
-  // if you'd like:
-  writeRegister(L3G4200D_ADDRESS, CTRL_REG5, 0b00000000);
-}
-// writeRegister - used in gyroscope config (only used for GY80 IMU)
-void writeRegister(int deviceAddress, byte address, byte val) {
-    Wire.beginTransmission(deviceAddress); // start transmission to device 
-    Wire.write(address);       // send register address
-    Wire.write(val);         // send value to write
-    Wire.endTransmission();     // end transmission
-}
-
-// readRegister - used to read from the gyroscope module (only used for GY80 IMU)
-int readRegister(int deviceAddress, byte address){
-
-    int v;
-    Wire.beginTransmission(deviceAddress);
-    Wire.write(address); // register to read
-    Wire.endTransmission();
-
-    Wire.requestFrom(deviceAddress, 1); // read a byte
-
-    while(!Wire.available()) {
-        // waiting
+      // CTRL_REG5 controls high-pass filtering of outputs, use it
+      // if you'd like:
+      writeRegister(L3G4200D_ADDRESS, CTRL_REG5, 0b00000000);
+    }
+    // writeRegister - used in gyroscope config (only used for GY80 IMU)
+    void writeRegister(int deviceAddress, byte address, byte val) {
+        Wire.beginTransmission(deviceAddress); // start transmission to device 
+        Wire.write(address);       // send register address
+        Wire.write(val);         // send value to write
+        Wire.endTransmission();     // end transmission
     }
 
-    v = Wire.read();
-    return v;
-}
+    // readRegister - used to read from the gyroscope module (only used for GY80 IMU)
+    int readRegister(int deviceAddress, byte address){
 
-// used for scaling light sensor readings
-void light_sensitivity(int scale, int s0, int s1){
-    switch(scale){
-        case 1:
-            digitalWrite(s0,1);
-            digitalWrite(s1,0);
-            Serial1.println(F("\tLight sensor scaled to 1x"));
-            break;
-        case 10:
-            digitalWrite(s0,0);
-            digitalWrite(s1,1);
-            Serial1.println(F("\tLight sensor scaled to 10x"));
-            break;
-        case 100:
-            digitalWrite(s0,1);
-            digitalWrite(s1,1);
-            Serial1.println(F("\tLight sensor scaled to 100x"));
-            break;
-        default:
-            Serial1.println(F("\tError: invalid light sensor scale"));
-            Serial1.println(F("\tReconfigure in dataCollection.cpp"));
-            digitalWrite(s0,0);
-            digitalWrite(s1,0);
+        int v;
+        Wire.beginTransmission(deviceAddress);
+        Wire.write(address); // register to read
+        Wire.endTransmission();
+
+        Wire.requestFrom(deviceAddress, 1); // read a byte
+
+        while(!Wire.available()) {
+            // waiting
+        }
+
+        v = Wire.read();
+        return v;
     }
-}
+#endif
+
+#ifdef TSL230R 
+    // initialize light sensor scaling rate (only used for TSL230r sensor)
+    void light_sensor_init(int light_s0, int light_s1){
+        // light sensor config
+        pinMode(light_s0,OUTPUT);
+        pinMode(light_s1,OUTPUT);
+
+        // set sensitivity to 1x
+        // NOTE this fxn only matters for the outdated TSL230r sensor
+        light_sensitivity(1,light_s0,light_s1);
+        return;
+    }
+    // used for scaling light sensor readings
+    void light_sensitivity(int scale, int s0, int s1){
+        switch(scale){
+            case 1:
+                digitalWrite(s0,1);
+                digitalWrite(s1,0);
+                Serial1.println(F("\tLight sensor scaled to 1x"));
+                break;
+            case 10:
+                digitalWrite(s0,0);
+                digitalWrite(s1,1);
+                Serial1.println(F("\tLight sensor scaled to 10x"));
+                break;
+            case 100:
+                digitalWrite(s0,1);
+                digitalWrite(s1,1);
+                Serial1.println(F("\tLight sensor scaled to 100x"));
+                break;
+            default:
+                Serial1.println(F("\tError: invalid light sensor scale"));
+                Serial1.println(F("\tReconfigure in dataCollection.cpp"));
+                digitalWrite(s0,0);
+                digitalWrite(s1,0);
+        }
+    }
+#endif /* TSL230R */
 
 // resets the ADC for new conversions starting with channel 10 and buffer index 0
 void resetADC(){

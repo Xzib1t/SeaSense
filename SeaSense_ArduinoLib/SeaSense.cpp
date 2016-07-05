@@ -28,7 +28,7 @@ void printFileData();
 void printOLEDdata();
 void lpmWake();
 
-//**********************  global vars (defined in globals.h) ***********************************
+//************************  global or static vars (see globals.h) *******************************
 // booleans for the states of various processes
 boolean RTC_AUTOSET; // allows for users to set the time using the bluetooth cli if set to false
 boolean logData; // log data to cli in a human-readable format
@@ -60,25 +60,27 @@ int vBat; // current battery reading (from ADC)
 Sd2Card card; // sd card 
 File SDfile; // current file being logged to (addressable through SDfile.write(text))
 RTC_DS1307 rtc; // realtime clock module 
+
+/* IMU */
+#ifdef GY80 
+    /*GY80 IMU*/
+    Adafruit_HMC5883_Unified mag; // magnometer sensor
+    Adafruit_ADXL345_Unified accel; // accelerometer sensor
+#else
+    /*Adafruit 9DOF IMU*/
+    Adafruit_LSM303_Accel_Unified accel;
+    Adafruit_LSM303_Mag_Unified mag;
+    Adafruit_L3GD20_Unified gyro;
+#endif
+
 //SPI OLED display
-/*GY80 IMU*/
-//Adafruit_HMC5883_Unified mag; // magnometer sensor
-//Adafruit_ADXL345_Unified accel; // accelerometer sensor
-/*Adafruit 9DOF IMU*/
-Adafruit_LSM303_Accel_Unified accel;
-Adafruit_LSM303_Mag_Unified mag;
-Adafruit_L3GD20_Unified gyro;
 Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); 
 //*********************************************************************************************
 
 // Initializations are done here automatically on calling the library
-SeaSense::SeaSense(int light_s0, int light_s1){
+SeaSense::SeaSense(){
     // disable the watchdog timer
     wdt_disable();
-    
-    // config the light sensor scale pins (for depreciated sensor)
-    _s0 = light_s0;
-    _s1 = light_s1;
     
     // default to setting the RTC based on prog compile time (autoset = true)
     // this var can be changed from within the arduino sketch
@@ -87,8 +89,8 @@ SeaSense::SeaSense(int light_s0, int light_s1){
     // if an Arduino Mega is used with ethernet shield, this segment
     // will disable the ethernet chip and allow for the SD card to be 
     // read from (addresses this bug http://forum.arduino.cc/index.php?topic=28763.0)
-    pinMode(10, OUTPUT); // per SD install instructions (ethernet chip CS)
-    digitalWrite(10, HIGH); // de-assert chip select on ethernet chip (keeps spi lines clear)
+//    pinMode(10, OUTPUT); // per SD install instructions (ethernet chip CS)
+//    digitalWrite(10, HIGH); // de-assert chip select on ethernet chip (keeps spi lines clear)
     
     pinMode(SD_CS, OUTPUT); // ss pin for SD card on ethernet shield
     pinMode(OLED_CLK,OUTPUT);
@@ -96,7 +98,6 @@ SeaSense::SeaSense(int light_s0, int light_s1){
     digitalWrite(SD_CS,HIGH);
     
     pinMode(53, OUTPUT);    // default SS pin on arduino mega (must be set as output)
-    
     
     // LED indicator
     pinMode(LEDpin,OUTPUT);
@@ -149,7 +150,7 @@ void SeaSense::Initialize(){
     /* Perform all critical init with interrupts disabled */
     cli(); // disable global interrupts
     
-    Serial.begin(115200); // turn on serial to bluetooth module
+    Serial.begin(BT_BAUDRATE); // turn on serial to bluetooth module
     
     // Timer 5 hardware hardware pulse count (used for light sensor)
     // see http://forum.arduino.cc/index.php?topic=259063.0 for more info
@@ -204,7 +205,9 @@ void SeaSense::Initialize(){
     digitalWrite(SD_CS,HIGH);
     
     // initialize the light sensor (only matters if using TSL230r sensor)
-    light_sensor_init(_s0,_s1);
+    #ifdef TSL230R 
+        light_sensor_init(_S0,_S1);
+    #endif /* TSL230R */
     
     // initialize the RTC
     if (! rtc.begin()) {
@@ -223,37 +226,43 @@ void SeaSense::Initialize(){
     else
         Serial.println(F("\tRTC successfully initialized"));
     
-    /* Initialize the magnetometer*/
-    // mag = Adafruit_HMC5883_Unified(12345); // GY80
-    mag = Adafruit_LSM303_Mag_Unified(30302); // Adafruit 9DOF
     
-    if(!mag.begin())
-    {
-        Serial.println(F("\tNo magnetometer detected ... Check your wiring!"));
-        return;
-    } else Serial.println(F("\tMagnetometer successfully initialized"));
-    
-    /* Initialize the accelerometer */
-    //accel = Adafruit_ADXL345_Unified(23456); // GY80
-    accel = Adafruit_LSM303_Accel_Unified(30301); // Adafruit 9DOF
-    if(!accel.begin())
-    {
-        Serial.println(F("\tNo accelerometer detected ... Check your wiring!"));
-        return;
-    } else {
-        Serial.println(F("\tAccelerometer successfully initialized"));
-        //accel.setRange(ADXL345_RANGE_4_G); // GY80
+    #ifdef GY80 
+        /* ~~~~~~~~~~~~~~~~~~~~~~~~~~ GY80 IMU ~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+        mag = Adafruit_HMC5883_Unified(12345); // GY80
+        accel = Adafruit_ADXL345_Unified(23456); // GY80
+        accel.setRange(ADXL345_RANGE_4_G); // GY80
+        setupL3G4200D(2000); // GY80 
+    #else /* GY80 */
+        /* ~~~~~~~~~~~~~~~~~~~~ Adafruit 9/10 DOF IMU ~~~~~~~~~~~~~~~~~~~~ */
+        /* Initialize the magnetometer*/
+        mag = Adafruit_LSM303_Mag_Unified(30302); // Adafruit 9DOF
+        if(!mag.begin())
+        {
+            Serial.println(F("\tNo magnetometer detected ... Check your wiring!"));
+            return;
+        } else Serial.println(F("\tMagnetometer successfully initialized"));
+
+        /* Initialize the accelerometer */
+        accel = Adafruit_LSM303_Accel_Unified(30301); // Adafruit 9DOF
+        if(!accel.begin())
+        {
+            Serial.println(F("\tNo accelerometer detected ... Check your wiring!"));
+            return;
+        } else {
+            Serial.println(F("\tAccelerometer successfully initialized"));
+            
+        }
+
+        /* Initialize the gyroscope */
+        gyro  = Adafruit_L3GD20_Unified(20); // Adafruit 9DOF
+        if(!gyro.begin()){
+            Serial.println(F("\tNo gyroscope detected ... Check your wiring!"));
+            return;
+        } else{
+            Serial.println(F("\tGyroscope successfully initialized"));
     }
-    
-    /* Initialize the gyroscope */
-    //setupL3G4200D(2000); // GY80 
-    gyro  = Adafruit_L3GD20_Unified(20); // Adafruit 9DOF
-    if(!gyro.begin()){
-        Serial.println(F("\tNo gyroscope detected ... Check your wiring!"));
-        return;
-    } else{
-        Serial.println(F("\tGyroscope successfully initialized"));
-    }
+    #endif /* GY80 */
     
     // indicate that initialization is done on the OLED display
     digitalWrite(SD_CS,HIGH);

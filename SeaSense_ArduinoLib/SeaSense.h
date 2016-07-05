@@ -20,7 +20,7 @@
 class SeaSense
 {
     public:
-        SeaSense(int light_s0, int light_s1);
+        SeaSense();
         void Initialize();
         void BluetoothClient();
         void CollectData();
@@ -33,7 +33,6 @@ class SeaSense
         int _i; // current location in bluetooth input character buffer
         int _rxCmdSize; // size of bluetooth command buffer upon command rx
         char rxChar; // current char being recieved from the bluetooth serial port
-        int _s0, _s1; // protected vars for depreciated light sensor pin config
         char* _prevCmd; // previous command entered (only stores argv[0])
 };
 

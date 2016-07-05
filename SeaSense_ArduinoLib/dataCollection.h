@@ -4,15 +4,19 @@
 #ifndef dataCollection_h
 #define dataCollection_h
 
-void getTime();
-void light_sensor_init(int light_s0, int light_s1);
-void getLight();
-void getADCreadings();
-void getMag();
-void getAccel();
-void getGyro();
-int setupL3G4200D(int scale);
-void writeRegister(int deviceAddress, byte address, byte val);
-int readRegister(int deviceAddress, byte address);
+    void getTime();
+    void getLight();
+    void getADCreadings();
+    void getMag();
+    void getAccel();
+    void getGyro();
+    #ifdef TSL230R 
+        void light_sensor_init(int light_s0, int light_s1);
+    #endif /* TSL230R */
+    #ifdef GY80
+        int setupL3G4200D(int scale);
+        void writeRegister(int deviceAddress, byte address, byte val);
+        int readRegister(int deviceAddress, byte address);
+    #endif /* GY80 */
 
 #endif
