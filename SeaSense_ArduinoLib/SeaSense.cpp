@@ -72,6 +72,12 @@ RTC_DS1307 rtc; // realtime clock module
     Adafruit_LSM303_Mag_Unified mag;
     Adafruit_L3GD20_Unified gyro;
 #endif
+#ifdef _TP
+        /* Internal Temp and Pressure */
+        Adafruit_BMP085_Unified bmp;
+        float TempInt;
+        float PresInt;
+#endif /* _TP */
 
 //SPI OLED display
 Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); 
@@ -259,10 +265,21 @@ void SeaSense::Initialize(){
         if(!gyro.begin()){
             Serial.println(F("\tNo gyroscope detected ... Check your wiring!"));
             return;
-        } else{
+        } else {
             Serial.println(F("\tGyroscope successfully initialized"));
     }
     #endif /* GY80 */
+    #ifdef _TP
+        /* Internal Temp and Pressure */
+        bmp = Adafruit_BMP085_Unified(10085);
+        if(!bmp.begin()){
+            /* There was a problem detecting the BMP085 ... check your connections */
+            Serial.println(F("\tOoops, no BMP085 detected ... Check your wiring or I2C ADDR!"));
+            return;
+        } else {
+            Serial.println(F("\tInternal temp/pressure sensor successfully initialized"));
+        }
+    #endif /* _TP */
     
     // indicate that initialization is done on the OLED display
     digitalWrite(SD_CS,HIGH);
@@ -344,7 +361,16 @@ void SeaSense::BluetoothClient(){
                 if(!app_logData) Serial.print(cli_rxBuf[_i]);
         }
     }
-                
+    
+    if ((strcmp(cli_rxBuf,">%CONNECT")==0) 
+        || (strcmp(cli_rxBuf,">%DISCONNECT")==0)
+        || (strcmp(cli_rxBuf,">%DT")==0)
+       ){
+        _rxCmdSize = _i; // save the size of the input buffer (passed to processCMD)
+        newCli = true; // globally indicate that a new command has been entered
+        Serial.print(F("\n\r")); // jump to a new line in the bluetooth command line interface
+    }
+    
     /* if a carriage return is detected, search cli_rxBuf[] for a matching command */
     if (newCli == true)
     {
@@ -383,6 +409,7 @@ void SeaSense::CollectData()
     getMag(); // get a new magnometer reading
     getAccel(); // get a new accelerometer reading
     getGyro(); // get a new gyroscope reading
+    getInternals(); // get internal temp/pressure
     this->getHallEffect(); // check if LPM should be turned on
     return;
 }
@@ -450,6 +477,11 @@ ISR(TIMER1_COMPA_vect)
         printAppData();
     } 
     
+     // to speed up sampling by a factor of 10, move any of these conditionals outside of this if:else statement
+    if(sd_logData & SDfile){ // log data to SD card (highest priority logging)
+        printFileData();
+    } 
+
     // keep a rolling count of the number of interrupts triggered (every 10 counts = 1 second)
     if(count<9) {
         count++;
@@ -457,10 +489,7 @@ ISR(TIMER1_COMPA_vect)
     } else { 
         count = 0; // don't forget to reset the counter
         
-        // to speed up sampling by a factor of 10, move any of these conditionals outside of this if:else statement
-        if(sd_logData & SDfile){ // log data to SD card (highest priority logging)
-            printFileData();
-        } else if(logData & !app_logData){ // log verbose output to the command line if enabled 
+        if(logData & !app_logData){ // log verbose output to the command line if enabled 
             printVerboseData();
         }
         
@@ -605,7 +634,13 @@ void printVerboseData(){
     Serial.print(Depth); Serial.print(F("\t"));
     Serial.print(Cond); Serial.print(F("\t"));
     Serial.print(Light); Serial.print(F("\t"));
-    Serial.println(Head);
+    #ifdef _TP
+        Serial.print(Head); Serial.print(F("\t"));
+        Serial.print(TempInt); Serial.print(F("\t"));
+        Serial.println(PresInt);
+    #else
+        Serial.println(Head); 
+    #endif
 }
 
 // print data readings to the android app

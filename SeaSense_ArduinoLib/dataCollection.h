@@ -10,6 +10,7 @@
     void getMag();
     void getAccel();
     void getGyro();
+    void getInternals();
     #ifdef TSL230R 
         void light_sensor_init(int light_s0, int light_s1);
     #endif /* TSL230R */

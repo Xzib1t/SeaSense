@@ -128,6 +128,18 @@ void getGyro(){
     #endif
 }
 
+// get internal temp/pressure
+void getInternals(){
+    #ifdef _TP
+        sensors_event_t event;
+        bmp.getEvent(&event);
+        PresInt = event.pressure; //hPa
+        bmp.getTemperature(&TempInt);
+    #else
+        return;
+    #endif /* _TP */
+}
+
 // GY80 gyroscope configuration (see globals.h for GY80)
 #ifdef GY80
     // configure the Gyroscope (only used for GY80 IMU)

@@ -144,6 +144,12 @@ void processCMD(char *command, int size)
             // get the number of .CSV files stored on the card
             return;
         }
+    else  if ((strcmp("%CONNECT",command)==0) 
+        || (strcmp("%DISCONNECT",command)==0)
+        || (strcmp("%DT",command)==0)
+       ){
+        return;
+    }
     //***** end of non CLI_CORE_CMD_LIST cmds *******
     
     // search through commands list for a command matching the input
@@ -492,7 +498,13 @@ void cli_log_data(int argc, char *argv[])
     logData = !logData;
     
     if(logData) // if data logging has been enabled, print out a header for each column
-        Serial.println(F("Time\t\tTemp\tDepth\tCond\tLight\tHead"));
+        Serial.print(F("Time\t\tTemp\tDepth\tCond\tLight\tHead"));
+        #ifdef _TP
+            Serial.print(F("\tIntTemp\tIntPressure"));
+        #else
+            Serial.print(F("\n\r"));
+        #endif
+
     return;
 }
 

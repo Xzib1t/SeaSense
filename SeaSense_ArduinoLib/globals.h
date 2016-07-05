@@ -13,6 +13,7 @@
 
     /* IMU */
     #undef GY80 /* change #undef to #define to switch from adafruit 9 or 10dof to GY80 IMU */
+    #define _TP /* Internal temp/pressure (optional)*/
 
     #include "Adafruit_Sensor.h"    
     #ifdef GY80
@@ -35,6 +36,13 @@
         extern Adafruit_LSM303_Mag_Unified mag;
         extern Adafruit_L3GD20_Unified gyro;
     #endif /* GY80 */
+    #ifdef _TP
+        /* Internal Temp and Pressure */
+        #include "Adafruit_BMP085_U.h"
+        extern Adafruit_BMP085_Unified bmp;
+        extern float TempInt;
+        extern float PresInt;
+    #endif /* _TP */
     #define DECLINATION_ANGLE 0.2516f /* http://www.magnetic-declination.com/ */
 
     /* Legacy light sensor support (change #undef to #define to configure for old sensor) */
