@@ -22,25 +22,6 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/fabTC"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="80dp"
-        app:backgroundTint="#ae0000"
-        android:src="@drawable/ic_sd_upload_black_24dp" />
-
-        <android.support.design.widget.FloatingActionButton
-           android:id="@+id/fab"
-           android:layout_width="wrap_content"
-           android:layout_height="wrap_content"
-           android:layout_gravity="bottom|end"
-           android:layout_margin="@dimen/fab_margin"
-           app:backgroundTint="#ae0000"
-           android:src="@drawable/ic_bluetooth_black_24dp" />
-
         <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab_right"
         android:layout_width="wrap_content"
@@ -51,13 +32,33 @@
         android:src="@drawable/ic_keyboard_arrow_right_black_24dp" />
 
     <android.support.design.widget.FloatingActionButton
-        android:id="@+id/fab_reset"
+        android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
         android:layout_margin="@dimen/fab_margin"
         app:backgroundTint="#ae0000"
+        android:src="@drawable/ic_bluetooth_black_24dp" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab_reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="80dp"
+        app:backgroundTint="#ae0000"
         android:src="@drawable/reset" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fabTC"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="144dp"
+        app:backgroundTint="#ae0000"
+        android:src="@drawable/ic_sd_upload_black_24dp" />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab_logfile"
@@ -65,7 +66,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
         android:layout_marginStart="16dp"
-        android:layout_marginBottom="144dp"
+        android:layout_marginBottom="208dp"
         app:backgroundTint="#ae0000"
         android:src="@drawable/ic_file_download_black_24dp" />
 

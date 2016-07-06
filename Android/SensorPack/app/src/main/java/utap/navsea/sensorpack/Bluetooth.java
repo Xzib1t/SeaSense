@@ -71,6 +71,8 @@ public class Bluetooth extends AppCompatActivity{
     public static StringBuffer downloadedStrings = new StringBuffer(); //TODO back to private
     public static boolean dialogOpen = true;
     private static boolean timedOut = false;
+    public static int totalFileSize = 0;
+    private static int bytesDownloaded = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -93,9 +95,10 @@ public class Bluetooth extends AppCompatActivity{
 
         try { //TODO test this
             fileSize = Integer.parseInt(sdInfo[arrayPosition]);
+            totalFileSize = fileSize;
             System.out.println("Filesize: " + fileSize + " bytes");
-        }catch(NumberFormatException e){
-            System.out.println("Invalid int");
+        }catch(NumberFormatException | ArrayIndexOutOfBoundsException e){
+            System.out.println("SD information was not received correctly");
             return;
         }
         fileSize += 64; //account for extra non-csv data
@@ -121,6 +124,13 @@ public class Bluetooth extends AppCompatActivity{
             while((sum<=fileSize) && dialogOpen) {
                 count = inStream.read(buffer, 0, readStop);
                 sum += count;
+                int bytesTemp = sum;
+                if(bytesTemp>69) bytesTemp -= 69; //Correct for extra non-value bytes
+                float curProgress = ((float)bytesTemp / (float)totalFileSize) * 100f;
+                bytesDownloaded = bytesTemp;
+                bytesTemp = (int) curProgress;
+                //System.out.println("Progress: " + bytesDownloaded);
+                MainActivity.Download.update(bytesTemp);
                 downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
             }
                 dlStrings.setLength(0); //Reset buffer
@@ -242,7 +252,7 @@ public class Bluetooth extends AppCompatActivity{
                             try {
                                 //count = readWithTimeout(inStream, buffer, 0, buffer.length);
                                 //TODO return something to toggle doneDownloading status
-                                if(count<0) return new String[]{""}; //exception thrown
+                                //if(count<0) return new String[]{""}; //exception thrown
                                 count = inStream.read(buffer, 0, buffer.length); //TODO the program hangs here when the button is mashed
                                 //TODO if this fails return something that tells us it failed, then display a snackbar message
                                 sdInfo.append(new String(buffer, 0, count));
@@ -255,7 +265,7 @@ public class Bluetooth extends AppCompatActivity{
                             if(check.length!=0)
                             if(check[check.length-1].equals(">")) {
                                 String[] firstSplit = sdInfo.toString().split("\\n\\r");
-                                if(firstSplit.length>1) fileData = firstSplit[1];
+                                if(firstSplit.length>1) fileData = firstSplit[firstSplit.length-1];
                                 separatedData = fileData.split(",");
                                 doneDownloading = true;
                             }
@@ -389,6 +399,8 @@ public class Bluetooth extends AppCompatActivity{
     public static ArrayList<Float> getGyroZ(){
         return gyroZ;
     }
+
+    public static int getBytesDown(){return bytesDownloaded;};
 
 
     /**

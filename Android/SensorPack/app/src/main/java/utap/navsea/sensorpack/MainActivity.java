@@ -16,13 +16,13 @@
 
 package utap.navsea.sensorpack;
 
-import android.animation.FloatArrayEvaluator;
 import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
@@ -79,6 +79,8 @@ public class MainActivity  extends AppCompatActivity {
     private static View thisView = null;
     private static int btnLogCount = 0;
 
+    public static  DownloadTask Download;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -99,7 +101,6 @@ public class MainActivity  extends AppCompatActivity {
         FloatingActionButton fabReset = (FloatingActionButton) findViewById(R.id.fab_reset);
         FloatingActionButton fabLogfile = (FloatingActionButton) findViewById(R.id.fab_logfile);
 		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
-		fabRight.setVisibility(View.INVISIBLE); //Hide this FAB until BT device is selected
         fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
         final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
 
@@ -111,23 +112,7 @@ public class MainActivity  extends AppCompatActivity {
         LinearLayout layout = (LinearLayout) findViewById(R.id.full_screen_main);
         layout.setOnTouchListener(activitySwipeDetector);
 
-        if(socket==null){
-            showInstructions();
-            fab.setVisibility(View.VISIBLE);
-            fabRight.setVisibility(View.INVISIBLE);
-            rtButton.setVisibility(View.INVISIBLE);
-        }
-        else if(!socket.isConnected()){
-            showInstructions();
-            fab.setVisibility(View.VISIBLE);
-            fabRight.setVisibility(View.INVISIBLE);
-            rtButton.setVisibility(View.VISIBLE);
-        }
-        else if(socket.isConnected()){
-            fab.setVisibility(View.INVISIBLE);
-            fabRight.setVisibility(View.VISIBLE);
-            rtButton.setVisibility(View.VISIBLE);
-        }
+        syncDisplay(rtButton);
 
         final DisplayObject display = new DisplayObject();
         final DataObject data = new DataObject();
@@ -164,9 +149,7 @@ public class MainActivity  extends AppCompatActivity {
             @Override
             public void onDismiss(DialogInterface dialogInterface) {
                 if(socket!=null)
-                    if(socket.isConnected()) {
-                        fab.setVisibility(View.INVISIBLE); //Hide fab when we're done connecting
-                        fabRight.setVisibility(View.VISIBLE); //Show our navigational fab if we're connected
+                    if(isStillConnected()) {
                         rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
                     }
             }
@@ -206,7 +189,7 @@ public class MainActivity  extends AppCompatActivity {
         fabReset.setOnClickListener(new View.OnClickListener() { //Fab for changing view
             @Override
             public void onClick(View view) {
-                if (socket != null && socket.isConnected()) {
+                if (socket != null && isStillConnected()) {
                     try {
                         OutputStream outStream = socket.getOutputStream();
                         Commands.sendCommand(outStream, "reset", "");
@@ -229,7 +212,7 @@ public class MainActivity  extends AppCompatActivity {
         fabLogfile.setOnClickListener(new View.OnClickListener() { //Fab for changing view
             @Override
             public void onClick(View view) {
-                if (socket != null && socket.isConnected()) {
+                if (socket != null && isStillConnected()) {
                     try {
                         btnLogCount++;
                         OutputStream outStream = socket.getOutputStream();
@@ -258,9 +241,7 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
-                /*displayCommands(); //Show list of clickable commands
-                showCommandInstructions(); //Display help menu*/
-                if(socket!=null && socket.isConnected())
+                if (socket != null && socket.isConnected())
                     displayFiles();
                 else Snackbar.make(view, "Not connected",
                         Snackbar.LENGTH_LONG)
@@ -310,6 +291,38 @@ public class MainActivity  extends AppCompatActivity {
         }catch(IOException | InterruptedException e){
             System.out.println("false");
             return false; //Couldn't read stream because we aren't getting data
+        }
+    }
+
+    private boolean isStillConnected(){
+            try {
+                int testData = 13;
+                OutputStream oStream = socket.getOutputStream();
+                oStream.flush();
+                oStream.write(testData);
+            } catch (IOException | NullPointerException e) {
+                System.out.println("Exception thrown, not connected");
+                try {
+                    socket.close();
+                } catch (IOException | NullPointerException e1) {
+                    return false;
+                }
+                return false;
+            }
+        return true;
+    }
+
+    private void syncDisplay(Button rtButton){
+        if(socket==null){
+            showInstructions();
+            rtButton.setVisibility(View.INVISIBLE);
+        }
+        else if(!isStillConnected() && !isStillConnected()){
+            showInstructions();
+            rtButton.setVisibility(View.VISIBLE);
+        }
+        else if(isStillConnected() && isStillConnected()){
+            rtButton.setVisibility(View.VISIBLE);
         }
     }
 
@@ -491,7 +504,7 @@ public class MainActivity  extends AppCompatActivity {
 		lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			public void onItemClick(AdapterView<?> arg, View view, int position, long id){
 				try {
-					if(socket!=null && socket.isConnected()) {
+					if(socket!=null && isStillConnected()) {
 						OutputStream outStream = socket.getOutputStream();
 						Commands.sendCommand(outStream, mCommandAdapter.getItem(position), "");
 					}
@@ -530,8 +543,9 @@ public class MainActivity  extends AppCompatActivity {
 
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> arg, View view, int position, long id){
-                if(socket!=null && socket.isConnected()) { //TODO find a way to see if we've dropped the socket
-                    DownloadTask Download = new DownloadTask();
+                if(socket!=null && isStillConnected()) {
+                   //DownloadTask Download = new DownloadTask();
+                    Download = new DownloadTask();
                     Download.fileName = mFileNameAdapter.getItem(position);
                     Download.selection = position;
                     Download.execute();
@@ -845,12 +859,9 @@ public class MainActivity  extends AppCompatActivity {
 		protected void onPreExecute() {
 			spinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
 			spinner.setVisibility(View.VISIBLE);
-			Snackbar.make(fileDialog.findViewById(R.id.file_list_display),
-					"Downloading data", Snackbar.LENGTH_LONG)
-					.setAction("Action", null).show();
 
-			//This timeout code came from http://stackoverflow.com/questions/7882739/android-setting-a-timeout-for-an-asynctask
-			new CountDownTimer(7000, 7000) {
+			//This timeout code was modified from from http://stackoverflow.com/questions/7882739/android-setting-a-timeout-for-an-asynctask
+			new CountDownTimer(7000, 1000) {
 				public void onTick(long millisUntilFinished) {
 				}
 				public void onFinish() {
@@ -865,14 +876,31 @@ public class MainActivity  extends AppCompatActivity {
 				}
 			}.start();
 		}
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            TextView progressText = (TextView)fileDialog.findViewById(R.id.progress_text);
+            progressText.setText("Progress: ");
+            progressText.append(progress[0] + "%" + "  ");
+            progressText.append("Byes downloaded: " + Bluetooth.getBytesDown()
+                    + "/" + Bluetooth.totalFileSize);
+            spinner.setProgress(progress[0]);
+        }
+
 		@Override
 		protected String doInBackground(Integer... params) {
             try {
                 Bluetooth.readSdCat(socket.getInputStream(), 11,
                         fileName, selection);
-            }catch(IOException e){}
+            }catch(IOException e){
+                System.out.print("Exception doing readSdCat");
+            }
 			return "done";
 		}
+
+        public void update(int iProgress){
+            publishProgress(iProgress);
+        }
+
 		@Override
 		protected void onPostExecute(String result) {
 			spinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
