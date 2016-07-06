@@ -87,7 +87,7 @@ void getMag(){
         heading -= 2*PI;
     
      // Convert radians to degrees for readability.
-     Head = heading * 180/M_PI; 
+     Head = heading * RAD_TO_DEG; 
 
     return;
 }

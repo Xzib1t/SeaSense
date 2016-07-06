@@ -1,8 +1,9 @@
-// Created by Georges Gauthier - glgauthier@wpi.edu
-// ported from the original seasense PIC code
-
-// this file contains all main source code for the SeaSense Arduino library.
-// All external library functions are located within this file, along with all register config and ISR code
+/** @file SeaSense.cpp File containing all main source code for the SeaSense Arduino lib. 
+* All externally accessible library functions are contained within
+* this file, along with all register configurations and ISRs.
+* @author Georges Gauthier, glgauthier@wpi.edu
+* @date May-July 2016
+*/
 
 #include "Arduino.h"
 #include "globals.h"
@@ -83,7 +84,6 @@ RTC_DS1307 rtc; // realtime clock module
 Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS); 
 //*********************************************************************************************
 
-// Initializations are done here automatically on calling the library
 SeaSense::SeaSense(){
     // disable the watchdog timer
     wdt_disable();
@@ -466,7 +466,10 @@ int SeaSense::ReadAnalogPin(int pin){
     return value;
 }
 
-// Interrupt is called once every 100mS - checks to see if any type of serial or file logging is enabled and acts accordingly.
+/** Timer interrupt called once every 100mS 
+*- checks to see if any type of serial or file logging is enabled and acts accordingly.
+* @see SeaSense::Initialize()
+*/
 ISR(TIMER1_COMPA_vect) 
 {
     if(init == false) return; // if initialization hasn't finished, immediately exit the ISR
@@ -476,11 +479,6 @@ ISR(TIMER1_COMPA_vect)
     if(app_logData & !logData){ // log data to the andriod app
         printAppData();
     } 
-    
-     // to speed up sampling by a factor of 10, move any of these conditionals outside of this if:else statement
-    if(sd_logData & SDfile){ // log data to SD card (highest priority logging)
-        printFileData();
-    } 
 
     // keep a rolling count of the number of interrupts triggered (every 10 counts = 1 second)
     if(count<9) {
@@ -489,9 +487,12 @@ ISR(TIMER1_COMPA_vect)
     } else { 
         count = 0; // don't forget to reset the counter
         
-        if(logData & !app_logData){ // log verbose output to the command line if enabled 
+        // to speed up sampling by a factor of 10, move any of these conditionals outside of this if:else statement
+        if(sd_logData & SDfile) { // log data to SD card (highest priority logging)
+            printFileData();
+        } else if(logData & !app_logData) { // log verbose output to the command line if enabled 
             printVerboseData();
-        }
+        } 
         
         // turn off the LCD and bluetooth if below a certain depth
         // see globals.h to set LOW_POWER_DEPTH
@@ -532,21 +533,27 @@ ISR(TIMER1_COMPA_vect)
 
 }
 
-// Timer overflow for edge count interrupt (used with light sensor)
-// this ISR will occur if the hardware edge counter doesn't detect any
-// new rising edges before TIMER5 overflows
+/** Timer overflow for edge count interrupt (used with light sensor).
+* This ISR will occur if the hardware edge counter doesn't detect any
+* new rising edges before TIMER5 overflows
+*/
 ISR(TIMER5_OVF_vect){ 
   carryOut++;
 }
 
-// ADC ISR
-// https://bennthomsen.wordpress.com/arduino/peripherals/analogue-input/
-// http://www.avrfreaks.net/forum/sampling-multiple-adc-channels
-// Users' guide pg 283
-// configured to run until the adc buffer has been filled (globals.h - 100 samples), then wait
-// to be re-enabled externally (see dataCollection.h)
-// note that to add additional ADC channels to read from, you need to modify the globals for
-// the number of ADCs, as well as the getADCreadings() and resetADC() functions in dataCollection.cpp
+/** ADC hardware interrupt routine
+* See the following for some useful information: 
+* - https://bennthomsen.wordpress.com/arduino/peripherals/analogue-input/
+* .
+* - http://www.avrfreaks.net/forum/sampling-multiple-adc-channels
+* .
+* - Users' guide pg 283
+* .
+* The ADC is configured to run until the adc buffer has been filled based on ADC_BUFFER_SIZE. 
+* The ADC data is processed, and the ADC ISR is then re-enabled externally for a different ADC channel as specified in dataCollection.cpp.
+* Note that to add additional ADC channels to read from, you need to modify the globals for
+* the number of ADCs, as well as the getADCreadings() and resetADC() functions in dataCollection.cpp
+*/
 ISR(ADC_vect){
     // read in current adc value (users' guide pg 286 - MUST READ ADCL FIRST)
     // the shifts are based on ADCD[9:0] positions as set by the ADLAR bit of ADMUX (ADLAR=1)
@@ -568,7 +575,7 @@ ISR(ADC_vect){
     }
 }
  
-// get the current state of the hall effect sensor and toggle file write
+// get the current state of the hall effect sensor and toggle low power mode
 // NOTE: I used a slightly different layout than the original schematic:
 // Pin 1 connected to VCC
 // Pin 2 connected to ground
@@ -618,16 +625,17 @@ void SeaSense::getHallEffect(){
     
 }
 
-//lpmWake - called automatically when waking back up from low power mode
-// NOTE that this *function* is called multiple times on wake, so there isn't
-// any internal way to run a process a single time unless you use globals
+/** Called automatically when waking back up from low power mode.
+* NOTE that this *function* is called multiple times on wake, so there isn't
+* any internal way to run a process a single time unless you use globals
+*/
 void lpmWake(){
         // wake from low power mode
         digitalWrite(BT_PWR,HIGH); // turn on the bluetooth module
         Serial.println(F("Waking up from low power mode ..."));
 }
     
-// print user-readable data readings to the bluetooth port
+/** print user-readable sensor data to the bluetooth port */
 void printVerboseData(){
     Serial.print(Timestamp); Serial.print(F("\t"));
     Serial.print(Temp); Serial.print(F("\t"));
@@ -643,7 +651,7 @@ void printVerboseData(){
     #endif
 }
 
-// print data readings to the android app
+/** Print sensor readings to the android app */
 void printAppData(){
     //Serial.println(F("Logging data to app"));
     Serial.print(Timestamp); Serial.print(F(","));
@@ -660,7 +668,7 @@ void printAppData(){
     Serial.print(GyroZ); Serial.print(F(",\n"));
 }
 
-// print data readings to file
+/** Print sensor readings to a file on the SD card */
 void printFileData(){
     digitalWrite(OLED_CLK,HIGH); // make sure the OLED display isn't asserted
     digitalWrite(SD_CS,LOW);
@@ -681,7 +689,7 @@ void printFileData(){
     
 }
 
-// update content shown on the OLED display
+/** Update content shown on the OLED display */
 void printOLEDdata(){
     digitalWrite(SD_CS,HIGH);
     digitalWrite(OLED_CLK,LOW);
@@ -702,7 +710,7 @@ void printOLEDdata(){
     if (noSD) { // if no SD card is available, indicate so
         display.drawBitmap(0, 0, dispNoCard, 128, 64, WHITE);
         display.setCursor(2,1); display.print(F("NC"));
-    } else if(app_logData | logData | sd_logData) {
+    } else if(app_logData || logData || sd_logData) {
         display.drawBitmap(0, 0, dispCardWrite, 128, 64, WHITE);
         display.setCursor(16,2);
         if(app_logData)

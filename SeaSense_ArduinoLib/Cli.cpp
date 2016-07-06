@@ -234,7 +234,7 @@ void cli_rtc_set(int argc, char *argv[])
     }
     else{
         // if there aren't enough args don't parse a new time
-        if(argc < 2 | argc > 2) {
+        if(argc < 2 || argc > 2) {
             Serial.println(F("Error: incorrect number of arguments. Input should be yyyy/mm/dd hh:mm:ss"));
             return;
         }
@@ -320,7 +320,7 @@ void cli_sd_ls(int argc, char *argv[])
 void cli_sd_cat(int argc, char *argv[])
 {
     // if an incorrect number of arguments are given, throw an error and exit
-    if(argc<1 | argc>1)
+    if(argc<1 || argc>1)
     {
         Serial.println(F("Error: incorrect number of args"));
         return;
@@ -425,7 +425,7 @@ void cli_sd_create(int argc, char *argv[]) {
         return;
     }
     // if an incorrect number of arguments are given, throw an error and return
-    if(argc<1 | argc>1)
+    if(argc<1 || argc>1)
     {
         Serial.println(F("Error: incorrect number of args"));
         return;
@@ -449,7 +449,7 @@ void cli_sd_del(int argc, char *argv[]) {
         return;
     }
     // if an incorrect number of args are given, throw an error
-    if(argc<1 | argc>1)
+    if(argc<1 || argc>1)
     {
         Serial.println(F("Error: incorrect number of args"));
         return;
@@ -500,7 +500,7 @@ void cli_log_data(int argc, char *argv[])
     if(logData) // if data logging has been enabled, print out a header for each column
         Serial.print(F("Time\t\tTemp\tDepth\tCond\tLight\tHead"));
         #ifdef _TP
-            Serial.print(F("\tIntTemp\tIntPressure"));
+            Serial.print(F("\tIntTemp\tIntPressure\n\r"));
         #else
             Serial.print(F("\n\r"));
         #endif

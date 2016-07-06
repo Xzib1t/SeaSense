@@ -1,10 +1,19 @@
-// Created by Georges Gauthier - glgauthier@wpi.edu
-// Last updated June 2016
+/** @file dataCollection.h
+*  @breif Header containing prototypes for all functions related to collecting sensor data.
+*  @author Georges Gauthier, glgauthier@wpi.edu
+*  @date May-July 2016
+*/ 
 
 #ifndef dataCollection_h
 #define dataCollection_h
-
+    
+    /**Put the current RTC timestamp into global var Timestamp. @see Timestamp*/
     void getTime();
+    /**Put the current Light Sensor reading from the hardware pulse counter in global var Light. 
+    *@see Light
+    *@see SeaSense::Initialize()
+    *@see ISR(TIMER5_OVF_vect)
+    */
     void getLight();
     void getADCreadings();
     void getMag();

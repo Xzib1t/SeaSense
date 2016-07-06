@@ -1,0 +1,60 @@
+\hypertarget{data_collection_8h}{}\section{data\+Collection.\+h File Reference}
+\label{data_collection_8h}\index{data\+Collection.\+h@{data\+Collection.\+h}}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{data_collection_8h_a1c7c164fd3c7dea7004ece3c6251fc94}{get\+Time} ()
+\item 
+void \hyperlink{data_collection_8h_a15d72e97777e2a97dd20550fe03e0aac}{get\+Light} ()
+\item 
+void {\bfseries get\+A\+D\+Creadings} ()\hypertarget{data_collection_8h_af1568e87ea2e9bb4a34d8f8f54213587}{}\label{data_collection_8h_af1568e87ea2e9bb4a34d8f8f54213587}
+
+\item 
+void {\bfseries get\+Mag} ()\hypertarget{data_collection_8h_aec5183069fb70fd07fdbab6ebd83a212}{}\label{data_collection_8h_aec5183069fb70fd07fdbab6ebd83a212}
+
+\item 
+void {\bfseries get\+Accel} ()\hypertarget{data_collection_8h_a0aeb70e1eb942ce8144e77d8aae08845}{}\label{data_collection_8h_a0aeb70e1eb942ce8144e77d8aae08845}
+
+\item 
+void {\bfseries get\+Gyro} ()\hypertarget{data_collection_8h_a6f06a41ea450ea4a86b06d59834dce82}{}\label{data_collection_8h_a6f06a41ea450ea4a86b06d59834dce82}
+
+\item 
+void {\bfseries get\+Internals} ()\hypertarget{data_collection_8h_ae0b7274c2cd6445bcfb3454ea61bc495}{}\label{data_collection_8h_ae0b7274c2cd6445bcfb3454ea61bc495}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Header containing prototypes for all functions related to collecting sensor data. \begin{DoxyAuthor}{Author}
+Georges Gauthier, \href{mailto:glgauthier@wpi.edu}{\tt glgauthier@wpi.\+edu} 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+May-\/\+July 2016 
+\end{DoxyDate}
+
+
+\subsection{Function Documentation}
+\index{data\+Collection.\+h@{data\+Collection.\+h}!get\+Light@{get\+Light}}
+\index{get\+Light@{get\+Light}!data\+Collection.\+h@{data\+Collection.\+h}}
+\subsubsection[{\texorpdfstring{get\+Light()}{getLight()}}]{\setlength{\rightskip}{0pt plus 5cm}void get\+Light (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{data_collection_8h_a15d72e97777e2a97dd20550fe03e0aac}{}\label{data_collection_8h_a15d72e97777e2a97dd20550fe03e0aac}
+Put the current Light Sensor reading from the hardware pulse counter in global var Light. \begin{DoxySeeAlso}{See also}
+\hyperlink{_sea_sense_8cpp_abbeaec09b42a3bf5a5f3d0546236e2b4}{Light} 
+
+\hyperlink{class_sea_sense_aadc31a4bd5e38082f57ab1a02de838da}{Sea\+Sense\+::\+Initialize()} 
+
+\hyperlink{_sea_sense_8cpp_a4ecf85c13d47309a0b3b3a39721432ae}{I\+S\+R(\+T\+I\+M\+E\+R5\+\_\+\+O\+V\+F\+\_\+vect)} 
+\end{DoxySeeAlso}
+\index{data\+Collection.\+h@{data\+Collection.\+h}!get\+Time@{get\+Time}}
+\index{get\+Time@{get\+Time}!data\+Collection.\+h@{data\+Collection.\+h}}
+\subsubsection[{\texorpdfstring{get\+Time()}{getTime()}}]{\setlength{\rightskip}{0pt plus 5cm}void get\+Time (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{data_collection_8h_a1c7c164fd3c7dea7004ece3c6251fc94}{}\label{data_collection_8h_a1c7c164fd3c7dea7004ece3c6251fc94}
+Put the current R\+TC timestamp into global var Timestamp. \begin{DoxySeeAlso}{See also}
+\hyperlink{_sea_sense_8cpp_a3384193faa53fc0e31c4c60e6661fd11}{Timestamp} 
+\end{DoxySeeAlso}

@@ -1,0 +1,308 @@
+\hypertarget{_sea_sense_8cpp}{}\section{Sea\+Sense.\+cpp File Reference}
+\label{_sea_sense_8cpp}\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+{\ttfamily \#include \char`\"{}Arduino.\+h\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}globals.\+h\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}Sea\+Sense.\+h\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}S\+P\+I.\+h\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}Cli.\+h\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}data\+Collection.\+h\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}display.\+h\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}avr/wdt.\+h\char`\"{}}\\*
+{\ttfamily \#include $<$avr/io.\+h$>$}\\*
+{\ttfamily \#include $<$avr/interrupt.\+h$>$}\\*
+{\ttfamily \#include $<$avr/sleep.\+h$>$}\\*
+{\ttfamily \#include $<$string.\+h$>$}\\*
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define {\bfseries \+\_\+\+U\+N\+S\+I\+G\+N\+ED}(X)~((X) + 32768)\hypertarget{_sea_sense_8cpp_ad8afc8816920d6548962ecceb8735845}{}\label{_sea_sense_8cpp_ad8afc8816920d6548962ecceb8735845}
+
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{_sea_sense_8cpp_a10ef2d0abb9aaee00f238fefdc70c723}{print\+Verbose\+Data} ()
+\item 
+void \hyperlink{_sea_sense_8cpp_aff5ed5368dcdf0c77d9f0e2b924b4853}{print\+App\+Data} ()
+\item 
+void \hyperlink{_sea_sense_8cpp_aebfd8c391cd14521f036114e865f64bd}{print\+File\+Data} ()
+\item 
+void \hyperlink{_sea_sense_8cpp_ad08398e8f57989f5e1b09e91ce0785e5}{print\+O\+L\+E\+Ddata} ()
+\item 
+void \hyperlink{_sea_sense_8cpp_a7fe784d69c3a90742f17a2c2191b82bd}{lpm\+Wake} ()
+\item 
+Adafruit\+\_\+\+S\+S\+D1306 {\bfseries display} (O\+L\+E\+D\+\_\+\+M\+O\+SI, O\+L\+E\+D\+\_\+\+C\+LK, O\+L\+E\+D\+\_\+\+DC, O\+L\+E\+D\+\_\+\+R\+E\+S\+ET, O\+L\+E\+D\+\_\+\+CS)\hypertarget{_sea_sense_8cpp_a1671c15ea8b66182fa3e462ac06caf2d}{}\label{_sea_sense_8cpp_a1671c15ea8b66182fa3e462ac06caf2d}
+
+\item 
+\hyperlink{_sea_sense_8cpp_ad39420cdd896dd12c68e36313139d0a5}{I\+SR} (T\+I\+M\+E\+R1\+\_\+\+C\+O\+M\+P\+A\+\_\+vect)
+\item 
+\hyperlink{_sea_sense_8cpp_a4ecf85c13d47309a0b3b3a39721432ae}{I\+SR} (T\+I\+M\+E\+R5\+\_\+\+O\+V\+F\+\_\+vect)
+\item 
+\hyperlink{_sea_sense_8cpp_a05c2e5b588ced1cd7312f5b0edc5b295}{I\+SR} (A\+D\+C\+\_\+vect)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+boolean \hyperlink{_sea_sense_8cpp_aaec9f9b6c825d87e9b1c3873266414be}{R\+T\+C\+\_\+\+A\+U\+T\+O\+S\+ET}
+\item 
+boolean \hyperlink{_sea_sense_8cpp_adb305df812f3ad36d5f38e10eacaf96f}{log\+Data}
+\item 
+boolean \hyperlink{_sea_sense_8cpp_a0f92042974383370e2da74ece2864423}{sd\+\_\+log\+Data}
+\item 
+boolean \hyperlink{_sea_sense_8cpp_a60909cdc6ec398509960962dfa8c6e3c}{app\+\_\+log\+Data}
+\item 
+boolean \hyperlink{_sea_sense_8cpp_af6068f50efbe2526b3bdaab9b6a9f310}{no\+SD}
+\item 
+boolean \hyperlink{_sea_sense_8cpp_a3815a81e3177b89750955878dae4fda0}{adc\+\_\+ready}
+\item 
+boolean \hyperlink{_sea_sense_8cpp_a0645ad1fe66b17b09330e6d5e6a86c1b}{low\+Power\+Logging}
+\item 
+char {\bfseries cli\+\_\+rx\+Buf} \mbox{[}\hyperlink{globals_8h_a479e2087967dffd589c1b8b65c8e65e6}{M\+A\+X\+\_\+\+I\+N\+P\+U\+T\+\_\+\+S\+I\+ZE}\mbox{]}\hypertarget{_sea_sense_8cpp_a9663a12f8b396fdc3fcfdbc1ba89b094}{}\label{_sea_sense_8cpp_a9663a12f8b396fdc3fcfdbc1ba89b094}
+
+\item 
+byte {\bfseries adc\+\_\+channel} = 10\hypertarget{_sea_sense_8cpp_aaa2140fc70387b1c22f7d67851d32f7c}{}\label{_sea_sense_8cpp_aaa2140fc70387b1c22f7d67851d32f7c}
+
+\item 
+int \hyperlink{_sea_sense_8cpp_af3d7ff5e29ef4f2af174e31c995e6a5e}{adc\+Buf} \mbox{[}\hyperlink{globals_8h_a602abb8ec84dcb3b6f854a738310ea46}{A\+D\+C\+\_\+\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE}\mbox{]}
+\item 
+byte {\bfseries adc\+\_\+pos} = 0\hypertarget{_sea_sense_8cpp_ac0d0cabce87ba5430598ad0790c7f28b}{}\label{_sea_sense_8cpp_ac0d0cabce87ba5430598ad0790c7f28b}
+
+\item 
+int {\bfseries count}\hypertarget{_sea_sense_8cpp_ad43c3812e6d13e0518d9f8b8f463ffcf}{}\label{_sea_sense_8cpp_ad43c3812e6d13e0518d9f8b8f463ffcf}
+
+\item 
+char \hyperlink{_sea_sense_8cpp_a3384193faa53fc0e31c4c60e6661fd11}{Timestamp} \mbox{[}9\mbox{]}
+\item 
+double \hyperlink{_sea_sense_8cpp_a30b2ceb495b99ab029b438563e5f22fa}{Temp} = 0.\+0
+\item 
+unsigned int \hyperlink{_sea_sense_8cpp_a04b595da24126780a9c8852c1078c302}{Depth} = 0
+\item 
+int \hyperlink{_sea_sense_8cpp_a2725b7f204020ff1fd20a6c694cd9318}{Cond} = 0
+\item 
+unsigned long \hyperlink{_sea_sense_8cpp_abbeaec09b42a3bf5a5f3d0546236e2b4}{Light} = 0
+\item 
+int \hyperlink{_sea_sense_8cpp_adeed879bf31df67f4bfefd8774ea4561}{Head} = 0
+\item 
+float \hyperlink{_sea_sense_8cpp_a09f90663bf3b9b7104e69913964ce8f0}{AccelX} = 0
+\item 
+float {\bfseries AccelY} = 0\hypertarget{_sea_sense_8cpp_a51b54afc3f0f629c4d17b6048d7a583b}{}\label{_sea_sense_8cpp_a51b54afc3f0f629c4d17b6048d7a583b}
+
+\item 
+float {\bfseries AccelZ} = 0\hypertarget{_sea_sense_8cpp_aee79023c61cebb8ad5efd8da9dfd8253}{}\label{_sea_sense_8cpp_aee79023c61cebb8ad5efd8da9dfd8253}
+
+\item 
+float \hyperlink{_sea_sense_8cpp_a5f4347f2081e0c5bf0de471b9e591c9a}{GyroX} = 0
+\item 
+float {\bfseries GyroY} = 0\hypertarget{_sea_sense_8cpp_aa16d09d17ebe24f81ad98605b8aaf8f0}{}\label{_sea_sense_8cpp_aa16d09d17ebe24f81ad98605b8aaf8f0}
+
+\item 
+float {\bfseries GyroZ} = 0\hypertarget{_sea_sense_8cpp_a5e69f4df28f912eb1c3e6f120d4ca35b}{}\label{_sea_sense_8cpp_a5e69f4df28f912eb1c3e6f120d4ca35b}
+
+\item 
+int \hyperlink{_sea_sense_8cpp_ab66da551304fa81b29a16a5c174c2969}{v\+Bat}
+\item 
+Sd2\+Card {\bfseries card}\hypertarget{_sea_sense_8cpp_aeeb69ee529b0f58271aa28e823825f77}{}\label{_sea_sense_8cpp_aeeb69ee529b0f58271aa28e823825f77}
+
+\item 
+File \hyperlink{_sea_sense_8cpp_a1cbc77a0bd3bf439d73136eb98a898c2}{S\+Dfile}
+\item 
+R\+T\+C\+\_\+\+D\+S1307 {\bfseries rtc}\hypertarget{_sea_sense_8cpp_a7715afc6e8732f6f936183f5c0d76167}{}\label{_sea_sense_8cpp_a7715afc6e8732f6f936183f5c0d76167}
+
+\item 
+Adafruit\+\_\+\+L\+S\+M303\+\_\+\+Accel\+\_\+\+Unified {\bfseries accel}\hypertarget{_sea_sense_8cpp_a0c859a2cf92d9fb6d40fdbf7e0b815a1}{}\label{_sea_sense_8cpp_a0c859a2cf92d9fb6d40fdbf7e0b815a1}
+
+\item 
+Adafruit\+\_\+\+L\+S\+M303\+\_\+\+Mag\+\_\+\+Unified {\bfseries mag}\hypertarget{_sea_sense_8cpp_a8358c2402fb15c1b0f5fbbfb0a1e6a85}{}\label{_sea_sense_8cpp_a8358c2402fb15c1b0f5fbbfb0a1e6a85}
+
+\item 
+Adafruit\+\_\+\+L3\+G\+D20\+\_\+\+Unified {\bfseries gyro}\hypertarget{_sea_sense_8cpp_ade4a5e9e472d293ab527c4f397e7ae33}{}\label{_sea_sense_8cpp_ade4a5e9e472d293ab527c4f397e7ae33}
+
+\item 
+Adafruit\+\_\+\+B\+M\+P085\+\_\+\+Unified {\bfseries bmp}\hypertarget{_sea_sense_8cpp_a17ba2a1ad58e7df16036c9ffb4e76a9a}{}\label{_sea_sense_8cpp_a17ba2a1ad58e7df16036c9ffb4e76a9a}
+
+\item 
+float \hyperlink{_sea_sense_8cpp_a5764d5a1e45714c66ca6657a5e181ff0}{Temp\+Int}
+\item 
+float \hyperlink{_sea_sense_8cpp_a703bcf737ac71f070f14446ef3c4469b}{Pres\+Int}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+File containing all main source code for the \hyperlink{class_sea_sense}{Sea\+Sense} Arduino lib. All externally accessible library functions are contained within this file, along with all register configurations and I\+S\+Rs. \begin{DoxyAuthor}{Author}
+Georges Gauthier, \href{mailto:glgauthier@wpi.edu}{\tt glgauthier@wpi.\+edu} 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+May-\/\+July 2016 
+\end{DoxyDate}
+
+
+\subsection{Function Documentation}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!I\+SR@{I\+SR}}
+\index{I\+SR@{I\+SR}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{I\+S\+R(\+T\+I\+M\+E\+R1\+\_\+\+C\+O\+M\+P\+A\+\_\+vect)}{ISR(TIMER1_COMPA_vect)}}]{\setlength{\rightskip}{0pt plus 5cm}I\+SR (
+\begin{DoxyParamCaption}
+\item[{T\+I\+M\+E\+R1\+\_\+\+C\+O\+M\+P\+A\+\_\+vect}]{}
+\end{DoxyParamCaption}
+)}\hypertarget{_sea_sense_8cpp_ad39420cdd896dd12c68e36313139d0a5}{}\label{_sea_sense_8cpp_ad39420cdd896dd12c68e36313139d0a5}
+Timer interrupt called once every 100mS
+\begin{DoxyItemize}
+\item checks to see if any type of serial or file logging is enabled and acts accordingly. \begin{DoxySeeAlso}{See also}
+\hyperlink{class_sea_sense_aadc31a4bd5e38082f57ab1a02de838da}{Sea\+Sense\+::\+Initialize()} 
+\end{DoxySeeAlso}
+
+\end{DoxyItemize}\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!I\+SR@{I\+SR}}
+\index{I\+SR@{I\+SR}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{I\+S\+R(\+T\+I\+M\+E\+R5\+\_\+\+O\+V\+F\+\_\+vect)}{ISR(TIMER5_OVF_vect)}}]{\setlength{\rightskip}{0pt plus 5cm}I\+SR (
+\begin{DoxyParamCaption}
+\item[{T\+I\+M\+E\+R5\+\_\+\+O\+V\+F\+\_\+vect}]{}
+\end{DoxyParamCaption}
+)}\hypertarget{_sea_sense_8cpp_a4ecf85c13d47309a0b3b3a39721432ae}{}\label{_sea_sense_8cpp_a4ecf85c13d47309a0b3b3a39721432ae}
+Timer overflow for edge count interrupt (used with light sensor). This I\+SR will occur if the hardware edge counter doesn\textquotesingle{}t detect any new rising edges before T\+I\+M\+E\+R5 overflows \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!I\+SR@{I\+SR}}
+\index{I\+SR@{I\+SR}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{I\+S\+R(\+A\+D\+C\+\_\+vect)}{ISR(ADC_vect)}}]{\setlength{\rightskip}{0pt plus 5cm}I\+SR (
+\begin{DoxyParamCaption}
+\item[{A\+D\+C\+\_\+vect}]{}
+\end{DoxyParamCaption}
+)}\hypertarget{_sea_sense_8cpp_a05c2e5b588ced1cd7312f5b0edc5b295}{}\label{_sea_sense_8cpp_a05c2e5b588ced1cd7312f5b0edc5b295}
+A\+DC hardware interrupt routine See the following for some useful information\+:
+\begin{DoxyItemize}
+\item \href{https://bennthomsen.wordpress.com/arduino/peripherals/analogue-input/}{\tt https\+://bennthomsen.\+wordpress.\+com/arduino/peripherals/analogue-\/input/}
+\end{DoxyItemize}
+\begin{DoxyItemize}
+\item \href{http://www.avrfreaks.net/forum/sampling-multiple-adc-channels}{\tt http\+://www.\+avrfreaks.\+net/forum/sampling-\/multiple-\/adc-\/channels}
+\end{DoxyItemize}
+\begin{DoxyItemize}
+\item Users\textquotesingle{} guide pg 283
+\end{DoxyItemize}The A\+DC is configured to run until the adc buffer has been filled based on A\+D\+C\+\_\+\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE. The A\+DC data is processed, and the A\+DC I\+SR is then re-\/enabled externally for a different A\+DC channel as specified in data\+Collection.\+cpp. Note that to add additional A\+DC channels to read from, you need to modify the globals for the number of A\+D\+Cs, as well as the get\+A\+D\+Creadings() and reset\+A\+D\+C() functions in data\+Collection.\+cpp \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!lpm\+Wake@{lpm\+Wake}}
+\index{lpm\+Wake@{lpm\+Wake}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{lpm\+Wake()}{lpmWake()}}]{\setlength{\rightskip}{0pt plus 5cm}void lpm\+Wake (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{_sea_sense_8cpp_a7fe784d69c3a90742f17a2c2191b82bd}{}\label{_sea_sense_8cpp_a7fe784d69c3a90742f17a2c2191b82bd}
+Called automatically when waking back up from low power mode. N\+O\+TE that this {\itshape function} is called multiple times on wake, so there isn\textquotesingle{}t any internal way to run a process a single time unless you use globals \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!print\+App\+Data@{print\+App\+Data}}
+\index{print\+App\+Data@{print\+App\+Data}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{print\+App\+Data()}{printAppData()}}]{\setlength{\rightskip}{0pt plus 5cm}void print\+App\+Data (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{_sea_sense_8cpp_aff5ed5368dcdf0c77d9f0e2b924b4853}{}\label{_sea_sense_8cpp_aff5ed5368dcdf0c77d9f0e2b924b4853}
+Print sensor readings to the android app \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!print\+File\+Data@{print\+File\+Data}}
+\index{print\+File\+Data@{print\+File\+Data}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{print\+File\+Data()}{printFileData()}}]{\setlength{\rightskip}{0pt plus 5cm}void print\+File\+Data (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{_sea_sense_8cpp_aebfd8c391cd14521f036114e865f64bd}{}\label{_sea_sense_8cpp_aebfd8c391cd14521f036114e865f64bd}
+Print sensor readings to a file on the SD card \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!print\+O\+L\+E\+Ddata@{print\+O\+L\+E\+Ddata}}
+\index{print\+O\+L\+E\+Ddata@{print\+O\+L\+E\+Ddata}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{print\+O\+L\+E\+Ddata()}{printOLEDdata()}}]{\setlength{\rightskip}{0pt plus 5cm}void print\+O\+L\+E\+Ddata (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{_sea_sense_8cpp_ad08398e8f57989f5e1b09e91ce0785e5}{}\label{_sea_sense_8cpp_ad08398e8f57989f5e1b09e91ce0785e5}
+Update content shown on the O\+L\+ED display \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!print\+Verbose\+Data@{print\+Verbose\+Data}}
+\index{print\+Verbose\+Data@{print\+Verbose\+Data}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{print\+Verbose\+Data()}{printVerboseData()}}]{\setlength{\rightskip}{0pt plus 5cm}void print\+Verbose\+Data (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{_sea_sense_8cpp_a10ef2d0abb9aaee00f238fefdc70c723}{}\label{_sea_sense_8cpp_a10ef2d0abb9aaee00f238fefdc70c723}
+print user-\/readable sensor data to the bluetooth port 
+
+\subsection{Variable Documentation}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!AccelX@{AccelX}}
+\index{AccelX@{AccelX}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{AccelX}{AccelX}}]{\setlength{\rightskip}{0pt plus 5cm}float AccelX = 0}\hypertarget{_sea_sense_8cpp_a09f90663bf3b9b7104e69913964ce8f0}{}\label{_sea_sense_8cpp_a09f90663bf3b9b7104e69913964ce8f0}
+Current accelerometer reading. \begin{DoxySeeAlso}{See also}
+get\+Accel() 
+\end{DoxySeeAlso}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!adc\+\_\+ready@{adc\+\_\+ready}}
+\index{adc\+\_\+ready@{adc\+\_\+ready}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{adc\+\_\+ready}{adc_ready}}]{\setlength{\rightskip}{0pt plus 5cm}boolean adc\+\_\+ready}\hypertarget{_sea_sense_8cpp_a3815a81e3177b89750955878dae4fda0}{}\label{_sea_sense_8cpp_a3815a81e3177b89750955878dae4fda0}
+Indicator that adc\+Buf is full and ready to be read from \begin{DoxySeeAlso}{See also}
+\hyperlink{_sea_sense_8cpp_a05c2e5b588ced1cd7312f5b0edc5b295}{I\+S\+R(\+A\+D\+C\+\_\+vect)} 
+
+get\+A\+D\+Creadings() 
+\end{DoxySeeAlso}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!adc\+Buf@{adc\+Buf}}
+\index{adc\+Buf@{adc\+Buf}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{adc\+Buf}{adcBuf}}]{\setlength{\rightskip}{0pt plus 5cm}int adc\+Buf\mbox{[}{\bf A\+D\+C\+\_\+\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE}\mbox{]}}\hypertarget{_sea_sense_8cpp_af3d7ff5e29ef4f2af174e31c995e6a5e}{}\label{_sea_sense_8cpp_af3d7ff5e29ef4f2af174e31c995e6a5e}
+A\+DC sample buffer -\/ fills from one A\+DC channel, is averaged, and then filled by the next A\+DC channel, etc, etc \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!app\+\_\+log\+Data@{app\+\_\+log\+Data}}
+\index{app\+\_\+log\+Data@{app\+\_\+log\+Data}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{app\+\_\+log\+Data}{app_logData}}]{\setlength{\rightskip}{0pt plus 5cm}boolean app\+\_\+log\+Data}\hypertarget{_sea_sense_8cpp_a60909cdc6ec398509960962dfa8c6e3c}{}\label{_sea_sense_8cpp_a60909cdc6ec398509960962dfa8c6e3c}
+Current status of data logging to the android app \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!Cond@{Cond}}
+\index{Cond@{Cond}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{Cond}{Cond}}]{\setlength{\rightskip}{0pt plus 5cm}int Cond = 0}\hypertarget{_sea_sense_8cpp_a2725b7f204020ff1fd20a6c694cd9318}{}\label{_sea_sense_8cpp_a2725b7f204020ff1fd20a6c694cd9318}
+Current conductivity. \begin{DoxySeeAlso}{See also}
+get\+A\+D\+Creadings() 
+\end{DoxySeeAlso}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!Depth@{Depth}}
+\index{Depth@{Depth}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{Depth}{Depth}}]{\setlength{\rightskip}{0pt plus 5cm}unsigned int Depth = 0}\hypertarget{_sea_sense_8cpp_a04b595da24126780a9c8852c1078c302}{}\label{_sea_sense_8cpp_a04b595da24126780a9c8852c1078c302}
+Current depth in cm. \begin{DoxySeeAlso}{See also}
+get\+A\+D\+Creadings() 
+\end{DoxySeeAlso}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!GyroX@{GyroX}}
+\index{GyroX@{GyroX}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{GyroX}{GyroX}}]{\setlength{\rightskip}{0pt plus 5cm}float GyroX = 0}\hypertarget{_sea_sense_8cpp_a5f4347f2081e0c5bf0de471b9e591c9a}{}\label{_sea_sense_8cpp_a5f4347f2081e0c5bf0de471b9e591c9a}
+Current gyroscope reading. \begin{DoxySeeAlso}{See also}
+get\+Gyro() 
+\end{DoxySeeAlso}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!Head@{Head}}
+\index{Head@{Head}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{Head}{Head}}]{\setlength{\rightskip}{0pt plus 5cm}int Head = 0}\hypertarget{_sea_sense_8cpp_adeed879bf31df67f4bfefd8774ea4561}{}\label{_sea_sense_8cpp_adeed879bf31df67f4bfefd8774ea4561}
+Current heading in degrees. \begin{DoxySeeAlso}{See also}
+get\+Mag() 
+\end{DoxySeeAlso}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!Light@{Light}}
+\index{Light@{Light}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{Light}{Light}}]{\setlength{\rightskip}{0pt plus 5cm}unsigned long Light = 0}\hypertarget{_sea_sense_8cpp_abbeaec09b42a3bf5a5f3d0546236e2b4}{}\label{_sea_sense_8cpp_abbeaec09b42a3bf5a5f3d0546236e2b4}
+Current light sensor reading in lux. \begin{DoxySeeAlso}{See also}
+\hyperlink{data_collection_8h_a15d72e97777e2a97dd20550fe03e0aac}{get\+Light()} 
+
+\hyperlink{class_sea_sense_aadc31a4bd5e38082f57ab1a02de838da}{Sea\+Sense\+::\+Initialize()} 
+
+\hyperlink{_sea_sense_8cpp_a4ecf85c13d47309a0b3b3a39721432ae}{I\+S\+R(\+T\+I\+M\+E\+R5\+\_\+\+O\+V\+F\+\_\+vect)} 
+\end{DoxySeeAlso}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!log\+Data@{log\+Data}}
+\index{log\+Data@{log\+Data}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{log\+Data}{logData}}]{\setlength{\rightskip}{0pt plus 5cm}boolean log\+Data}\hypertarget{_sea_sense_8cpp_adb305df812f3ad36d5f38e10eacaf96f}{}\label{_sea_sense_8cpp_adb305df812f3ad36d5f38e10eacaf96f}
+Current status of verbose data logging to the Bluetooth port \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!low\+Power\+Logging@{low\+Power\+Logging}}
+\index{low\+Power\+Logging@{low\+Power\+Logging}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{low\+Power\+Logging}{lowPowerLogging}}]{\setlength{\rightskip}{0pt plus 5cm}boolean low\+Power\+Logging}\hypertarget{_sea_sense_8cpp_a0645ad1fe66b17b09330e6d5e6a86c1b}{}\label{_sea_sense_8cpp_a0645ad1fe66b17b09330e6d5e6a86c1b}
+Current status of low power logging (true=enabled) \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!no\+SD@{no\+SD}}
+\index{no\+SD@{no\+SD}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{no\+SD}{noSD}}]{\setlength{\rightskip}{0pt plus 5cm}boolean no\+SD}\hypertarget{_sea_sense_8cpp_af6068f50efbe2526b3bdaab9b6a9f310}{}\label{_sea_sense_8cpp_af6068f50efbe2526b3bdaab9b6a9f310}
+Current status of SD card slot (true = no SD card found) \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!Pres\+Int@{Pres\+Int}}
+\index{Pres\+Int@{Pres\+Int}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{Pres\+Int}{PresInt}}]{\setlength{\rightskip}{0pt plus 5cm}float Pres\+Int}\hypertarget{_sea_sense_8cpp_a703bcf737ac71f070f14446ef3c4469b}{}\label{_sea_sense_8cpp_a703bcf737ac71f070f14446ef3c4469b}
+Current reading from internal pressure sensor \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!R\+T\+C\+\_\+\+A\+U\+T\+O\+S\+ET@{R\+T\+C\+\_\+\+A\+U\+T\+O\+S\+ET}}
+\index{R\+T\+C\+\_\+\+A\+U\+T\+O\+S\+ET@{R\+T\+C\+\_\+\+A\+U\+T\+O\+S\+ET}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{R\+T\+C\+\_\+\+A\+U\+T\+O\+S\+ET}{RTC_AUTOSET}}]{\setlength{\rightskip}{0pt plus 5cm}boolean R\+T\+C\+\_\+\+A\+U\+T\+O\+S\+ET}\hypertarget{_sea_sense_8cpp_aaec9f9b6c825d87e9b1c3873266414be}{}\label{_sea_sense_8cpp_aaec9f9b6c825d87e9b1c3873266414be}
+Set to true to set R\+TC time to compile time. Set to false to allow for manual configuration of the R\+TC using the rtc\+\_\+set command. \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!sd\+\_\+log\+Data@{sd\+\_\+log\+Data}}
+\index{sd\+\_\+log\+Data@{sd\+\_\+log\+Data}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{sd\+\_\+log\+Data}{sd_logData}}]{\setlength{\rightskip}{0pt plus 5cm}boolean sd\+\_\+log\+Data}\hypertarget{_sea_sense_8cpp_a0f92042974383370e2da74ece2864423}{}\label{_sea_sense_8cpp_a0f92042974383370e2da74ece2864423}
+Current status of data logging to the SD card \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!S\+Dfile@{S\+Dfile}}
+\index{S\+Dfile@{S\+Dfile}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{S\+Dfile}{SDfile}}]{\setlength{\rightskip}{0pt plus 5cm}File S\+Dfile}\hypertarget{_sea_sense_8cpp_a1cbc77a0bd3bf439d73136eb98a898c2}{}\label{_sea_sense_8cpp_a1cbc77a0bd3bf439d73136eb98a898c2}
+Current file being logged to \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!Temp@{Temp}}
+\index{Temp@{Temp}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{Temp}{Temp}}]{\setlength{\rightskip}{0pt plus 5cm}double Temp = 0.\+0}\hypertarget{_sea_sense_8cpp_a30b2ceb495b99ab029b438563e5f22fa}{}\label{_sea_sense_8cpp_a30b2ceb495b99ab029b438563e5f22fa}
+Current temperature in deg C. \begin{DoxySeeAlso}{See also}
+get\+A\+D\+Creadings() 
+\end{DoxySeeAlso}
+\index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!Temp\+Int@{Temp\+Int}}
+\index{Temp\+Int@{Temp\+Int}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{Temp\+Int}{TempInt}}]{\setlength{\rightskip}{0pt plus 5cm}float Temp\+Int}\hypertarget{_sea_sense_8cpp_a5764d5a1e45714c66ca6657a5e181ff0}{}\label{_sea_sense_8cpp_a5764d5a1e45714c66ca6657a5e181ff0}
+Current reading from internal temperature sensor \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!Timestamp@{Timestamp}}
+\index{Timestamp@{Timestamp}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{Timestamp}{Timestamp}}]{\setlength{\rightskip}{0pt plus 5cm}char Timestamp\mbox{[}9\mbox{]}}\hypertarget{_sea_sense_8cpp_a3384193faa53fc0e31c4c60e6661fd11}{}\label{_sea_sense_8cpp_a3384193faa53fc0e31c4c60e6661fd11}
+Character array containing the current time, updated once per second \index{Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}!v\+Bat@{v\+Bat}}
+\index{v\+Bat@{v\+Bat}!Sea\+Sense.\+cpp@{Sea\+Sense.\+cpp}}
+\subsubsection[{\texorpdfstring{v\+Bat}{vBat}}]{\setlength{\rightskip}{0pt plus 5cm}int v\+Bat}\hypertarget{_sea_sense_8cpp_ab66da551304fa81b29a16a5c174c2969}{}\label{_sea_sense_8cpp_ab66da551304fa81b29a16a5c174c2969}
+Current battery voltage as read through the A\+DC. \begin{DoxySeeAlso}{See also}
+get\+A\+D\+Creadings() 
+
+\hyperlink{display_8h_a4e04cae27661137fe6cae2b96db9ffb5}{draw\+Bat\+Ind()} 
+\end{DoxySeeAlso}

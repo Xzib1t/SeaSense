@@ -1,0 +1,48 @@
+\hypertarget{display_8h}{}\section{display.\+h File Reference}
+\label{display_8h}\index{display.\+h@{display.\+h}}
+{\ttfamily \#include \char`\"{}Arduino.\+h\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}Sea\+Sense.\+h\char`\"{}}\\*
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{display_8h_a85774eadfed9a7297b91ff49545b9820}{draw\+Arrow} (int degrees)
+\item 
+void \hyperlink{display_8h_a4e04cae27661137fe6cae2b96db9ffb5}{draw\+Bat\+Ind} ()
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Header containing data and function prototypes for display graphics. \begin{DoxyAuthor}{Author}
+Georges Gauthier, \href{mailto:glgauthier@wpi.edu}{\tt glgauthier@wpi.\+edu} 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+May-\/\+July 2016 
+\end{DoxyDate}
+
+
+\subsection{Function Documentation}
+\index{display.\+h@{display.\+h}!draw\+Arrow@{draw\+Arrow}}
+\index{draw\+Arrow@{draw\+Arrow}!display.\+h@{display.\+h}}
+\subsubsection[{\texorpdfstring{draw\+Arrow(int degrees)}{drawArrow(int degrees)}}]{\setlength{\rightskip}{0pt plus 5cm}void draw\+Arrow (
+\begin{DoxyParamCaption}
+\item[{int}]{degrees}
+\end{DoxyParamCaption}
+)}\hypertarget{display_8h_a85774eadfed9a7297b91ff49545b9820}{}\label{display_8h_a85774eadfed9a7297b91ff49545b9820}
+Draw an arrow on the display compass representing the current direction that the I\+MU faces 
+\begin{DoxyParams}{Parameters}
+{\em degrees} & Current compass heading in degrees. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Draws line on display. 
+\end{DoxyReturn}
+\index{display.\+h@{display.\+h}!draw\+Bat\+Ind@{draw\+Bat\+Ind}}
+\index{draw\+Bat\+Ind@{draw\+Bat\+Ind}!display.\+h@{display.\+h}}
+\subsubsection[{\texorpdfstring{draw\+Bat\+Ind()}{drawBatInd()}}]{\setlength{\rightskip}{0pt plus 5cm}void draw\+Bat\+Ind (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{display_8h_a4e04cae27661137fe6cae2b96db9ffb5}{}\label{display_8h_a4e04cae27661137fe6cae2b96db9ffb5}
+Populate the empty battery icon on the display with a bar representing how full the battery is Note that this function populates the battery indicator based on the value of global v\+Bat. \begin{DoxySeeAlso}{See also}
+\hyperlink{_sea_sense_8cpp_ab66da551304fa81b29a16a5c174c2969}{v\+Bat} 
+\end{DoxySeeAlso}
