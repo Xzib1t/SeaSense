@@ -14,4 +14,4 @@ This library relies on some extremely useful functions contained in the followin
 
 The software license found in license.txt applies to the above libraries
 
-For more detailed documentation on this library, please refer to refman.pdf
+For more detailed documentation on this library, please refer to refman.pdf or [visit this page](https://xzib1t.github.io/SeaSense/docs/index.html)
