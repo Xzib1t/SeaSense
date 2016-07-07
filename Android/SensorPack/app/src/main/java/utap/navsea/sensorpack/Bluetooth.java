@@ -125,11 +125,11 @@ public class Bluetooth extends AppCompatActivity{
                 count = inStream.read(buffer, 0, readStop);
                 sum += count;
                 int bytesTemp = sum;
-                if(bytesTemp>69) bytesTemp -= 69; //Correct for extra non-value bytes
+                if(bytesTemp>69) bytesTemp -= 69; //Correct for extra non-value bytes, there are 69 of them
                 float curProgress = ((float)bytesTemp / (float)totalFileSize) * 100f;
                 bytesDownloaded = bytesTemp;
                 bytesTemp = (int) curProgress;
-                //System.out.println("Progress: " + bytesDownloaded);
+
                 MainActivity.Download.update(bytesTemp);
                 downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
             }

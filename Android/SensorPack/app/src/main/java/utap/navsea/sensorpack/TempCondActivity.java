@@ -87,18 +87,23 @@ public class TempCondActivity extends AppCompatActivity {
             public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
                 btnPressCount++;
-                if((btnPressCount % 2)!=0 && isGettingData()) {
+                boolean gettingData = isGettingData(); //Check if we're getting data
+                if((btnPressCount % 2)!=0 && !gettingData) { //We want data and aren't getting it yet
                     rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+                    sendLogApp(); //Need to send logapp to start data transfer
                     startRtDownload(data);
-                    System.out.println("Want data, already getting data, no request sent");
-                }else if((btnPressCount % 2)!=0 && !isGettingData()){
-                    sendLogApp();
+                }
+                if((btnPressCount % 2)!=0 && gettingData) { //We want data and are already getting it
                     rtButton.setText(getResources().getString(R.string.stop_graph_rt));
-                    startRtDownload(data);
-                    System.out.println("Want data, not getting data, request sent");
-                }else if((btnPressCount % 2)==0 && isGettingData()){
-                    sendLogApp();
-                    System.out.println("Stopped");
+                    startRtDownload(data); //Don't need to send logapp, data already incoming
+                }
+                if((btnPressCount % 2)==0 && gettingData) { //We want to stop getting data and are still getting it
+                    rtButton.setText(getResources().getString(R.string.graph_rt));
+                    sendLogApp(); //Need to send logapp to stop data transfer
+                }
+                if((btnPressCount % 2)==0 && !gettingData) { //We want to stop getting data but we already aren't getting it
+                    rtButton.setText(getResources().getString(R.string.graph_rt));
+                    //Don't need to send logapp, data transfer already stopped
                 }
             }
         });
@@ -161,21 +166,22 @@ public class TempCondActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * This is a workaround for detecting if we are
+     * getting data or not, since reading from an InputStream is blocking
+     * @return
+     */
     private boolean isGettingData(){
         try{
             if(socket.getInputStream().available()>0) {
-                System.out.println("Before flush: " + socket.getInputStream().available());
-                flushStream();
-                Thread.sleep(100);
+                flushStream(); //Flush stream to restart estimate
+                Thread.sleep(200); //Give us time to see if we still get data after a flush
             }
-            if(socket.getInputStream().available()>0){
-                System.out.println("After flush: " + socket.getInputStream().available());
+            if(socket.getInputStream().available()>0) //We check here again after the delay
                 return true;
-            }else return false;
-
+            else return false;
 
         }catch(IOException | InterruptedException e){
-            System.out.println("false");
             return false; //Couldn't read stream because we aren't getting data
         }
     }

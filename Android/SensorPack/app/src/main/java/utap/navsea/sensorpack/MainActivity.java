@@ -22,7 +22,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
@@ -69,7 +68,6 @@ public class MainActivity  extends AppCompatActivity {
 	private Dialog fileDialog;
 	private FloatingActionButton fab = null;
 	private FloatingActionButton fabRight = null;
-
 	private SeekBar timeSlider = null;
     private boolean rtThreadRunning = false;
 	//Below UUID is the standard SSP UUID:
@@ -78,7 +76,6 @@ public class MainActivity  extends AppCompatActivity {
 	private static int btnPressCount = 0;
     private static View thisView = null;
     private static int btnLogCount = 0;
-
     public static  DownloadTask Download;
 
 	@Override
@@ -123,15 +120,23 @@ public class MainActivity  extends AppCompatActivity {
 			public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.start_dl_rt));
                 btnPressCount++;
-                if((btnPressCount % 2)!=0 && isGettingData()) {
+                boolean gettingData = isGettingData(); //Check if we're getting data
+                if((btnPressCount % 2)!=0 && !gettingData) { //We want data and aren't getting it yet
                     rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+                    sendLogApp(); //Need to send logapp to start data transfer
                     startRtDownload(data);
-                }else if((btnPressCount % 2)!=0 && !isGettingData()){
-                    sendLogApp();
+                }
+                if((btnPressCount % 2)!=0 && gettingData) { //We want data and are already getting it
                     rtButton.setText(getResources().getString(R.string.stop_dl_rt));
-                    startRtDownload(data);
-                }else if((btnPressCount % 2)==0 && isGettingData()){
-                    sendLogApp();
+                    startRtDownload(data); //Don't need to send logapp, data already incoming
+                }
+                if((btnPressCount % 2)==0 && gettingData) { //We want to stop getting data and are still getting it
+                    rtButton.setText(getResources().getString(R.string.start_dl_rt));
+                    sendLogApp(); //Need to send logapp to stop data transfer
+                }
+                if((btnPressCount % 2)==0 && !gettingData) { //We want to stop getting data but we already aren't getting it
+                    rtButton.setText(getResources().getString(R.string.start_dl_rt));
+                    //Don't need to send logapp, data transfer already stopped
                 }
 			}
 		});
@@ -275,21 +280,26 @@ public class MainActivity  extends AppCompatActivity {
             if(socket!=null)
             socket.getInputStream().skip(socket.getInputStream().available());
         } catch (IOException e) {
+            System.out.println("Flush failed");
         }
     }
 
+    /**
+     * This is a workaround for detecting if we are
+     * getting data or not, since reading from an InputStream is blocking
+     * @return
+     */
     private boolean isGettingData(){
         try{
             if(socket.getInputStream().available()>0) {
-                flushStream();
-                Thread.sleep(100);
+                flushStream(); //Flush stream to restart estimate
+                Thread.sleep(200); //Give us time to see if we still get data after a flush
             }
-            if(socket.getInputStream().available()>0){
+            if(socket.getInputStream().available()>0) //We check here again after the delay
                 return true;
-            }else return false;
+            else return false;
 
         }catch(IOException | InterruptedException e){
-            System.out.println("false");
             return false; //Couldn't read stream because we aren't getting data
         }
     }
@@ -884,6 +894,8 @@ public class MainActivity  extends AppCompatActivity {
             progressText.append("Byes downloaded: " + Bluetooth.getBytesDown()
                     + "/" + Bluetooth.totalFileSize);
             spinner.setProgress(progress[0]);
+            spinner.getProgressDrawable().setColorFilter(
+                    Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
         }
 
 		@Override
