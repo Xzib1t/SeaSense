@@ -44,7 +44,7 @@ char cli_rxBuf[MAX_INPUT_SIZE]; // input character buffer
 byte adc_channel = 10; // first ADC channel to be read from 
 int adcBuf[ADC_BUFFER_SIZE]; // global buffer for incoming ADC readings
 byte adc_pos = 0; // position in adcBuf
-int count; // used in timer1 interrupt
+int _count; // used in timer1 interrupt
 
 // formatted data storage variables (these are what get printed when logging)
 char Timestamp[9]; // current time stored as 'HH:MM:SS/0'
@@ -481,11 +481,11 @@ ISR(TIMER1_COMPA_vect)
     } 
 
     // keep a rolling count of the number of interrupts triggered (every 10 counts = 1 second)
-    if(count<9) {
-        count++;
+    if(_count<9) {
+        _count++;
     // all code contained within the corresponding else statement will run once per second
     } else { 
-        count = 0; // don't forget to reset the counter
+        _count = 0; // don't forget to reset the counter
         
         // to speed up sampling by a factor of 10, move any of these conditionals outside of this if:else statement
         if(sd_logData & SDfile) { // log data to SD card (highest priority logging)

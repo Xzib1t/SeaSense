@@ -1,8 +1,10 @@
- // Created by Georges Gauthier - glgauthier@wpi.edu
-// ported from the original seasense PIC code
-
-// This source file contains all command line interface code
-// any functions relating to command line input are stored here
+/** @file Cli.cpp
+*  @breif Contains all functions for handling command line input
+*  @author Georges Gauthier, glgauthier@wpi.edu
+*  @author Eugene Chabot (original CLI code for PIC24FJ64GB004)
+*  @author John DiCecco (original CLI code for PIC24FJ64GB004)
+*  @date May-July 2016
+*/ 
 
 #include "Arduino.h"
 #include "Cli.h"
@@ -17,6 +19,12 @@ static char* cli_argv[MAX_CLI_ARGV];
 int _numCSV = 0;
 
 /* Create a type for each CLI command. */
+/** @struct CLI_CMD
+*   @breif Format for CLI commands added to CLI_CORE_CMD_LIST
+*   @param name Function name, as entered in the command line interface
+*   @param description Function description (shown when calling the help command)
+*   @param cli_function Local function in Cli.cpp corresponding to the given command name and description
+*/
 struct CLI_CMD
 {
   char *name;
@@ -26,7 +34,13 @@ struct CLI_CMD
 typedef struct CLI_CMD cli_cmd_t;
 
 
-// generate all available commands and their associated content using a macro
+/**Generate a list of CLI_CMD structs for all commands visible from the help menu.
+* Note that passing "text" for each command name and description is a depreciated conversion
+* from a string constant to a char* and will result in compiler warnings. 
+* However, this method does save a lot of space and is more readable. 
+* In the future this may need to be fixed; proper syntax would be to use strcpy() 
+* or something similar.
+*/
 #define CLI_CORE_CMD_LIST	\
         CLI_CMD("help", "Show a list of commands", cli_help) \
 		CLI_CMD("test", "A test command", cli_test) \
@@ -49,15 +63,13 @@ typedef struct CLI_CMD cli_cmd_t;
         CLI_CMD("reset", "Reset the SeaSense (BE CAREFUL - KILLS ALL PROCESSES)", cli_wdt_reset) \
         
 
-// Generate a list of function prototypes for everything in CLI_COME_CMD_LIST
+/** Generate function prototypes for all CLI_CMD structs in CLI_CORE_CMD_LIST
+*/
 #undef CLI_CMD
 #define CLI_CMD(cmd, desc, func) void func(int argc, char *argv[]);		
 CLI_CORE_CMD_LIST
 
-// Generate the list of CLI commands. 
-//      note that converting "text like this" to a char* is a
-//      depreciated method and will throw warnings. Proper syntax
-//      would be to use strcpy() or something similar
+/**Array containing all CLI_CMD structs*/
 cli_cmd_t cli_cmds[] = {
 #undef CLI_CMD
 #define CLI_CMD(cmd, desc, func) {cmd, desc, func},
@@ -69,21 +81,53 @@ int num_cli_cmds = sizeof(cli_cmds)/sizeof(cli_cmds[0]);
 
 
 /************************  function prototypes *************************/
-// print all files/folders/filesizes of what's on the SD card
+/** Recursively print all files/folders/filesizes starting from the given directory. 
+* @param dir Top directory of the filesystem being iterated through
+* @param numTabs Depth to start searching the given dir at 
+*/
 void printDirectory(File dir, int numTabs);
-// create a new YYMMDD##.CSV file in folder YYYYMMDD/ 
+/** Scans SD card for a filename in the format of YYMMDDxx.csv contained 
+* within the given directory. This function will recursively search the directory
+* until it hits a filename in sequence (xx = 00->99) that doesn't exist, 
+* and will return a full path to said filename.
+* @param filenum Sequential recording number
+* @param directory File directory (8.3 name formatted as YYYYMMDD/)
+* @return Pointer to a new 8.3 filename containing YYMMDD and a number (00-99) 
+* @see cli_log_file(int argc, char *argv[])
+*/
 char* newFile(int filenum,char* directory);
-// dump all CSV files contained on the SD card
+/** Recursively search through each dir on the SD card and 
+* dump the contents of all .CSV files contained within.
+* @param dir Top directory to begin searching within.
+* @param numTabs Depth within the top directory to begin searching at
+*/
 void dumpCSV(File dir, int numTabs); 
-// check to see if a file is .csv format
+/** Check to see if a file is .csv format 
+* @param filename 8.3 Filename
+* @return true or false
+*/
 bool isCSV(char* filename);
-// remove all files within a dir (SD.delete() doesn't work on a full dir)
+/** Delete all files within a directory. 
+* Created because SD.delete() doesn't work on a full dir.
+* @param dir Directory containing files
+*/
 void rmSubFiles(File dir);
-// print the number of CSV files contained on the sd card
+/** Recursively print the number of CSV files contained on the sd card to the bluetooth serial port.
+* Used for the android app.
+* @param dir Top directory to begin searching within.
+* @param numTabs Depth within the top directory to begin searching at
+* @see processCMD(char *command, int size)
+*/
 void numCSVfiles(File dir, int numTabs);
-// print the file size of each CSV file contained on the sd card
+/** Recursively print the file size and name of each CSV file contained on the sd card
+* Used for the android app.
+* @param dir Top directory to begin searching within.
+* @param numTabs Depth within the top directory to begin searching at
+* @param dirName name of the directory being searched (used in recursion to create a fullpath string for each filename)
+* @see processCMD(char *command, int size)
+*/
 void dumpCSVinfo(File dir, int numTabs, char* dirName);
-// something something... uhh I'm not sure how this got here
+// Wait, I totally had something for this
 void dangerzone(); 
 /************************************************************************/
 
@@ -174,7 +218,10 @@ void processCMD(char *command, int size)
     return;
 }
 
-//cli_help command - prints out all available commands and their descriptions
+/**Print out all available commands within CLI_CORE_CMD_LIST and their descriptions
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_help(int argc, char *argv[])
 {
     int count;
@@ -190,7 +237,11 @@ void cli_help(int argc, char *argv[])
     return;
 }
 
-// cli_test command - print a string to illustrate the use of the command line client
+/** Print a test string to illustrate the use of the command line client.
+* Also prints each argv and its corresponding argc number to demonstrate input parsing 
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_test(int argc, char *argv[]) 
 {
     //print an indicator that the command was recieved
@@ -207,7 +258,10 @@ void cli_test(int argc, char *argv[])
     return;
 }
 
-// cli_rtc_get - print the current time
+/** Print the current time
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_rtc_get(int argc, char *argv[])
 {
     // if the RTC isn't running, throw an error
@@ -223,8 +277,12 @@ void cli_rtc_get(int argc, char *argv[])
     return;
 }
 
-// cli_rtc_set - set a new RTC time
-// input from command line is rtc_set yyyy/mm/dd hh:mm:ss
+/** Set the RTC to a given time and date
+* Input from command line should follow "rtc_set yyyy/mm/dd hh:mm:ss"
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+* @see RTC_AUTOSET
+*/
 void cli_rtc_set(int argc, char *argv[])
 {
     // if autoset is turned on, don't allow for the time to be manipulated
@@ -257,10 +315,13 @@ void cli_rtc_set(int argc, char *argv[])
     return;
 }
 
-// cli_sd_init - attempt to re-initialize the SD card
-// note that the SD library doesn't have the ability to terminate an already-initialized SD card,
-// so attempting an sd_init after already initializing the card will throw an error. 
-// I can't find a workaround to this :(
+/** @breif Attempt to re-initialize the SD card.
+* Note that the SD library doesn't have the ability to terminate an already-initialized SD card,
+* so attempting an sd_init after already initializing the card will throw an error. 
+* I can't find a workaround to this :(
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_sd_init(int argc, char *argv[])
 {   Sd2Card card; 
  
@@ -299,7 +360,11 @@ void cli_sd_init(int argc, char *argv[])
     return;
 }
 
-// cli_sd_ls - prints all files and directories saved on the SD card
+/** Print all files and directories saved on the SD card
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+* @see printDirectory(File dir, int numTabs)
+*/
 void cli_sd_ls(int argc, char *argv[])
 {
     if(sd_logData){
@@ -315,8 +380,11 @@ void cli_sd_ls(int argc, char *argv[])
     return;
 }
 
-// sd_cat - print out all data contained in a file
-// proper syntax is sd_cat FILENAME.EXT or sd_cat FOLDERNAME/FILENAME.EXT
+/** Print out all data contained in a file.
+* Proper syntax is sd_cat FILENAME.EXT or sd_cat FOLDERNAME/FILENAME.EXT
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_sd_cat(int argc, char *argv[])
 {
     // if an incorrect number of arguments are given, throw an error and exit
@@ -353,7 +421,11 @@ void cli_sd_cat(int argc, char *argv[])
     return;
 }
 
-// cli_sd_dd - dump all .csv files on the SD card
+/** Dump all .csv files on the SD card
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+* @see dumpCSV(File dir, int numTabs)
+*/
 void cli_sd_dd(int argc, char *argv[])
 {
     // don't read from the card if it's being written to by the ISR
@@ -373,8 +445,10 @@ void cli_sd_dd(int argc, char *argv[])
     return;
 }
 
-// cli_sd_append - append a comment to a file
-// argv[1] = filename, argv[2]-argv[MAX_CLI_ARGV] = text to be written to file
+/** Append a comment to a file
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing text to be written to file
+*/
 void cli_sd_append(int argc, char *argv[])
 {
     // if an incorrect number of arguments are given, throw an error
@@ -418,7 +492,10 @@ void cli_sd_append(int argc, char *argv[])
     }
 }
 
-// cli_sd_create create a new file on the SD card
+/** Create a new file on the SD card
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_sd_create(int argc, char *argv[]) {
     if(sd_logData){
         Serial.println(F("Error: turn off data logging first!"));
@@ -442,7 +519,11 @@ void cli_sd_create(int argc, char *argv[]) {
     return;
 }
 
-// cli_sd_del delete a file or directory from the SD card
+/** Delete a file or directory of files from the SD card
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+* @see rmSubFiles(File dir)
+*/
 void cli_sd_del(int argc, char *argv[]) {  
     if(sd_logData){
         Serial.println(F("Error: turn off data logging first!"));
@@ -486,7 +567,10 @@ void cli_sd_del(int argc, char *argv[]) {
     return;
 }
 
-// cli_log_data - log data to the bluetooth serial port in a human-readable format
+/** Log data to the bluetooth serial port in a human-readable format
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_log_data(int argc, char *argv[])
 {
     // if already logging data via the bluetooth serial port, indicate so and return
@@ -508,7 +592,10 @@ void cli_log_data(int argc, char *argv[])
     return;
 }
 
-// cli_log_app log data to the bluetooth serial port in a machine-recognizable format
+/** Log data to the bluetooth serial port in a machine-recognizable format
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_log_app(int argc, char *argv[])
 {
     // if already logging data via the bluetooth serial port, indicate so and return
@@ -528,10 +615,14 @@ void cli_log_app(int argc, char *argv[])
     return;
 }
 
-// cli_log_file - Create a new datafile on the SD card and begin logging data to it
-// files recorded on the SD card will be saved in folders corresponding to the date of the recording
-// filenames will correspond to YYMMDD##.CSV, where ## is the current number of files recorded
-// on the corresponding date
+/** @breif Create a new datafile on the SD card and begin logging data to it.
+* Files recorded on the SD card will be saved in folders corresponding to the date of the recording.
+* Filenames will correspond to YYMMDD##.CSV, where ## is the current number of files recorded
+* on the corresponding date.
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+* @see newFile(int filenum, char* directory)
+*/
 void cli_log_file(int argc, char *argv[])
 {   
     // sending logfile will toggle whether or not data is being logged to the SD card
@@ -589,7 +680,14 @@ void cli_log_file(int argc, char *argv[])
     return;
 }
 
-// cli_wdt_reset - reset the microcontroller by enabling the watchdog timer and letting it overflow
+/** @breif Reset the microcontroller by enabling the watchdog timer and letting it overflow.
+* Note that for the Seeeduino Mega version I've commented out the watchdog timer config
+* and replaced it with a jump to the first address in program memory. Due to the bootloader on
+* the 2560 of the seeeduino board, the micro will end up in a permanent WDT overflow loop
+* if you enable the watchdog timer. This is NOT an issue on the blueduino board.
+* @param argc Number of space-separated arguments entered via the command line interface
+* @param argv Character array containing argument vectors
+*/
 void cli_wdt_reset(int argc, char *argv[]) {
     // don't mess up the memory card by resetting while writing
     if(sd_logData){ 
@@ -607,7 +705,7 @@ void cli_wdt_reset(int argc, char *argv[]) {
     asm volatile ("  jmp 0"); 
      
     // eat processor cycles until the wdt overflows
-  //Serial.println(F("This functionality has been disabled - see Cli.cpp"));
+    // while(1)
 }
 
 // printDirectory - prints out all files and directories on the SD card to the serial monitor
@@ -805,10 +903,12 @@ void rmSubFiles(File dir)
 }
 
 // I see you've found the easter egg
+/**Oh wait, I had something for this*/
 void dangerzone()
 {
     int quote = random();
     quote %= 14; // num cases + 1
+    constrain(quote,0,14); // just to be sure
     switch(quote){
         case 0: 
             Serial.println(F("For I am a sinner in the hands of an angry God. Bloody Mary, full of vodka, blessed are you among cocktails."));

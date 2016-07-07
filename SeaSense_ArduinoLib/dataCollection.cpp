@@ -1,8 +1,9 @@
-// Created by Georges Gauthier - glgauthier@wpi.edu
-// Last updated June 2016
-
-// this source files contains low-priority code for updating global variables with new sensor
-// readings, as well as code for resetting the ADC for a new conversion sequence
+/** @file dataCollection.cpp
+*  @breif low-priority code for updating global variables with new sensor
+*  readings, as well as code for resetting the ADC for a new conversion sequence
+*  @author Georges Gauthier, glgauthier@wpi.edu
+*  @date May-July 2016
+*/ 
 
 #include "Arduino.h"
 #include "SeaSense.h"
@@ -237,7 +238,8 @@ void getInternals(){
     }
 #endif /* TSL230R */
 
-// resets the ADC for new conversions starting with channel 10 and buffer index 0
+/** This function resets the ADC for new conversions starting with channel 10 and buffer index 0
+*/
 void resetADC(){
     // cycle which ADC is being read from
     if(adc_channel<13) {

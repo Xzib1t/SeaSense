@@ -1,4 +1,4 @@
-# SeaSense Arduino Library
+# SeaSense Arduino Library  {#mainpage}
 Created by Georges Gauthier - glgauthier@wpi.edu
 
 SeaSense is an underwater sensor package created for educational outreach. The SeaSense package is capable of logging data from various sensors, as well as displaying and wirelessly transmitting gathered data via Bluetooth. 
@@ -13,3 +13,5 @@ This library relies on some extremely useful functions contained in the followin
 * [Adafruit SSD1306 Library](https://github.com/adafruit/Adafruit_SSD1306)
 
 The software license found in license.txt applies to the above libraries
+
+For more detailed documentation on this library, please refer to refman.pdf

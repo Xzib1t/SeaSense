@@ -1,18 +1,20 @@
 /*
-  Example Bluetooth Serial Passthrough Sketch
- by: Jim Lindblom
- SparkFun Electronics
- date: February 26, 2013
- license: Public domain
+Example Bluetooth Serial Passthrough Sketch
+by: Jim Lindblom
+SparkFun Electronics
+date: February 26, 2013
+license: Public domain
 
- This example sketch converts an RN-42 bluetooth module to
- communicate at 57600 bps (from 115200), and passes any serial
- data between Serial Monitor and bluetooth module.
- */
- 
- /*
- Modified by Georges Gauthier on 7/05/2016 to work with the SeaSense suite
- */
+This example sketch converts an RN-42 bluetooth module to
+communicate at 57600 bps (from 115200), and passes any serial
+data between Serial Monitor and bluetooth module.
+*/
+
+/*
+Modified by Georges Gauthier on 7/07/2016 to work with the SeaSense suite.
+If using this sketch to change the baud rate of the SeaSense's bluetooth coms, 
+please go to the SeaSense library folder and change BT_BAUDRATE in line 91 of globals.h accordingly. 
+*/
 
 void setup()
 {
