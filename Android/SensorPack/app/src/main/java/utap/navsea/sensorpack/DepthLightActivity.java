@@ -52,7 +52,6 @@ public class DepthLightActivity extends AppCompatActivity {
     private LineChart chartLight = null;
     private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
     private static int btnPressCount = 0;
-    private static RelativeLayout thisView = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,13 +70,7 @@ public class DepthLightActivity extends AppCompatActivity {
         final DataObject data = new DataObject();
         data.addObserver(graph);
 
-        thisView = (RelativeLayout)findViewById(R.id.full_screen_depthlight);
-
-        //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
-        ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
-        activitySwipeDetector.setDestinations(TempCondActivity.class, MainActivity.class);
-        RelativeLayout layout = (RelativeLayout) findViewById(R.id.full_screen_depthlight);
-        layout.setOnTouchListener(activitySwipeDetector);
+        setupSwipeDetector(); //Setup swipe detector so we can swipe to change views
 
         final Button rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
         if(socket!=null) rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
@@ -87,24 +80,7 @@ public class DepthLightActivity extends AppCompatActivity {
             public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
                 btnPressCount++;
-                boolean gettingData = isGettingData(); //Check if we're getting data
-                if((btnPressCount % 2)!=0 && !gettingData) { //We want data and aren't getting it yet
-                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
-                    sendLogApp(); //Need to send logapp to start data transfer
-                    startRtDownload(data);
-                }
-                if((btnPressCount % 2)!=0 && gettingData) { //We want data and are already getting it
-                    rtButton.setText(getResources().getString(R.string.stop_graph_rt));
-                    startRtDownload(data); //Don't need to send logapp, data already incoming
-                }
-                if((btnPressCount % 2)==0 && gettingData) { //We want to stop getting data and are still getting it
-                    rtButton.setText(getResources().getString(R.string.graph_rt));
-                    sendLogApp(); //Need to send logapp to stop data transfer
-                }
-                if((btnPressCount % 2)==0 && !gettingData) { //We want to stop getting data but we already aren't getting it
-                    rtButton.setText(getResources().getString(R.string.graph_rt));
-                    //Don't need to send logapp, data transfer already stopped
-                }
+                syncButton(rtButton, data);
             }
         });
 
@@ -139,6 +115,14 @@ public class DepthLightActivity extends AppCompatActivity {
         });
     }
 
+    private void setupSwipeDetector(){
+        //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
+        ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
+        activitySwipeDetector.setDestinations(TempCondActivity.class, MainActivity.class);
+        RelativeLayout layout = (RelativeLayout) findViewById(R.id.full_screen_depthlight);
+        layout.setOnTouchListener(activitySwipeDetector);
+    }
+
     private void flushStream(){
         try {
             if(socket!=null)
@@ -164,6 +148,33 @@ public class DepthLightActivity extends AppCompatActivity {
 
         }catch(IOException | InterruptedException e){
             return false; //Couldn't read stream because we aren't getting data
+        }
+    }
+
+    /**
+     * Make sure our button state is consistent with what's happening
+     * on the Arduino side
+     * @param rtButton
+     * @param data
+     */
+    private void syncButton(Button rtButton, DataObject data){
+        boolean gettingData = isGettingData(); //Check if we're getting data
+        if((btnPressCount % 2)!=0 && !gettingData) { //We want data and aren't getting it yet
+            rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+            sendLogApp(); //Need to send logapp to start data transfer
+            startRtDownload(data);
+        }
+        if((btnPressCount % 2)!=0 && gettingData) { //We want data and are already getting it
+            rtButton.setText(getResources().getString(R.string.stop_graph_rt));
+            startRtDownload(data); //Don't need to send logapp, data already incoming
+        }
+        if((btnPressCount % 2)==0 && gettingData) { //We want to stop getting data and are still getting it
+            rtButton.setText(getResources().getString(R.string.graph_rt));
+            sendLogApp(); //Need to send logapp to stop data transfer
+        }
+        if((btnPressCount % 2)==0 && !gettingData) { //We want to stop getting data but we already aren't getting it
+            rtButton.setText(getResources().getString(R.string.graph_rt));
+            //Don't need to send logapp, data transfer already stopped
         }
     }
 
@@ -199,12 +210,6 @@ public class DepthLightActivity extends AppCompatActivity {
 
     public static int getBtnState(){
         return btnPressCount;
-    }
-
-    public static void displayWarning(){
-        Snackbar.make(thisView, "Stop real time display before changing screens",
-                Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show();
     }
 
     private void startRtDownload(final DataObject data){

@@ -35,7 +35,6 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -66,17 +65,15 @@ public class MainActivity  extends AppCompatActivity {
 	private Dialog dialog;
 	private Dialog dialogCommands;
 	private Dialog fileDialog;
-	private FloatingActionButton fab = null;
-	private FloatingActionButton fabRight = null;
 	private SeekBar timeSlider = null;
     private boolean rtThreadRunning = false;
 	//Below UUID is the standard SSP UUID:
 	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
 	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 	private static int btnPressCount = 0;
-    private static View thisView = null;
     private static int btnLogCount = 0;
     public static  DownloadTask Download;
+    public static ArrayList<String> fileNames = new ArrayList<String>();
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -97,18 +94,11 @@ public class MainActivity  extends AppCompatActivity {
 		fileDialog = new Dialog(this); //Create a dialog to show the files on the SD card
         FloatingActionButton fabReset = (FloatingActionButton) findViewById(R.id.fab_reset);
         FloatingActionButton fabLogfile = (FloatingActionButton) findViewById(R.id.fab_logfile);
-		fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
-        fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
+		FloatingActionButton fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
         final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
 
-        thisView = (RelativeLayout)findViewById(R.id.full_screen_tempcond);
-
-        //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
-        ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
-        activitySwipeDetector.setDestinations(DepthLightActivity.class, TempCondActivity.class);
-        LinearLayout layout = (LinearLayout) findViewById(R.id.full_screen_main);
-        layout.setOnTouchListener(activitySwipeDetector);
-
+        setupSwipeDetector(); //Setup swipe detector so we can swipe to change views
         syncDisplay(rtButton);
 
         final DisplayObject display = new DisplayObject();
@@ -120,24 +110,7 @@ public class MainActivity  extends AppCompatActivity {
 			public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.start_dl_rt));
                 btnPressCount++;
-                boolean gettingData = isGettingData(); //Check if we're getting data
-                if((btnPressCount % 2)!=0 && !gettingData) { //We want data and aren't getting it yet
-                    rtButton.setText(getResources().getString(R.string.stop_dl_rt));
-                    sendLogApp(); //Need to send logapp to start data transfer
-                    startRtDownload(data);
-                }
-                if((btnPressCount % 2)!=0 && gettingData) { //We want data and are already getting it
-                    rtButton.setText(getResources().getString(R.string.stop_dl_rt));
-                    startRtDownload(data); //Don't need to send logapp, data already incoming
-                }
-                if((btnPressCount % 2)==0 && gettingData) { //We want to stop getting data and are still getting it
-                    rtButton.setText(getResources().getString(R.string.start_dl_rt));
-                    sendLogApp(); //Need to send logapp to stop data transfer
-                }
-                if((btnPressCount % 2)==0 && !gettingData) { //We want to stop getting data but we already aren't getting it
-                    rtButton.setText(getResources().getString(R.string.start_dl_rt));
-                    //Don't need to send logapp, data transfer already stopped
-                }
+                syncButton(rtButton, data);
 			}
 		});
 
@@ -173,6 +146,7 @@ public class MainActivity  extends AppCompatActivity {
 			public void onDismiss(DialogInterface dialogInterface) {
 				System.out.println("Dialog dismissed");
 				Bluetooth.dialogOpen = false;
+                if(Download!=null) Download.cancel(true);
 			}
 		});
 
@@ -275,6 +249,14 @@ public class MainActivity  extends AppCompatActivity {
 		});
 	}
 
+    private void setupSwipeDetector(){
+        //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
+        ActivitySwipeDetector activitySwipeDetector = new ActivitySwipeDetector(this);
+        activitySwipeDetector.setDestinations(DepthLightActivity.class, TempCondActivity.class);
+        LinearLayout layout = (LinearLayout) findViewById(R.id.full_screen_main);
+        layout.setOnTouchListener(activitySwipeDetector);
+    }
+
     private void flushStream(){
         try {
             if(socket!=null)
@@ -304,6 +286,33 @@ public class MainActivity  extends AppCompatActivity {
         }
     }
 
+    /**
+     * Make sure our button state is consistent with what's happening
+     * on the Arduino side
+     * @param rtButton
+     * @param data
+     */
+    private void syncButton(Button rtButton, DataObject data){
+        boolean gettingData = isGettingData(); //Check if we're getting data
+        if((btnPressCount % 2)!=0 && !gettingData) { //We want data and aren't getting it yet
+            rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+            sendLogApp(); //Need to send logapp to start data transfer
+            startRtDownload(data);
+        }
+        if((btnPressCount % 2)!=0 && gettingData) { //We want data and are already getting it
+            rtButton.setText(getResources().getString(R.string.stop_dl_rt));
+            startRtDownload(data); //Don't need to send logapp, data already incoming
+        }
+        if((btnPressCount % 2)==0 && gettingData) { //We want to stop getting data and are still getting it
+            rtButton.setText(getResources().getString(R.string.start_dl_rt));
+            sendLogApp(); //Need to send logapp to stop data transfer
+        }
+        if((btnPressCount % 2)==0 && !gettingData) { //We want to stop getting data but we already aren't getting it
+            rtButton.setText(getResources().getString(R.string.start_dl_rt));
+            //Don't need to send logapp, data transfer already stopped
+        }
+    }
+
     private boolean isStillConnected(){
             try {
                 int testData = 13;
@@ -327,11 +336,11 @@ public class MainActivity  extends AppCompatActivity {
             showInstructions();
             rtButton.setVisibility(View.INVISIBLE);
         }
-        else if(!isStillConnected() && !isStillConnected()){
+        else if(!isStillConnected()){
             showInstructions();
             rtButton.setVisibility(View.VISIBLE);
         }
-        else if(isStillConnected() && isStillConnected()){
+        else if(isStillConnected()){
             rtButton.setVisibility(View.VISIBLE);
         }
     }
@@ -713,10 +722,14 @@ public class MainActivity  extends AppCompatActivity {
      */
     private void loadFileNamePopup(ArrayAdapter<String> mFileNameAdapter) {
         if(mFileNameAdapter!=null) mFileNameAdapter.clear();
-        ArrayList<String> fileNames = Bluetooth.extractFileNames();
-        for(String fileName : fileNames){
-            if(mFileNameAdapter!=null)
-                mFileNameAdapter.add(fileName);
+        SdInfoAsync GetSdNamesTask = new SdInfoAsync();
+        GetSdNamesTask.execute();
+        if(!fileNames.isEmpty()) {
+            //ArrayList<String> fileNames = Bluetooth.extractFileNames();
+            for (String fileName : fileNames) {
+                if (mFileNameAdapter != null)
+                    mFileNameAdapter.add(fileName);
+            }
         }
     }
 
@@ -867,11 +880,12 @@ public class MainActivity  extends AppCompatActivity {
 		private DownloadTask asyncObject;
 		@Override
 		protected void onPreExecute() {
+            asyncObject = this;
 			spinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
 			spinner.setVisibility(View.VISIBLE);
 
 			//This timeout code was modified from from http://stackoverflow.com/questions/7882739/android-setting-a-timeout-for-an-asynctask
-			new CountDownTimer(7000, 1000) {
+			new CountDownTimer(5000, 1000) {
 				public void onTick(long millisUntilFinished) {
 				}
 				public void onFinish() {
@@ -880,12 +894,14 @@ public class MainActivity  extends AppCompatActivity {
                         if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
                             spinner = (ProgressBar) fileDialog.findViewById(R.id.progressBar2);
                             spinner.setVisibility(View.INVISIBLE);
-                            asyncObject.cancel(false);
+                            fileDialog.cancel();
+                            asyncObject.cancel(true);
+                            System.out.println("Cancelled");
                         }
                     }
 				}
 			}.start();
-		}
+        }
         @Override
         protected void onProgressUpdate(Integer... progress) {
             TextView progressText = (TextView)fileDialog.findViewById(R.id.progress_text);
@@ -919,6 +935,43 @@ public class MainActivity  extends AppCompatActivity {
 			spinner.setVisibility(View.INVISIBLE);
 		}
 	}
+
+    /**
+     * This class handles downloading SD info data in the background with a timeout
+     */
+    public static class SdInfoAsync extends AsyncTask<Integer, Integer, String> {
+        private SdInfoAsync asyncObject;
+
+        @Override
+        protected void onPreExecute() {
+            asyncObject = this;
+            fileNames.clear();
+            //This timeout code was modified from from http://stackoverflow.com/questions/7882739/android-setting-a-timeout-for-an-asynctask
+            new CountDownTimer(2000, 1000) {
+                public void onTick(long millisUntilFinished) {
+                }
+                public void onFinish() {
+                    // stop async task if not in progress
+                    if(asyncObject!=null) {
+                        if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
+                            asyncObject.cancel(true);
+                            System.out.println("Cancelled getting SD info");
+                        }
+                    }
+                }
+            }.start();
+        }
+
+        @Override
+        protected String doInBackground(Integer... params) {
+            fileNames = Bluetooth.extractFileNames();
+            return "done";
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+        }
+    }
 
 	/**
 	 * Closes the Bluetooth socket

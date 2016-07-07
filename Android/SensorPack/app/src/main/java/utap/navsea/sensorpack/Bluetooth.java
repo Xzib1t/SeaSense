@@ -28,9 +28,15 @@ import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -121,7 +127,12 @@ public class Bluetooth extends AppCompatActivity{
             if (fileSize > buffer.length) readStop = buffer.length;
             else
                 readStop = fileSize; //make sure that the data size isn't larger than our buffer
-            while((sum<=fileSize) && dialogOpen) {
+            while((sum<=fileSize) && dialogOpen && !MainActivity.Download.isCancelled()) {
+                if(MainActivity.Download.isCancelled())
+                {
+                    System.out.println("Cancel detected");
+                    return;
+                }
                 count = inStream.read(buffer, 0, readStop);
                 sum += count;
                 int bytesTemp = sum;
@@ -244,22 +255,17 @@ public class Bluetooth extends AppCompatActivity{
                 StringBuffer sdInfo = new StringBuffer();
                 sdInfo.setLength(0); //Make sure it's clear
                 String fileData = "";
+
                     try {
                         OutputStream outStream = socket.getOutputStream();
                         Commands.sendCommand(outStream, "fileInfo", "");
                         timedOut = false; //reset flag
                         while (!doneDownloading && !timedOut) {
                             try {
-                                //count = readWithTimeout(inStream, buffer, 0, buffer.length);
-                                //TODO return something to toggle doneDownloading status
-                                //if(count<0) return new String[]{""}; //exception thrown
-                                count = inStream.read(buffer, 0, buffer.length); //TODO the program hangs here when the button is mashed
-                                //TODO if this fails return something that tells us it failed, then display a snackbar message
+                                count = inStream.read(buffer, 0, buffer.length);
                                 sdInfo.append(new String(buffer, 0, count));
                             }catch(IOException e){
                                 System.out.println("No data available");
-                                //this handles the case when we expect data and none comes
-                                //TODO handle when we expect data and it's wrong/incomplete
                             }
                             String[] check = sdInfo.toString().split(",");
                             if(check.length!=0)
@@ -312,41 +318,6 @@ public class Bluetooth extends AppCompatActivity{
             gyroY.clear();
             gyroZ.clear();
         }
-    }
-
-    /**
-     * Most of the code in this method was taken from:
-     * http://stackoverflow.com/questions/804951/is-it-possible-to-read-from-a-inputstream-with-a-timeout
-     * @param inStream
-     */
-    private static int readWithTimeout(final InputStream inStream, final byte[] buffer,
-                                       final int start, final int bufferLength){
-        try {
-            ExecutorService executor = Executors.newFixedThreadPool(2);
-            final PipedOutputStream outputStream = new PipedOutputStream();
-            final PipedInputStream inputStream = new PipedInputStream(outputStream);
-
-            int readByte = 1;
-            final ArrayList<String> sdInfo = new ArrayList<String>();
-            // Read data with timeout
-            Callable<Integer> readTask = new Callable<Integer>() {
-                @Override
-                public Integer call() throws Exception {
-                    int count =  inStream.read(buffer, start, bufferLength);
-                    return count;
-                }
-            };
-            while (readByte >= 0) {
-                Future<Integer> future = executor.submit(readTask);
-                readByte = future.get(2000, TimeUnit.MILLISECONDS);
-                if (readByte >= 0)
-                    System.out.println("Read: " + readByte);
-            }
-        }catch(IOException | InterruptedException | ExecutionException | TimeoutException e){
-            System.out.println("Exception");
-            return -1;
-        }
-        return 0;
     }
 
     public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}
