@@ -28,31 +28,18 @@ import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
-import android.view.View;
+import android.util.Log;
 import android.widget.ArrayAdapter;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class Bluetooth extends AppCompatActivity{
     private static ArrayAdapter<String> mArrayAdapter;
@@ -94,6 +81,7 @@ public class Bluetooth extends AppCompatActivity{
     public static void readSdCat(InputStream inStream, int distinctDataPoints, String fileName,
                                  int position) {
         String[] sdInfo = getSdInfo(inStream);
+        if(sdInfo[0].equals("")) return;  //Stop if we timed out or have garbage data
         int arrayPosition = 0;
         int fileSize = 0;
         if(sdInfo.length > (position * 2) + 2); //Bounds check
@@ -262,10 +250,16 @@ public class Bluetooth extends AppCompatActivity{
                         timedOut = false; //reset flag
                         while (!doneDownloading && !timedOut) {
                             try {
-                                count = inStream.read(buffer, 0, buffer.length);
+                                if(timedoutReadBlocking(inStream, 2000)) { //Set a 2 second timeout for our read blocking
+                                    return separatedData; //Return empty if we timed out
+                                }else{ //Data is waiting to be read, so we read it
+                                    count = inStream.read(buffer, 0, buffer.length);
+                                    Log.i("IO", "Finished read, didn't get stuck");
+                                }
                                 sdInfo.append(new String(buffer, 0, count));
                             }catch(IOException e){
                                 System.out.println("No data available");
+                                return separatedData;
                             }
                             String[] check = sdInfo.toString().split(",");
                             if(check.length!=0)
@@ -290,6 +284,7 @@ public class Bluetooth extends AppCompatActivity{
         try {
             if (socket != null && socket.isConnected()) {
                 String[] separatedData = getSdInfo(socket.getInputStream());
+                if(separatedData[0].equals("")) return fileNameList;  //Return an empty array if we timed out or have garbage data
                 if (separatedData.length != 0) {
                     for (int i = 0; i < separatedData.length - 1; i++) {
                         if ((i % 2) != 0) //There's a filename at every odd index, except for the end
@@ -299,6 +294,34 @@ public class Bluetooth extends AppCompatActivity{
             }
         }catch(IOException e){}
         return fileNameList;
+    }
+
+    /**
+     * The solution in this method for sidestepping the blocking aspect of the read method came from:
+     * http://stackoverflow.com/questions/14023374/making-a-thread-which-cancels-a-inputstream-read-call-if-x-time-has-passed
+     */
+    private static boolean timedoutReadBlocking(InputStream inStream, int timeout){
+        int available = 0;
+        long startTime = System.nanoTime();
+        try {
+            while (true) {
+                available = inStream.available();
+                Log.d("Data", "Available bytes: " + available);
+                if (available > 0) {
+                    break;
+                }
+                Thread.sleep(1);
+                long estimatedTime = System.nanoTime() - startTime;
+                long estimatedMillis = TimeUnit.MILLISECONDS.convert(estimatedTime,
+                        TimeUnit.NANOSECONDS);
+                Log.d("Time", "Time elapsed: " +
+                        estimatedMillis + "ms");
+                if (estimatedMillis > timeout) return true; //timeout
+            }
+        }catch(IOException | InterruptedException e){
+            Log.d("Exception", "Exception");
+        }
+        return false;
     }
 
     public static void resetBuffers(boolean includeSensors){

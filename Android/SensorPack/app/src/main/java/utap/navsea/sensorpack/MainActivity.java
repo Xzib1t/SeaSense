@@ -27,6 +27,7 @@ import android.os.Bundle;
 import android.content.Intent;
 import android.os.CountDownTimer;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -73,7 +74,6 @@ public class MainActivity  extends AppCompatActivity {
 	private static int btnPressCount = 0;
     private static int btnLogCount = 0;
     public static  DownloadTask Download;
-    public static ArrayList<String> fileNames = new ArrayList<String>();
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -724,11 +724,14 @@ public class MainActivity  extends AppCompatActivity {
         if(mFileNameAdapter!=null) mFileNameAdapter.clear();
         SdInfoAsync GetSdNamesTask = new SdInfoAsync();
         GetSdNamesTask.execute();
-        if(!fileNames.isEmpty()) {
+        while(GetSdNamesTask.fileNames.isEmpty() && !GetSdNamesTask.isCancelled()) { //Wait for us to get data or time out
             //ArrayList<String> fileNames = Bluetooth.extractFileNames();
-            for (String fileName : fileNames) {
-                if (mFileNameAdapter != null)
-                    mFileNameAdapter.add(fileName);
+            if(GetSdNamesTask.isCancelled()) System.out.println("Is cancelled");
+            if (!GetSdNamesTask.fileNames.isEmpty()) { //If we do get data
+                for (String fileName : GetSdNamesTask.fileNames) {
+                    if (mFileNameAdapter != null)
+                        mFileNameAdapter.add(fileName);
+                }
             }
         }
     }
@@ -895,6 +898,9 @@ public class MainActivity  extends AppCompatActivity {
                             spinner = (ProgressBar) fileDialog.findViewById(R.id.progressBar2);
                             spinner.setVisibility(View.INVISIBLE);
                             fileDialog.cancel();
+                           /* try {
+                                socket.getInputStream().close();
+                            }catch(IOException e){}*/
                             asyncObject.cancel(true);
                             System.out.println("Cancelled");
                         }
@@ -941,14 +947,15 @@ public class MainActivity  extends AppCompatActivity {
      */
     public static class SdInfoAsync extends AsyncTask<Integer, Integer, String> {
         private SdInfoAsync asyncObject;
-
+        public ArrayList<String> fileNames = new ArrayList<String>();
         @Override
         protected void onPreExecute() {
             asyncObject = this;
             fileNames.clear();
             //This timeout code was modified from from http://stackoverflow.com/questions/7882739/android-setting-a-timeout-for-an-asynctask
-            new CountDownTimer(2000, 1000) {
+            new CountDownTimer(1000, 10) {
                 public void onTick(long millisUntilFinished) {
+                    //System.out.println("Countdown: " + millisUntilFinished);
                 }
                 public void onFinish() {
                     // stop async task if not in progress
@@ -965,6 +972,7 @@ public class MainActivity  extends AppCompatActivity {
         @Override
         protected String doInBackground(Integer... params) {
             fileNames = Bluetooth.extractFileNames();
+            if(fileNames.isEmpty()) asyncObject.cancel(true); //TODO this isn't the right way to stop this
             return "done";
         }
 
