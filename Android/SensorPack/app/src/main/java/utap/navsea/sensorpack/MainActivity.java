@@ -885,8 +885,8 @@ public class MainActivity  extends AppCompatActivity {
             progressText.append("Byes downloaded: " + Bluetooth.getBytesDown()
                     + "/" + Bluetooth.totalFileSize);
             spinner.setProgress(progress[0]);
-            spinner.getProgressDrawable().setColorFilter(
-                    Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
+            //spinner.getProgressDrawable().setColorFilter(
+            //        Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
         }
 
 		@Override
