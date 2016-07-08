@@ -575,12 +575,27 @@ public class MainActivity  extends AppCompatActivity {
                 }
             }
         });
-
         fileDialog.show();
         Bluetooth.dialogOpen = true;
         loadFileNamePopup(mFileNameAdapter); //populates popup with options
         lv.setAdapter(mFileNameAdapter);
         lv.setClickable(true);
+        //TODO the below check works for empty display, but it also drops some good data, fix this
+        //TODO this might be because of the speed of the async download in this class
+        if(mFileNameAdapter.isEmpty()){ //Make sure we actually have names to display
+            fileDialog.hide();
+            if(Bluetooth.readingTimedOut()){
+                Snackbar.make(findViewById(R.id.full_screen_main),
+                        "Download timed out, please try again",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }else {
+                Snackbar.make(findViewById(R.id.full_screen_main),
+                        "Error getting file names, please try again",
+                        Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
+        }
 
         ProgressBar tempSpinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
         tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while data isn't being downloaded
@@ -722,19 +737,14 @@ public class MainActivity  extends AppCompatActivity {
      */
     private void loadFileNamePopup(ArrayAdapter<String> mFileNameAdapter) {
         if(mFileNameAdapter!=null) mFileNameAdapter.clear();
-        SdInfoAsync GetSdNamesTask = new SdInfoAsync();
-        GetSdNamesTask.execute();
-        while(GetSdNamesTask.fileNames.isEmpty() && !GetSdNamesTask.isCancelled()) { //Wait for us to get data or time out
-            //ArrayList<String> fileNames = Bluetooth.extractFileNames();
-            if(GetSdNamesTask.isCancelled()) System.out.println("Is cancelled");
-            if (!GetSdNamesTask.fileNames.isEmpty()) { //If we do get data
-                for (String fileName : GetSdNamesTask.fileNames) {
+            ArrayList<String> fileNames = Bluetooth.extractFileNames();
+            if (!fileNames.isEmpty()){
+                for (String fileName : fileNames){
                     if (mFileNameAdapter != null)
                         mFileNameAdapter.add(fileName);
                 }
             }
         }
-    }
 
 	/**
 	 * This method rotates the compass image to a desired angle
@@ -886,27 +896,6 @@ public class MainActivity  extends AppCompatActivity {
             asyncObject = this;
 			spinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
 			spinner.setVisibility(View.VISIBLE);
-
-			//This timeout code was modified from from http://stackoverflow.com/questions/7882739/android-setting-a-timeout-for-an-asynctask
-			new CountDownTimer(5000, 1000) {
-				public void onTick(long millisUntilFinished) {
-				}
-				public void onFinish() {
-					// stop async task if not in progress
-                    if(asyncObject!=null) {
-                        if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
-                            spinner = (ProgressBar) fileDialog.findViewById(R.id.progressBar2);
-                            spinner.setVisibility(View.INVISIBLE);
-                            fileDialog.cancel();
-                           /* try {
-                                socket.getInputStream().close();
-                            }catch(IOException e){}*/
-                            asyncObject.cancel(true);
-                            System.out.println("Cancelled");
-                        }
-                    }
-				}
-			}.start();
         }
         @Override
         protected void onProgressUpdate(Integer... progress) {
@@ -941,45 +930,6 @@ public class MainActivity  extends AppCompatActivity {
 			spinner.setVisibility(View.INVISIBLE);
 		}
 	}
-
-    /**
-     * This class handles downloading SD info data in the background with a timeout
-     */
-    public static class SdInfoAsync extends AsyncTask<Integer, Integer, String> {
-        private SdInfoAsync asyncObject;
-        public ArrayList<String> fileNames = new ArrayList<String>();
-        @Override
-        protected void onPreExecute() {
-            asyncObject = this;
-            fileNames.clear();
-            //This timeout code was modified from from http://stackoverflow.com/questions/7882739/android-setting-a-timeout-for-an-asynctask
-            new CountDownTimer(1000, 10) {
-                public void onTick(long millisUntilFinished) {
-                    //System.out.println("Countdown: " + millisUntilFinished);
-                }
-                public void onFinish() {
-                    // stop async task if not in progress
-                    if(asyncObject!=null) {
-                        if (asyncObject.getStatus() == AsyncTask.Status.RUNNING) {
-                            asyncObject.cancel(true);
-                            System.out.println("Cancelled getting SD info");
-                        }
-                    }
-                }
-            }.start();
-        }
-
-        @Override
-        protected String doInBackground(Integer... params) {
-            fileNames = Bluetooth.extractFileNames();
-            if(fileNames.isEmpty()) asyncObject.cancel(true); //TODO this isn't the right way to stop this
-            return "done";
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-        }
-    }
 
 	/**
 	 * Closes the Bluetooth socket

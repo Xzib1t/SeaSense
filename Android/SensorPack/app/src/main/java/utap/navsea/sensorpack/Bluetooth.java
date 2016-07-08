@@ -61,6 +61,7 @@ public class Bluetooth extends AppCompatActivity{
     private static ArrayList<Float> gyroY = new ArrayList<Float>();
     private static ArrayList<Float> gyroZ = new ArrayList<Float>();
     private static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
+    private static boolean readBlockTimedOut = false;
     public static StringBuffer downloadedStrings = new StringBuffer(); //TODO back to private
     public static boolean dialogOpen = true;
     private static boolean timedOut = false;
@@ -87,7 +88,7 @@ public class Bluetooth extends AppCompatActivity{
         if(sdInfo.length > (position * 2) + 2); //Bounds check
             arrayPosition = (position * 2) + 2; //Calculate array index of file size from order of filenames
 
-        try { //TODO test this
+        try {
             fileSize = Integer.parseInt(sdInfo[arrayPosition]);
             totalFileSize = fileSize;
             System.out.println("Filesize: " + fileSize + " bytes");
@@ -104,7 +105,7 @@ public class Bluetooth extends AppCompatActivity{
 
         try {
             OutputStream outStream = socket.getOutputStream();
-            Commands.sendCommand(outStream, "sd_cat", fileName); //TODO add a timeout, or check that the command was sent successfully
+            Commands.sendCommand(outStream, "sd_cat", fileName);
             resetBuffers(true); //Resets all buffers to take in new data
 
             int size = 1000000; //TODO handle when we need more space
@@ -121,7 +122,11 @@ public class Bluetooth extends AppCompatActivity{
                     System.out.println("Cancel detected");
                     return;
                 }
-                count = inStream.read(buffer, 0, readStop);
+                if(timedoutReadBlocking(inStream, 2000)) { //Set a 2 second timeout for our read blocking
+                    return; //Return if we timed out
+                }else{ //Data is waiting to be read, so we read it
+                    count = inStream.read(buffer, 0, readStop);
+                }
                 sum += count;
                 int bytesTemp = sum;
                 if(bytesTemp>69) bytesTemp -= 69; //Correct for extra non-value bytes, there are 69 of them
@@ -254,7 +259,6 @@ public class Bluetooth extends AppCompatActivity{
                                     return separatedData; //Return empty if we timed out
                                 }else{ //Data is waiting to be read, so we read it
                                     count = inStream.read(buffer, 0, buffer.length);
-                                    Log.i("IO", "Finished read, didn't get stuck");
                                 }
                                 sdInfo.append(new String(buffer, 0, count));
                             }catch(IOException e){
@@ -303,10 +307,10 @@ public class Bluetooth extends AppCompatActivity{
     private static boolean timedoutReadBlocking(InputStream inStream, int timeout){
         int available = 0;
         long startTime = System.nanoTime();
+        readBlockTimedOut = false; //Reset flag
         try {
             while (true) {
                 available = inStream.available();
-                Log.d("Data", "Available bytes: " + available);
                 if (available > 0) {
                     break;
                 }
@@ -314,9 +318,11 @@ public class Bluetooth extends AppCompatActivity{
                 long estimatedTime = System.nanoTime() - startTime;
                 long estimatedMillis = TimeUnit.MILLISECONDS.convert(estimatedTime,
                         TimeUnit.NANOSECONDS);
-                Log.d("Time", "Time elapsed: " +
-                        estimatedMillis + "ms");
-                if (estimatedMillis > timeout) return true; //timeout
+                if (estimatedMillis > timeout){
+                    Log.i("Timeout", "Download timed out");
+                    readBlockTimedOut = true;
+                    return true; //timeout
+                }
             }
         }catch(IOException | InterruptedException e){
             Log.d("Exception", "Exception");
@@ -395,6 +401,10 @@ public class Bluetooth extends AppCompatActivity{
     }
 
     public static int getBytesDown(){return bytesDownloaded;};
+
+    public static boolean readingTimedOut(){
+        return readBlockTimedOut;
+    }
 
 
     /**
