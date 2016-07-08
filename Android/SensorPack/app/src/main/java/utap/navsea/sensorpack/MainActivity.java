@@ -384,35 +384,17 @@ public class MainActivity  extends AppCompatActivity {
             this);
         helpPopup.setTitle("Instructions");
         helpPopup.setMessage("Welcome to SensorPack!\n\n" + "-To begin, connect to a " +
-                        "device using the BT button in the bottom right hand" +
+                        "device using the Bluetooth button in the bottom left hand" +
                         " corner of the screen (the device must first be paired with your " +
                         "Android device in the Bluetooth menu)\n" + "-You may navigate windows" +
                         " by swiping" +
                         " left or right in whitespace, or by pressing arrows at the " +
                         "bottom of the screen\n" + "-To stream real time data, simply press" +
-                        " one of the real time data buttons\n" + "-To read a file from the SD" +
-                        " card, open the file selection menu (bottom left hand corner of the screen)" +
-                        " and select a file\n")
-                .setCancelable(true)
-                .setPositiveButton("Close",new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog,int id) {
-                        dialog.cancel();
-                    }
-                });
-        helpPopup.create().show();
-    }
-
-    private void showCommandInstructions(){
-        AlertDialog.Builder helpPopup = new AlertDialog.Builder(
-                this);
-        helpPopup.setTitle("Command Instructions");
-        helpPopup.setMessage("This is the command list:\n\n" + "-To initialize the SD card" +
-                        " select the sd_init option.  Using this command is only necessary if" +
-                        " the SD card did not initialize properly on its own\n" +
-                        "-To download and read a file in the SD card, select the sd_dd option\n" +
-                        "-To being logging sensor data to an SD card file on the Arduino select" +
-                        " the logfile option.  This command must be run again to stop the logging" +
-                        " process\n" + "-To reset the Arduino, select the reset command")
+                        " one of the real time data buttons\n" + "-To reset the Arduino, tap the " +
+                        "RESET button\n" + "-To read a file from the SD card, tap the SD card button " +
+                        "and select a file\n" +
+                        "-To start logging sensor data to a file on the SD card, tap the download " +
+                        "button above the SD card button")
                 .setCancelable(true)
                 .setPositiveButton("Close",new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog,int id) {
@@ -580,8 +562,6 @@ public class MainActivity  extends AppCompatActivity {
         loadFileNamePopup(mFileNameAdapter); //populates popup with options
         lv.setAdapter(mFileNameAdapter);
         lv.setClickable(true);
-        //TODO the below check works for empty display, but it also drops some good data, fix this
-        //TODO this might be because of the speed of the async download in this class
         if(mFileNameAdapter.isEmpty()){ //Make sure we actually have names to display
             fileDialog.hide();
             if(Bluetooth.readingTimedOut()){
