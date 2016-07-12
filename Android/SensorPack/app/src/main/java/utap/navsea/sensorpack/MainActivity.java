@@ -26,6 +26,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -52,15 +53,13 @@ import java.util.Observable;
 import java.util.Observer;
 
 public class MainActivity  extends AppCompatActivity {
-	private TextView serialReceivedText;
+	private TextView timeDisplay;
 	private ImageView compass = null;
 	private ImageView seaperch = null;
 	private static ArrayAdapter<String> mArrayAdapter;
-	private ArrayAdapter<String> mCommandAdapter;
     private ArrayAdapter<String> mFileNameAdapter;
 	private static BluetoothSocket socket;
 	private Dialog dialog;
-	private Dialog dialogCommands;
 	private Dialog fileDialog;
 	private SeekBar timeSlider = null;
     private boolean rtThreadRunning = false;
@@ -74,18 +73,16 @@ public class MainActivity  extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-        socket = BT.getSocket(); //We store the socket in the Bluetooth class
-		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText); //TODO change this to clock_display
-		serialReceivedText.setTextSize(80f); //Set font size for clock
-		serialReceivedText.setGravity(Gravity.CENTER_HORIZONTAL); //This is done here because wrap_content was used for the height
-        serialReceivedText.setTextColor(Color.RED);
+        socket = BT.getSocket(); //We use the socket from the Bluetooth class
+        timeDisplay=(TextView) findViewById(R.id.time_display);
+        timeDisplay.setTextSize(80f); //Set font size for clock
+        timeDisplay.setGravity(Gravity.CENTER_HORIZONTAL); //This is done here because wrap_content was used for the height
+        timeDisplay.setTextColor(Color.RED);
 		compass = (ImageView) findViewById(R.id.compass);  //get compass
 		seaperch = (ImageView) findViewById(R.id.seaperch); //get seaperch
-		mArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for BT devices
-		mCommandAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for commands
-        mFileNameAdapter = new ArrayAdapter<String>(this, R.layout.device_list); //Storage for filenames
+		mArrayAdapter = new ArrayAdapter<>(this, R.layout.device_list); //Storage for BT devices
+        mFileNameAdapter = new ArrayAdapter<>(this, R.layout.device_list); //Storage for filenames
 		dialog = new Dialog(this); //Create dialog to hold BT device list
-		dialogCommands = new Dialog(this); //Create dialog to hold command options
 		fileDialog = new Dialog(this); //Create a dialog to show the files on the SD card
         FloatingActionButton fabReset = (FloatingActionButton) findViewById(R.id.fab_reset);
         FloatingActionButton fabLogfile = (FloatingActionButton) findViewById(R.id.fab_logfile);
@@ -128,14 +125,6 @@ public class MainActivity  extends AppCompatActivity {
             }
         });
 
-        dialogCommands.setOnDismissListener(new DialogInterface.OnDismissListener() { //Deal with the buttons if we connect
-            @Override
-            public void onDismiss(DialogInterface dialogInterface) {
-                System.out.println("Dialog dismissed");
-                Parser.dialogOpen = false;
-            }
-        });
-
 		fileDialog.setOnDismissListener(new DialogInterface.OnDismissListener() { //Deal with the buttons if we connect
 			@Override
 			public void onDismiss(DialogInterface dialogInterface) {
@@ -171,6 +160,7 @@ public class MainActivity  extends AppCompatActivity {
                                 Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     } catch (IOException e) {
+                        Log.d("IOException", "Exception sending reset command");
                     }
                 }
                 else{
@@ -200,6 +190,7 @@ public class MainActivity  extends AppCompatActivity {
                                 Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     } catch (IOException e) {
+                        Log.d("IOException", "Exception sending logfile");
                     }
                 }
                 else{
@@ -264,7 +255,7 @@ public class MainActivity  extends AppCompatActivity {
     /**
      * This is a workaround for detecting if we are
      * getting data or not, since reading from an InputStream is blocking
-     * @return
+     * @return If data is being received, returns true, else false
      */
     private boolean isGettingData(){
         try{
@@ -284,8 +275,8 @@ public class MainActivity  extends AppCompatActivity {
     /**
      * Make sure our button state is consistent with what's happening
      * on the Arduino side
-     * @param rtButton
-     * @param data
+     * @param rtButton This is the button for downloading real time data, we change its text in this method
+     * @param data This is the data object for incoming data
      */
     private void syncButton(Button rtButton, DataObject data){
         boolean gettingData = isGettingData(); //Check if we're getting data
@@ -401,7 +392,7 @@ public class MainActivity  extends AppCompatActivity {
 
     /**
      * Returns Bluetooth object that handles connecting and socket saving
-     * @return
+     * @return Bluetooth object
      */
     public static Bluetooth getBT(){
         return BT;
@@ -441,14 +432,14 @@ public class MainActivity  extends AppCompatActivity {
                 Commands.sendCommand(outStream, "logapp", ""); //Send logapp command to start data transfer
             }
         } catch (IOException e) {
-            //TODO
+            Log.d("IOException", "Exception sending logapp command");
         }
     }
 
 	private void startRtDownload(final DataObject data){
 		//The following thread code in this method is modified from:
 		//https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-		new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+		new Thread(new Runnable() {
 			@Override
 			public void run() {
 				while ((btnPressCount % 2) != 0) { //If it's an odd button press
@@ -480,7 +471,7 @@ public class MainActivity  extends AppCompatActivity {
 				Parser.readRtData(inStream, "MainActivity");
 			}
 		} catch (IOException e) {
-			//TODO
+			Log.d("IOException", "Exception downloading real time data");
 		}
 	}
 
@@ -497,46 +488,6 @@ public class MainActivity  extends AppCompatActivity {
 
 		newDevicesListView.setAdapter(mArrayAdapter);
 		newDevicesListView.setClickable(true);
-	}
-
-	/**
-	 * This method creates a list of commands in a dialog
-	 * box and makes the options clickable
-	 */
-	private void displayCommands(){
-		dialogCommands.setContentView(R.layout.command_list_popup);
-		dialogCommands.setCancelable(true);
-		dialogCommands.setTitle("Commands");
-
-		ListView lv = (ListView) dialogCommands.findViewById(R.id.command_list_display);
-		lv.setAdapter(new ArrayAdapter<String> (this, R.layout.command_list_popup));
-
-		lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-			public void onItemClick(AdapterView<?> arg, View view, int position, long id){
-				try {
-					if(socket!=null && isStillConnected()) {
-						OutputStream outStream = socket.getOutputStream();
-						Commands.sendCommand(outStream, mCommandAdapter.getItem(position), "");
-					}
-					else{
-                        Snackbar.make(view, "Not connected", Snackbar.LENGTH_LONG)
-								.setAction("Action", null).show();
-					}
-				}
-				catch(IOException e){
-					//TODO
-				}
-			}
-		});
-
-		dialogCommands.show();
-        Parser.dialogOpen = true;
-		loadCommandPopup(mCommandAdapter); //populates popup with options
-        lv.setAdapter(mCommandAdapter);
-        lv.setClickable(true);
-
-		ProgressBar tempSpinner = (ProgressBar)dialogCommands.findViewById(R.id.progressBar1);
-		tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while data isn't being downloaded
 	}
 
     /**
@@ -631,48 +582,10 @@ public class MainActivity  extends AppCompatActivity {
 		});
 	}
 
-	/**
-	 * This method loads the command ArrayAdapter with the
-	 * developer options that the user can choose
-	 * @param mCommandAdapter
-	 */
-	private void loadCommandPopupDevMode(ArrayAdapter<String> mCommandAdapter){
-		mCommandAdapter.clear();
-		mCommandAdapter.add("help");
-		mCommandAdapter.add("#");
-		mCommandAdapter.add("test");
-		mCommandAdapter.add("rtc_get");
-		mCommandAdapter.add("rtc_set");
-		mCommandAdapter.add("sd_init");
-		mCommandAdapter.add("sd_ls");
-		mCommandAdapter.add("sd_cat");
-		mCommandAdapter.add("sd_dd");
-		mCommandAdapter.add("sd_append");
-		mCommandAdapter.add("sd_create");
-		mCommandAdapter.add("sd_del");
-		mCommandAdapter.add("log");
-		mCommandAdapter.add("logapp");
-		mCommandAdapter.add("logfile");
-		mCommandAdapter.add("reset");
-	}
-
-    /**
-     * This method loads the command ArrayAdapter with the
-     * non-developer options that the user can choose
-     * @param mCommandAdapter
-     */
-    private void loadCommandPopup(ArrayAdapter<String> mCommandAdapter){
-        mCommandAdapter.clear();
-        mCommandAdapter.add("sd_init");
-        mCommandAdapter.add("sd_dd");
-        mCommandAdapter.add("logfile");
-        mCommandAdapter.add("reset");
-    }
-
     /**
      * This method loads the filename ArrayAdapter with the
      * filename options that the user can choose
-     * @param mFileNameAdapter
+     * @param mFileNameAdapter ArrayAdapter that holds filenames from SD card
      */
     private void loadFileNamePopup(ArrayAdapter<String> mFileNameAdapter) {
         if(mFileNameAdapter!=null) mFileNameAdapter.clear();
@@ -687,8 +600,8 @@ public class MainActivity  extends AppCompatActivity {
 
 	/**
 	 * This method rotates the compass image to a desired angle
-	 * @param imageView
-	 * @param angle
+	 * @param imageView The ImageView for the compass
+	 * @param angle The angle we wish to rotate the compass to
      */
 	private void spinCompass(ImageView imageView, float angle){
 		angle += 180; //Invert compass
@@ -699,10 +612,10 @@ public class MainActivity  extends AppCompatActivity {
 	/**
 	 * This method rotates an image to angles corresponding to
 	 * the accelerometer data
-	 * @param imageView
-	 * @param x
-	 * @param y
-	 * @param z
+	 * @param imageView The ImageView for the seaperch
+	 * @param x The angle we wish to rotate the seaperch to on x axis
+	 * @param y The angle we wish to rotate the seaperch to on y axis
+	 * @param z The angle we wish to rotate the seaperch to on z axis
 	 */
 	private void rotateSeaperch(ImageView imageView, float x, float y, float z){
 		imageView.setRotationX(x);
@@ -714,8 +627,8 @@ public class MainActivity  extends AppCompatActivity {
 	 * Scales the seekbar to the size of heading data array
 	 * Rotates the compass to the value correspoding to a time on the
 	 * seekbar and prints this value to the screen
-	 * @param heading
-	 * @param slider
+	 * @param heading The heading data received from the Arduino
+	 * @param slider The slider to display heading data at different timestamps
 	 */
 	private void controlCompass(ArrayList<Float> heading, SeekBar slider){
 		if(!heading.isEmpty() && !(slider.getProgress()>=heading.size())) { //If we have data
@@ -726,10 +639,10 @@ public class MainActivity  extends AppCompatActivity {
 	/**
 	 * Rotates the seaperch to the values correspoding to a time on the
 	 * seekbar
-	 * @param gyroX
-	 * @param gyroY
-	 * @param gyroZ
-	 * @param slider
+	 * @param gyroX Gyroscope x axis data
+	 * @param gyroY Gyroscope y axis data
+	 * @param gyroZ Gyroscope z axis data
+	 * @param slider The slider to display gyroscope data at different timestamps
 	 */
 	private void controlSeaperch(ArrayList<Float> gyroX, ArrayList<Float> gyroZ,
 								 ArrayList<Float> gyroY, SeekBar slider){
@@ -750,12 +663,12 @@ public class MainActivity  extends AppCompatActivity {
 
 	/**
 	 * Adjusts clock to the values correspoding to a time on the seekbar
-	 * @param time
-	 * @param slider
+	 * @param time ArrayList of timestamps for data collection
+	 * @param slider The slider to display timestamp data
 	 */
 	private void controlClock(ArrayList<String> time, SeekBar slider){
 		if(!time.isEmpty() && !(slider.getProgress()>=time.size())) { //If we have data
-			serialReceivedText.setText(""); //reset text view
+            timeDisplay.setText(""); //reset text view
 			for(String timeHolder : time.get(slider.getProgress()).split("\\n")) //Ignore any newline data
 			print2BT(timeHolder);
 		}
@@ -763,9 +676,9 @@ public class MainActivity  extends AppCompatActivity {
 
     /**
      * Rotates the seaperch to received real time values
-     * @param x
-     * @param y
-     * @param z
+     * @param x Angle we wish to rotate seaperch to on x axis
+     * @param y Angle we wish to rotate seaperch to on y axis
+     * @param z Angle we wish to rotate seaperch to on z axis
      */
     private void controlSeaperchRt(float x, float z, float y){
             float sampleTime = 0.1f; //approximate, 10Hz sample rate
@@ -779,11 +692,11 @@ public class MainActivity  extends AppCompatActivity {
 
 	/**
 	 * This method prints text to a text box on the MainActivity screen
-	 * @param theString
+	 * @param theString Text to be printed
      */
 	private void print2BT(String theString){
-		serialReceivedText.append(theString);		//append the text into the EditText
-		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
+        timeDisplay.append(theString);		//append the text into the EditText
+		((ScrollView)timeDisplay.getParent()).fullScroll(View.FOCUS_DOWN);
 	}
 
 	/**
@@ -829,17 +742,15 @@ public class MainActivity  extends AppCompatActivity {
 		private ProgressBar spinner;
 		private String fileName = "";
         private int selection = 0;
-		private DownloadTask asyncObject;
 		@Override
 		protected void onPreExecute() {
-            asyncObject = this;
 			spinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
 			spinner.setVisibility(View.VISIBLE);
         }
         @Override
         protected void onProgressUpdate(Integer... progress) {
             TextView progressText = (TextView)fileDialog.findViewById(R.id.progress_text);
-            progressText.setText("Progress: ");
+            progressText.setText(getResources().getString(R.string.progress));
             progressText.append(progress[0] + "%" + "  ");
             progressText.append("Byes downloaded: " + Parser.getBytesDown()
                     + "/" + Parser.totalFileSize);
@@ -881,7 +792,7 @@ public class MainActivity  extends AppCompatActivity {
 			socket.close();
 		}
 		catch(IOException e){
-			//TODO
+			Log.d("IOException", "Exception closing socket");
 		}
 	}
 }

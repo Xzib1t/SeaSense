@@ -62,7 +62,7 @@ public class Bluetooth extends AppCompatActivity{
     /**
      * This method opens a Bluetooth socket and connects the Android
      * to the selected Bluetooth device from the getDevice() method
-     * @param mBluetoothAdapter
+     * @param mBluetoothAdapter adapter that holds BT devices
      */
     public void connect2device(BluetoothDevice mBluetoothAdapter) {
         if(socket!=null){
@@ -77,11 +77,15 @@ public class Bluetooth extends AppCompatActivity{
             socket = mBluetoothAdapter.createRfcommSocketToServiceRecord(uuid);
             socket.connect();
             Parser.saveSocket(socket); //store socket
-            MainActivity.saveSocket(socket);
+            MainActivity.saveSocket(socket); //store socket
         } catch (IOException e) {
             socket = null; //reset socket if the connection fails
         }
     }
 
+    /**
+     * Returns Bluetooth socket on request
+     * @return socket this is the Bluetooth socket
+     */
     public BluetoothSocket getSocket() {return socket;}
 }

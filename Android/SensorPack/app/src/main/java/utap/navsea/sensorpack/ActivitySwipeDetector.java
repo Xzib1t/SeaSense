@@ -11,11 +11,9 @@ import android.view.View;
  * It has been modified to switch between the activities in this app
  */
 public class ActivitySwipeDetector implements View.OnTouchListener {
-
-    static final String logTag = "ActivitySwipeDetector";
     private Activity activity;
     static final int MIN_DISTANCE = 100;
-    private float downX, downY, upX, upY;
+    private float downX, downY;
     private Class leftActivity;
     private Class rightActivity;
 
@@ -58,8 +56,8 @@ public class ActivitySwipeDetector implements View.OnTouchListener {
                     return true;
                 }
                 case MotionEvent.ACTION_UP: {
-                    upX = event.getX();
-                    upY = event.getY();
+                    float upX = event.getX();
+                    float upY = event.getY();
 
                     float deltaX = downX - upX;
                     float deltaY = downY - upY;

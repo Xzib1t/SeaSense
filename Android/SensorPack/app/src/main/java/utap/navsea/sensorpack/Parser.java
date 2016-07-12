@@ -22,46 +22,38 @@
 
 package utap.navsea.sensorpack;
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class Parser extends AppCompatActivity{
     private static BluetoothSocket socket = null;
-    private static ArrayList<String> time = new ArrayList<String>();
-    private static ArrayList<Float> temperature = new ArrayList<Float>();
-    private static ArrayList<Float> depth = new ArrayList<Float>();
-    private static ArrayList<Float> conductivity = new ArrayList<Float>();
-    private static ArrayList<Float> light = new ArrayList<Float>();
-    private static ArrayList<Float> heading = new ArrayList<Float>();
-    private static ArrayList<Float> accelX = new ArrayList<Float>();
-    private static ArrayList<Float> accelY = new ArrayList<Float>();
-    private static ArrayList<Float> accelZ = new ArrayList<Float>();
-    private static ArrayList<Float> gyroX = new ArrayList<Float>();
-    private static ArrayList<Float> gyroY = new ArrayList<Float>();
-    private static ArrayList<Float> gyroZ = new ArrayList<Float>();
-    private static ArrayList<String> downloadedData = new ArrayList<String>(); //change this back to private
-    private static boolean readBlockTimedOut = false;
-    public static StringBuffer downloadedStrings = new StringBuffer(); //TODO back to private
+    private static ArrayList<String> time = new ArrayList<>();
+    private static ArrayList<Float> temperature = new ArrayList<>();
+    private static ArrayList<Float> depth = new ArrayList<>();
+    private static ArrayList<Float> conductivity = new ArrayList<>();
+    private static ArrayList<Float> light = new ArrayList<>();
+    private static ArrayList<Float> heading = new ArrayList<>();
+    private static ArrayList<Float> accelX = new ArrayList<>(); //The accelerometer ArrayLists are not used
+    private static ArrayList<Float> accelY = new ArrayList<>();
+    private static ArrayList<Float> accelZ = new ArrayList<>();
+    private static ArrayList<Float> gyroX = new ArrayList<>();
+    private static ArrayList<Float> gyroY = new ArrayList<>();
+    private static ArrayList<Float> gyroZ = new ArrayList<>();
+    private static ArrayList<String> downloadedData = new ArrayList<>(); //change this back to private
+    private static StringBuffer downloadedStrings = new StringBuffer();
     public static boolean dialogOpen = true;
-    private static boolean timedOut = false;
-    public static int totalFileSize = 0;
+    private static boolean readBlockTimedOut = false;
     private static int bytesDownloaded = 0;
+    public static int totalFileSize = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,10 +70,9 @@ public class Parser extends AppCompatActivity{
                                  int position) {
         String[] sdInfo = getSdInfo(inStream);
         if(sdInfo[0].equals("")) return;  //Stop if we timed out or have garbage data
-        int arrayPosition = 0;
-        int fileSize = 0;
-        if(sdInfo.length > (position * 2) + 2); //Bounds check
-            arrayPosition = (position * 2) + 2; //Calculate array index of file size from order of filenames
+        int arrayPosition;
+        int fileSize;
+        arrayPosition = (position * 2) + 2; //Calculate array index of file size from order of filenames
 
         try {
             fileSize = Integer.parseInt(sdInfo[arrayPosition]);
@@ -93,7 +84,7 @@ public class Parser extends AppCompatActivity{
         }
         fileSize += 64; //account for extra non-csv data
 
-        StringBuffer dlStrings = new StringBuffer();
+        StringBuilder dlStrings = new StringBuilder();
         dlStrings.setLength(0); //Reset buffer
         downloadedData.clear();
         System.out.println("SD info contents: " + Arrays.toString(sdInfo));
@@ -105,9 +96,9 @@ public class Parser extends AppCompatActivity{
 
             int size = 1000000; //TODO handle when we need more space
             byte[] buffer = new byte[size];  //buffer store for the stream
-            int count = 0;
+            int count;
             int sum = 0;
-            int readStop = 0;
+            int readStop;
             if (fileSize > buffer.length) readStop = buffer.length;
             else
                 readStop = fileSize; //make sure that the data size isn't larger than our buffer
@@ -137,10 +128,8 @@ public class Parser extends AppCompatActivity{
                     dlStrings.append(printStr);
                 }
                 if(!dlStrings.toString().isEmpty()) {
-                    if (parseData(dlStrings.toString(), distinctDataPoints));
-                    else { //Something went wrong when parsing or we timed out
+                    if(!parseData(dlStrings.toString(), distinctDataPoints)){ //Something went wrong when parsing or we timed out
                         System.out.println("Missing time data: " + dlStrings.toString());
-                        return;
                     }
                 }
         }catch(IOException | NullPointerException e){
@@ -190,7 +179,7 @@ public class Parser extends AppCompatActivity{
 
     private static String separateLines(String input, int lineNumber){
         String line = "";
-        String[] lineArray = {""};
+        String[] lineArray;
         if(input.length()>=20) {
             lineArray = input.split("\\n");
             if (lineNumber <= lineArray.length) line = lineArray[lineNumber];
@@ -201,13 +190,15 @@ public class Parser extends AppCompatActivity{
     /**
      * Parses the real time CSV data, we drop some data with this method
      * but we pull so much in it doesn't matter
-     * @param input
-     * @param arrayList
-     * @param errorRange
-     * @param position
+     * @param input The string of data we want to parse
+     * @param arrayList The data ArrayList for whatever sensor data category we wish to populate
+     * @param errorRange The amount by which we allow a value to jump between samples, if
+     *                   the jump is too extreme it's probably bad data, so we ignore it
+     * @param position The position in the csv file the data we want is (ex: Conductivity would
+     *                 be position 1 in the following file: Time,Conductivity)
      */
     private static void parseRtData(String input, ArrayList<Float> arrayList, int errorRange, int position){
-        if(separateLines(input, 0)!="") { //If we have data
+        if(!separateLines(input, 0).equals("")) { //If we have data
             String[] csvData = separateLines(input, 0).split(",");
             if(csvData.length > position) { //Make sure we have enough data
                 if (!arrayList.isEmpty()) {
@@ -225,6 +216,8 @@ public class Parser extends AppCompatActivity{
     /**
      * This method gets the number of files on the SD card, and
      * the sizes of those files in bytes
+     * @param inStream InputStream
+     * @return separatedData The parsed/separated data
      */
     private static String[] getSdInfo(InputStream inStream) {
         try {
@@ -234,21 +227,20 @@ public class Parser extends AppCompatActivity{
         catch(IOException e){
             System.out.println("Failed to skip available bytes in the input stream");
         }
-                int count = 1;
+                int count;
                 int size = 1024; //Just in case we have a large number of files
                 byte[] buffer = new byte[size];
 
                 boolean doneDownloading = false;
                 String[] separatedData = {""};
-                StringBuffer sdInfo = new StringBuffer();
+                StringBuilder sdInfo = new StringBuilder();
                 sdInfo.setLength(0); //Make sure it's clear
                 String fileData = "";
 
                     try {
                         OutputStream outStream = socket.getOutputStream();
                         Commands.sendCommand(outStream, "fileInfo", "");
-                        timedOut = false; //reset flag
-                        while (!doneDownloading && !timedOut) {
+                        while (!doneDownloading) {
                             try {
                                 if(timedoutReadBlocking(inStream, 2000)) { //Set a 2 second timeout for our read blocking
                                     return separatedData; //Return empty if we timed out
@@ -277,9 +269,10 @@ public class Parser extends AppCompatActivity{
 
     /**
      * This method pulls the filename data from the SD info that we download
+     * @return fileNameList The ArrayList of file names on the SD card
      */
     public static ArrayList<String> extractFileNames() {
-        ArrayList<String> fileNameList = new ArrayList<String>();
+        ArrayList<String> fileNameList = new ArrayList<>();
         try {
             if (socket != null && socket.isConnected()) {
                 String[] separatedData = getSdInfo(socket.getInputStream());
@@ -291,16 +284,20 @@ public class Parser extends AppCompatActivity{
                     }
                 }
             }
-        }catch(IOException e){}
+        }catch(IOException e){
+            Log.d("Exception", "Exception extracting file names");
+        }
         return fileNameList;
     }
 
     /**
      * The solution in this method for sidestepping the blocking aspect of the read method came from:
      * http://stackoverflow.com/questions/14023374/making-a-thread-which-cancels-a-inputstream-read-call-if-x-time-has-passed
+     * @param inStream InputStream
+     * @param timeout The amount of time we allow the read method to block for
      */
     private static boolean timedoutReadBlocking(InputStream inStream, int timeout){
-        int available = 0;
+        int available;
         long startTime = System.nanoTime();
         readBlockTimedOut = false; //Reset flag
         try {
@@ -393,7 +390,7 @@ public class Parser extends AppCompatActivity{
         return gyroZ;
     }
 
-    public static int getBytesDown(){return bytesDownloaded;};
+    public static int getBytesDown(){return bytesDownloaded;}
 
     public static boolean readingTimedOut(){
         return readBlockTimedOut;
@@ -401,15 +398,15 @@ public class Parser extends AppCompatActivity{
 
     /**
      * Parses the CSV data
-     * @param input
+     * @param input The data string we want to parse
      * @param distinctDataPoints this is the number of distinctly separated data TYPES in the file
      */
     private static boolean parseData(String input, int distinctDataPoints) {
         int dataType = 0;
         int curIndex = 0;
         String eof = "U+1F4A9";
-        ArrayList<String> parsedData = new ArrayList<String>();
-        StringBuffer buffer = new StringBuffer();
+        ArrayList<String> parsedData = new ArrayList<>();
+        StringBuilder buffer = new StringBuilder();
 
         for (String splitVal : input.split(",")) {
             if (isFloat(splitVal) || isTime(splitVal)) { //Check if it's data we actually want
@@ -506,8 +503,8 @@ public class Parser extends AppCompatActivity{
 
     /**
      * This method checks if the input string is a float
-     * @param string
-     * @return
+     * @param string The string we are checking
+     * @return Returns true if string is a float, else false
      */
     public static boolean isFloat(String string)
     {
@@ -522,19 +519,17 @@ public class Parser extends AppCompatActivity{
 
     /**
      * This method checks if the input string contains time data
-     * @param string
-     * @return
+     * @param string The string we are checking
+     * @return Returns true if string is a time, else false
      */
     public static boolean isTime(String string)
     {
-        StringBuffer check = new StringBuffer();
+        StringBuilder check = new StringBuilder();
         for(String checkStr : string.split(":")){ //Splitting with ":+" takes an extra 5 seconds per 5 seconds of data
             check.setLength(0);
             check.append(checkStr); //Only store the last value
             if(checkStr.equals(string)) return false; //Make sure it actually has ":" in it
         }
-
-        if(isFloat(check.toString())) return true; //The last chunk of the time string will be a number (like the 11 in 12:13:11)
-        else return false;
+        return isFloat(check.toString()); //The last chunk of the time string will be a number (like the 11 in 12:13:11)
     }
 }

@@ -26,17 +26,14 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 
 import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.Legend;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.io.IOException;
@@ -49,7 +46,7 @@ import java.util.Observer;
 public class TempCondActivity extends AppCompatActivity {
     private LineChart chartTemp = null;
     private LineChart chartCond = null;
-    private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We store the socket in the Bluetooth class
+    private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We use the socket from the Bluetooth class
     private static int btnPressCount = 0;
 
     @Override
@@ -62,12 +59,11 @@ public class TempCondActivity extends AppCompatActivity {
         data.addObserver(graph);
 
         chartTemp = (LineChart) findViewById(R.id.chart2); //get the first chart
-        //TODO add time on the x axis
-        graphTest(chartTemp, convert2Entry(Parser.getTemp()), "Temperature (Deg C)", Color.RED);
+        Graph.graphData(chartTemp, Graph.convert2Entry(Parser.getTemp()), "Temperature (Deg C)", Color.RED);
         chartTemp.invalidate(); //Refresh graph
 
         chartCond = (LineChart) findViewById(R.id.chart3); //get the first chart
-        graphTest(chartCond, convert2Entry(Parser.getCond()), "Conductivity (S/m)", Color.GREEN);
+        Graph.graphData(chartCond, Graph.convert2Entry(Parser.getCond()), "Conductivity (S/m)", Color.GREEN);
         chartCond.invalidate(); //Refresh graph
 
         setupSwipeDetector(); //Setup swipe detector so we can swipe to change views
@@ -128,6 +124,7 @@ public class TempCondActivity extends AppCompatActivity {
             if(socket!=null)
             socket.getInputStream().skip(socket.getInputStream().available());
         } catch (IOException e) {
+            Log.d("IOException", "Exception flushing stream");
         }
     }
 
@@ -153,7 +150,7 @@ public class TempCondActivity extends AppCompatActivity {
     /**
      * This is a workaround for detecting if we are
      * getting data or not, since reading from an InputStream is blocking
-     * @return
+     * @return If data is being received, returns true, else false
      */
     private boolean isGettingData(){
         try{
@@ -161,10 +158,7 @@ public class TempCondActivity extends AppCompatActivity {
                 flushStream(); //Flush stream to restart estimate
                 Thread.sleep(100); //Give us time to see if we still get data after a flush
             }
-            if(socket.getInputStream().available()>0) //We check here again after the delay
-                return true;
-            else return false;
-
+            return (socket.getInputStream().available()>0); //We check here again after the delay
         }catch(IOException | InterruptedException e){
             return false; //Couldn't read stream because we aren't getting data
         }
@@ -173,8 +167,8 @@ public class TempCondActivity extends AppCompatActivity {
     /**
      * Make sure our button state is consistent with what's happening
      * on the Arduino side
-     * @param rtButton
-     * @param data
+     * @param rtButton This is the button for downloading real time data, we change its text in this method
+     * @param data This is the data object for incoming data
      */
     private void syncButton(Button rtButton, DataObject data){
         boolean gettingData = isGettingData(); //Check if we're getting data
@@ -204,7 +198,7 @@ public class TempCondActivity extends AppCompatActivity {
     private void startRtDownload(final DataObject data){
         //The following thread code in this method is modified from:
         //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-        new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+        new Thread(new Runnable() {
             @Override
             public void run() {
                 while ((btnPressCount % 2) != 0) { //If it's an odd button press
@@ -230,7 +224,6 @@ public class TempCondActivity extends AppCompatActivity {
             while (data.size() > 20) Parser.removeFirst(); //Keep the arraylist only 20 samples long
         }
         if (data.size() > 0 && chart!=null) {
-            ArrayList<Entry> dataE = convert2Entry(Parser.getTemp());
             chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
             chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
 
@@ -282,80 +275,5 @@ public class TempCondActivity extends AppCompatActivity {
     void changeActivity(Class mClass){
         Intent intentApp = new Intent(TempCondActivity.this, mClass);
         TempCondActivity.this.startActivity(intentApp);
-    }
-
-    private ArrayList<Entry> loadArray(Float[] data){
-        ArrayList<Entry> entries = new ArrayList<>(); //figure out how to index values
-        for(int i=0; i<data.length; i++){
-            entries.add(i, new Entry(data[i], i));
-        }
-        return entries;
-    }
-
-    private void graphTest(LineChart chart, ArrayList<Entry> yData, String dataLabel, int color){
-        if(yData != null) {
-            ArrayList<Entry> tempC = yData;//new ArrayList<Entry>();
-            LineDataSet setTempC = new LineDataSet(tempC, dataLabel);
-            setTempC.setAxisDependency(YAxis.AxisDependency.LEFT);
-            setTempC.setColor(color);
-            formatChart(chart); //colors, lines...etc
-            ArrayList<ILineDataSet> dataSets = new ArrayList<ILineDataSet>();
-            dataSets.add(setTempC);
-            ArrayList xVals = setupXaxis(tempC); //Scale x axis to incoming data
-            ArrayList<String> yVals = new ArrayList<String>();
-            yVals.add("Data");
-            LineData data = new LineData(xVals, dataSets);
-            chart.setData(data);
-            chart.invalidate(); // refresh
-        }
-    }
-
-    private ArrayList<Entry> convert2Entry(ArrayList<Float> input){
-        Float[] floatArray = input.toArray(new Float[input.size()]);
-        ArrayList<Entry> entryArray = loadArray(floatArray);
-        return entryArray;
-    }
-
-    private ArrayList<String> setupXaxis(ArrayList<Entry> tempC){
-        ArrayList<String> xVals = new ArrayList<String>();
-        String[] tempXvals = new String[tempC.size()];
-
-        for(int i=0; i<tempC.size(); i++) {
-            tempXvals[i] = Integer.toString(i);
-        }
-        for(int j=0; j<tempXvals.length; j++){
-            xVals.add(tempXvals[j]);
-        }
-        return xVals;
-    }
-
-    private void formatChart(LineChart chart){
-        chart.setEnabled(true);
-        chart.setTouchEnabled(true);
-
-        XAxis xAxis = chart.getXAxis();
-        xAxis.setEnabled(true);
-        xAxis.setDrawAxisLine(true);
-        xAxis.setDrawGridLines(true);
-        xAxis.setDrawLabels(true);
-        xAxis.setGridColor(Color.BLACK);
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setTextSize(10f);
-        xAxis.setTextColor(Color.RED);
-
-        YAxis leftAxis = chart.getAxisLeft();
-        leftAxis.setTextColor(Color.RED);
-        leftAxis.setAxisLineColor(Color.BLACK);
-        leftAxis.setEnabled(true);
-
-        chart.setDrawGridBackground(true);
-        chart.setDrawBorders(true);
-        chart.setBorderColor(Color.BLACK);
-        chart.setMaxVisibleValueCount(0);
-
-        Legend legend = chart.getLegend();
-        legend.setEnabled(true);
-        legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
-        legend.setTextColor(Color.RED);
     }
 }

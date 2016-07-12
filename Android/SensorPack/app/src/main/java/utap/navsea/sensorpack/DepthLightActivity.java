@@ -27,17 +27,14 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 
 import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.Legend;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.io.IOException;
@@ -50,7 +47,7 @@ import java.util.Observer;
 public class DepthLightActivity extends AppCompatActivity {
     private LineChart chartDepth = null;
     private LineChart chartLight = null;
-    private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We store the socket in the Bluetooth class
+    private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We use the socket from the Bluetooth class
     private static int btnPressCount = 0;
 
     @Override
@@ -61,9 +58,9 @@ public class DepthLightActivity extends AppCompatActivity {
         chartDepth = (LineChart) findViewById(R.id.chart4); //get the first chart
         chartLight = (LineChart) findViewById(R.id.chart5); //get the second chart
 
-        graphTest(chartDepth, convert2Entry(Parser.getDepth()), "Depth", Color.RED);
+        Graph.graphData(chartDepth, Graph.convert2Entry(Parser.getDepth()), "Depth", Color.RED);
         chartDepth.invalidate(); //Refresh graph
-        graphTest(chartLight, convert2Entry(Parser.getLight()), "Light", Color.GREEN);
+        Graph.graphData(chartLight, Graph.convert2Entry(Parser.getLight()), "Light", Color.GREEN);
         chartLight.invalidate(); //refresh graph
 
         final GraphObject graph = new GraphObject();
@@ -128,13 +125,14 @@ public class DepthLightActivity extends AppCompatActivity {
             if(socket!=null)
             socket.getInputStream().skip(socket.getInputStream().available());
         } catch (IOException e) {
+            Log.d("IOException", "Exception flushing stream");
         }
     }
 
     /**
      * This is a workaround for detecting if we are
      * getting data or not, since reading from an InputStream is blocking
-     * @return
+     * @return If data is being received, returns true, else false
      */
     private boolean isGettingData(){
         try{
@@ -154,8 +152,8 @@ public class DepthLightActivity extends AppCompatActivity {
     /**
      * Make sure our button state is consistent with what's happening
      * on the Arduino side
-     * @param rtButton
-     * @param data
+     * @param rtButton This is the button for downloading real time data, we change its text in this method
+     * @param data This is the data object for incoming data
      */
     private void syncButton(Button rtButton, DataObject data){
         boolean gettingData = isGettingData(); //Check if we're getting data
@@ -204,7 +202,7 @@ public class DepthLightActivity extends AppCompatActivity {
                 Commands.sendCommand(outStream, "logapp", ""); //Send logapp command to start data transfer
             }
         } catch (IOException e) {
-            //TODO
+            Log.d("IOException", "Exception sending logapp");
         }
     }
 
@@ -215,7 +213,7 @@ public class DepthLightActivity extends AppCompatActivity {
     private void startRtDownload(final DataObject data){
         //The following thread code in this method is modified from:
         //https://github.com/PhilJay/MPAndroidChart/blob/master/MPChartExample/src/com/xxmassdeveloper/mpchartexample/RealtimeLineChartActivity.java
-        new Thread(new Runnable() { //TODO make sure this doesn't run more than once
+        new Thread(new Runnable() {
             @Override
             public void run() {
                 while ((btnPressCount % 2) != 0) { //If it's an odd button press
@@ -247,7 +245,7 @@ public class DepthLightActivity extends AppCompatActivity {
                     Parser.readRtData(inStream, "DepthLightActivity");
              }
         } catch (IOException e) {
-            //TODO
+            Log.d("IOException", "Exception downloading real time data");
         }
     }
 
@@ -281,89 +279,6 @@ public class DepthLightActivity extends AppCompatActivity {
     void changeActivity(Class mClass){
         Intent intentApp = new Intent(DepthLightActivity.this, mClass);
         DepthLightActivity.this.startActivity(intentApp);
-    }
-
-    private ArrayList<Entry> convert2Entry(ArrayList<Float> input){
-        Float[] floatArray = input.toArray(new Float[input.size()]);
-        ArrayList<Entry> entryArray = loadArray(floatArray);
-        return entryArray;
-    }
-
-    private ArrayList<Entry> loadArray(Float[] data){
-        ArrayList<Entry> entries = new ArrayList<>(); //figure out how to index values
-        for(int i=0; i<data.length; i++){
-            entries.add(i, new Entry(data[i], i));
-        }
-        return entries;
-    }
-
-    private void graphTest(LineChart chart, ArrayList<Entry> yData, String dataLabel, int color){
-        if(yData != null) {
-            ArrayList<Entry> tempC = yData;//new ArrayList<Entry>();
-
-            LineDataSet setTempC = new LineDataSet(tempC, dataLabel);
-            setTempC.setAxisDependency(YAxis.AxisDependency.LEFT);
-            setTempC.setColor(color);
-
-            formatChart(chart); //colors, lines...etc
-
-            ArrayList<ILineDataSet> dataSets = new ArrayList<ILineDataSet>();
-            dataSets.add(setTempC);
-
-            ArrayList xVals = setupXaxis(tempC); //Scale x axis to incoming data
-
-            ArrayList<String> yVals = new ArrayList<String>();
-            yVals.add("Data");
-
-            LineData data = new LineData(xVals, dataSets);
-            chart.setData(data);
-            chart.invalidate(); // refresh
-        }
-    }
-
-
-
-    private ArrayList<String> setupXaxis(ArrayList<Entry> tempC){
-        ArrayList<String> xVals = new ArrayList<String>();
-        String[] tempXvals = new String[tempC.size()];
-
-        for(int i=0; i<tempC.size(); i++) {
-            tempXvals[i] = Integer.toString(i);
-        }
-        for(int j=0; j<tempXvals.length; j++){
-            xVals.add(tempXvals[j]);
-        }
-        return xVals;
-    }
-
-    private void formatChart(LineChart chart){
-        chart.setEnabled(true);
-        chart.setTouchEnabled(true);
-
-        XAxis xAxis = chart.getXAxis();
-        xAxis.setEnabled(true);
-        xAxis.setDrawAxisLine(true);
-        xAxis.setDrawGridLines(true);
-        xAxis.setDrawLabels(true);
-        xAxis.setGridColor(Color.BLACK);
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setTextSize(10f);
-        xAxis.setTextColor(Color.RED);
-
-        YAxis leftAxis = chart.getAxisLeft();
-        leftAxis.setTextColor(Color.RED);
-        leftAxis.setAxisLineColor(Color.BLACK);
-        leftAxis.setEnabled(true);
-
-        chart.setDrawGridBackground(true);
-        chart.setDrawBorders(true);
-        chart.setBorderColor(Color.BLACK);
-        chart.setMaxVisibleValueCount(0);
-
-        Legend legend = chart.getLegend();
-        legend.setEnabled(true);
-        legend.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT);
-        legend.setTextColor(Color.RED);
     }
 }
 
