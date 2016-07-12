@@ -427,6 +427,7 @@ public class Commands {
      */
     private static void sendReset(OutputStream mmOutStream){
         try {
+
             mmOutStream.write(114);
             mmOutStream.write(101);
             mmOutStream.write(115);

@@ -30,7 +30,7 @@
             android:label="Depth and Light Display">
             </activity>
 
-            <activity android:name=".Bluetooth"
+            <activity android:name=".Parser"
                 android:screenOrientation="portrait"
                 android:label="Bluetooth test">
             </activity>

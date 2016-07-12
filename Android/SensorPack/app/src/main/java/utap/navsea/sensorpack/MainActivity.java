@@ -25,9 +25,7 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
-import android.os.CountDownTimer;
 import android.support.v7.app.AlertDialog;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -52,34 +50,31 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.Set;
-import java.util.UUID;
 
 public class MainActivity  extends AppCompatActivity {
 	private TextView serialReceivedText;
 	private ImageView compass = null;
 	private ImageView seaperch = null;
-	private ArrayAdapter<String> mArrayAdapter;
+	private static ArrayAdapter<String> mArrayAdapter;
 	private ArrayAdapter<String> mCommandAdapter;
     private ArrayAdapter<String> mFileNameAdapter;
-	private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
+	private static BluetoothSocket socket;
 	private Dialog dialog;
 	private Dialog dialogCommands;
 	private Dialog fileDialog;
 	private SeekBar timeSlider = null;
     private boolean rtThreadRunning = false;
-	//Below UUID is the standard SSP UUID:
-	//Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
-	private static final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 	private static int btnPressCount = 0;
     private static int btnLogCount = 0;
     public static  DownloadTask Download;
+    private static Bluetooth BT = new Bluetooth();
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
+        socket = BT.getSocket(); //We store the socket in the Bluetooth class
 		serialReceivedText=(TextView) findViewById(R.id.serialReceivedText); //TODO change this to clock_display
 		serialReceivedText.setTextSize(80f); //Set font size for clock
 		serialReceivedText.setGravity(Gravity.CENTER_HORIZONTAL); //This is done here because wrap_content was used for the height
@@ -137,7 +132,7 @@ public class MainActivity  extends AppCompatActivity {
             @Override
             public void onDismiss(DialogInterface dialogInterface) {
                 System.out.println("Dialog dismissed");
-                Bluetooth.dialogOpen = false;
+                Parser.dialogOpen = false;
             }
         });
 
@@ -145,7 +140,7 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onDismiss(DialogInterface dialogInterface) {
 				System.out.println("Dialog dismissed");
-				Bluetooth.dialogOpen = false;
+				Parser.dialogOpen = false;
                 if(Download!=null) Download.cancel(true);
 			}
 		});
@@ -233,13 +228,13 @@ public class MainActivity  extends AppCompatActivity {
 		timeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-				if(!Bluetooth.getHeading().isEmpty() && !rtThreadRunning) { //If we have heading data we also have accelerometer data, make sure we aren't pulling rt data
-					controlCompass(Bluetooth.getHeading(), timeSlider); //Show heading corresponding to time
+				if(!Parser.getHeading().isEmpty() && !rtThreadRunning) { //If we have heading data we also have accelerometer data, make sure we aren't pulling rt data
+					controlCompass(Parser.getHeading(), timeSlider); //Show heading corresponding to time
 
-					controlSeaperch(Bluetooth.getGyroX(), Bluetooth.getGyroY(),
-							Bluetooth.getGyroZ(), timeSlider);
+					controlSeaperch(Parser.getGyroX(), Parser.getGyroY(),
+							Parser.getGyroZ(), timeSlider);
 
-					controlClock(Bluetooth.getTime(), timeSlider);
+					controlClock(Parser.getTime(), timeSlider);
 				}
 			}
 			@Override
@@ -275,7 +270,7 @@ public class MainActivity  extends AppCompatActivity {
         try{
             if(socket.getInputStream().available()>0) {
                 flushStream(); //Flush stream to restart estimate
-                Thread.sleep(200); //Give us time to see if we still get data after a flush
+                Thread.sleep(100); //Give us time to see if we still get data after a flush
             }
             if(socket.getInputStream().available()>0) //We check here again after the delay
                 return true;
@@ -353,15 +348,15 @@ public class MainActivity  extends AppCompatActivity {
             float gyroY = 0;
             float gyroZ = 0;
 
-            if(!Bluetooth.getHeading().isEmpty()) { //Check that we have data
-                resizeArrays(Bluetooth.getHeading(), Bluetooth.getGyroX(),
-                        Bluetooth.getGyroY(), Bluetooth.getGyroZ()); //Make sure arrays haven't grown too large
-            if(!Bluetooth.getHeading().isEmpty() && !Bluetooth.getGyroX().isEmpty()
-                    && !Bluetooth.getGyroY().isEmpty() && !Bluetooth.getGyroZ().isEmpty()) {
-                heading = Bluetooth.getHeading().get(Bluetooth.getHeading().size() - 1);
-                gyroX = Bluetooth.getGyroX().get(Bluetooth.getGyroX().size() - 1);
-                gyroY = Bluetooth.getGyroY().get(Bluetooth.getGyroY().size() - 1);
-                gyroZ = Bluetooth.getGyroZ().get(Bluetooth.getGyroZ().size() - 1);
+            if(!Parser.getHeading().isEmpty()) { //Check that we have data
+                resizeArrays(Parser.getHeading(), Parser.getGyroX(),
+                        Parser.getGyroY(), Parser.getGyroZ()); //Make sure arrays haven't grown too large
+            if(!Parser.getHeading().isEmpty() && !Parser.getGyroX().isEmpty()
+                    && !Parser.getGyroY().isEmpty() && !Parser.getGyroZ().isEmpty()) {
+                heading = Parser.getHeading().get(Parser.getHeading().size() - 1);
+                gyroX = Parser.getGyroX().get(Parser.getGyroX().size() - 1);
+                gyroY = Parser.getGyroY().get(Parser.getGyroY().size() - 1);
+                gyroZ = Parser.getGyroZ().get(Parser.getGyroZ().size() - 1);
             }
                 gyroX = convert2deg(gyroX); //The values we get are in rads/sec
                 gyroY = convert2deg(gyroY);
@@ -404,15 +399,29 @@ public class MainActivity  extends AppCompatActivity {
         helpPopup.create().show();
     }
 
+    /**
+     * Returns Bluetooth object that handles connecting and socket saving
+     * @return
+     */
+    public static Bluetooth getBT(){
+        return BT;
+    }
+
+    public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}
+
 	public static int getBtnState(){
 		return btnPressCount;
 	}
+
+    public static void addBtDevice(String name, String address){
+        mArrayAdapter.add(name + "\n" + address);
+    }
 
     private static void resizeArrays(ArrayList<Float> heading, ArrayList<Float> gyroX,
                                      ArrayList<Float> gyroY, ArrayList<Float> gyroZ) {
             while ((heading.size()>20) || (gyroX.size()>20) || (gyroY.size()>20)
                     || (gyroZ.size()>20)) { //Shrink arrays down to 20
-                Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
+                Parser.removeFirst(); //Keep the arraylist only 20 samples long
         }
     }
 
@@ -468,7 +477,7 @@ public class MainActivity  extends AppCompatActivity {
 		try {
 			if (socket != null) {
 				InputStream inStream = socket.getInputStream();
-				Bluetooth.readRtData(inStream, "MainActivity");
+				Parser.readRtData(inStream, "MainActivity");
 			}
 		} catch (IOException e) {
 			//TODO
@@ -481,7 +490,7 @@ public class MainActivity  extends AppCompatActivity {
 	 */
 	private void displayList(){
 		mArrayAdapter.clear();
-		setupBT();
+		BT.setupBT();
 
 		ListView newDevicesListView = (ListView)
 				dialog.findViewById(R.id.device_list_display);
@@ -521,7 +530,7 @@ public class MainActivity  extends AppCompatActivity {
 		});
 
 		dialogCommands.show();
-        Bluetooth.dialogOpen = true;
+        Parser.dialogOpen = true;
 		loadCommandPopup(mCommandAdapter); //populates popup with options
         lv.setAdapter(mCommandAdapter);
         lv.setClickable(true);
@@ -558,13 +567,13 @@ public class MainActivity  extends AppCompatActivity {
             }
         });
         fileDialog.show();
-        Bluetooth.dialogOpen = true;
+        Parser.dialogOpen = true;
         loadFileNamePopup(mFileNameAdapter); //populates popup with options
         lv.setAdapter(mFileNameAdapter);
         lv.setClickable(true);
         if(mFileNameAdapter.isEmpty()){ //Make sure we actually have names to display
             fileDialog.hide();
-            if(Bluetooth.readingTimedOut()){
+            if(Parser.readingTimedOut()){
                 Snackbar.make(findViewById(R.id.full_screen_main),
                         "Download timed out, please try again",
                         Snackbar.LENGTH_LONG)
@@ -580,33 +589,6 @@ public class MainActivity  extends AppCompatActivity {
         ProgressBar tempSpinner = (ProgressBar)fileDialog.findViewById(R.id.progressBar2);
         tempSpinner.setVisibility(View.INVISIBLE); //Hide the progress bar while data isn't being downloaded
     }
-
-	/**
-	 * This method gets paired devices and stores them
-	 *
-	 * Much of this method was taken from:
-	 * https://developer.android.com/guide/topics/connectivity/bluetooth.html
-	 * Modifications were made to conform to the specifications of this app
-	 */
-	private void setupBT(){
-		int REQUEST_ENABLE_BT = 1;
-		BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-		if (!mBluetoothAdapter.isEnabled()) {
-			Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-			startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-		}
-
-		Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-		// If there are paired devices
-		if (pairedDevices.size() > 0) {
-			// Loop through paired devices
-			for (BluetoothDevice device : pairedDevices) {
-				// Add the name and address to an array adapter to show in a ListView
-				mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
-			}
-		}
-	}
 
 	/**
 	 * Intent code from
@@ -647,29 +629,6 @@ public class MainActivity  extends AppCompatActivity {
 				new ConnectTask().execute(device);
 			}
 		});
-	}
-
-	/**
-	 * This method opens a Bluetooth socket and connects the Android
-	 * to the selected Bluetooth device from the getDevice() method
-	 * @param mBluetoothAdapter
-     */
-	private void connect2device(BluetoothDevice mBluetoothAdapter) {
-		if(socket!=null){
-			try{
-				socket.close(); //try to clear the socket
-			}
-			catch(IOException e){
-				socket = null;
-			}
-		}
-		try {
-			socket = mBluetoothAdapter.createRfcommSocketToServiceRecord(uuid);
-			socket.connect();
-			Bluetooth.saveSocket(socket); //store socket
-		} catch (IOException e) {
-			socket = null; //reset socket if the connection fails
-		}
 	}
 
 	/**
@@ -717,7 +676,7 @@ public class MainActivity  extends AppCompatActivity {
      */
     private void loadFileNamePopup(ArrayAdapter<String> mFileNameAdapter) {
         if(mFileNameAdapter!=null) mFileNameAdapter.clear();
-            ArrayList<String> fileNames = Bluetooth.extractFileNames();
+            ArrayList<String> fileNames = Parser.extractFileNames();
             if (!fileNames.isEmpty()){
                 for (String fileName : fileNames){
                     if (mFileNameAdapter != null)
@@ -842,7 +801,7 @@ public class MainActivity  extends AppCompatActivity {
 		@Override
 		protected String doInBackground(BluetoothDevice...deviceArr) {
 			BluetoothDevice device = deviceArr[0];
-			connect2device(device);
+			BT.connect2device(device);
 			return "done";
 		}
 		@Override
@@ -882,8 +841,8 @@ public class MainActivity  extends AppCompatActivity {
             TextView progressText = (TextView)fileDialog.findViewById(R.id.progress_text);
             progressText.setText("Progress: ");
             progressText.append(progress[0] + "%" + "  ");
-            progressText.append("Byes downloaded: " + Bluetooth.getBytesDown()
-                    + "/" + Bluetooth.totalFileSize);
+            progressText.append("Byes downloaded: " + Parser.getBytesDown()
+                    + "/" + Parser.totalFileSize);
             spinner.setProgress(progress[0]);
             //spinner.getProgressDrawable().setColorFilter(
             //        Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
@@ -892,7 +851,7 @@ public class MainActivity  extends AppCompatActivity {
 		@Override
 		protected String doInBackground(Integer... params) {
             try {
-                Bluetooth.readSdCat(socket.getInputStream(), 11,
+                Parser.readSdCat(socket.getInputStream(), 11,
                         fileName, selection);
             }catch(IOException e){
                 System.out.print("Exception doing readSdCat");

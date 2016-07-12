@@ -50,7 +50,7 @@ import java.util.Observer;
 public class DepthLightActivity extends AppCompatActivity {
     private LineChart chartDepth = null;
     private LineChart chartLight = null;
-    private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
+    private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We store the socket in the Bluetooth class
     private static int btnPressCount = 0;
 
     @Override
@@ -61,9 +61,9 @@ public class DepthLightActivity extends AppCompatActivity {
         chartDepth = (LineChart) findViewById(R.id.chart4); //get the first chart
         chartLight = (LineChart) findViewById(R.id.chart5); //get the second chart
 
-        graphTest(chartDepth, convert2Entry(Bluetooth.getDepth()), "Depth", Color.RED);
+        graphTest(chartDepth, convert2Entry(Parser.getDepth()), "Depth", Color.RED);
         chartDepth.invalidate(); //Refresh graph
-        graphTest(chartLight, convert2Entry(Bluetooth.getLight()), "Light", Color.GREEN);
+        graphTest(chartLight, convert2Entry(Parser.getLight()), "Light", Color.GREEN);
         chartLight.invalidate(); //refresh graph
 
         final GraphObject graph = new GraphObject();
@@ -140,7 +140,7 @@ public class DepthLightActivity extends AppCompatActivity {
         try{
             if(socket.getInputStream().available()>0) {
                 flushStream(); //Flush stream to restart estimate
-                Thread.sleep(200); //Give us time to see if we still get data after a flush
+                Thread.sleep(100); //Give us time to see if we still get data after a flush
             }
             if(socket.getInputStream().available()>0) //We check here again after the delay
                 return true;
@@ -181,10 +181,10 @@ public class DepthLightActivity extends AppCompatActivity {
     private class GraphObject implements Observer {
         @Override
         public void update(Observable observable, Object data) {
-            ArrayList<Float> dataCond = Bluetooth.getDepth();
-            ArrayList<Float> dataLight = Bluetooth.getLight();
-            graphRtData(dataCond, Bluetooth.getDepth(), chartDepth); //Graph temp
-            graphRtData(dataLight, Bluetooth.getLight(), chartLight); //Graph conductivity
+            ArrayList<Float> dataCond = Parser.getDepth();
+            ArrayList<Float> dataLight = Parser.getLight();
+            graphRtData(dataCond, Parser.getDepth(), chartDepth); //Graph temp
+            graphRtData(dataLight, Parser.getLight(), chartLight); //Graph conductivity
         }
     }
 
@@ -244,7 +244,7 @@ public class DepthLightActivity extends AppCompatActivity {
         try {
             if (socket != null) {
                     InputStream inStream = socket.getInputStream();
-                    Bluetooth.readRtData(inStream, "DepthLightActivity");
+                    Parser.readRtData(inStream, "DepthLightActivity");
              }
         } catch (IOException e) {
             //TODO
@@ -253,7 +253,7 @@ public class DepthLightActivity extends AppCompatActivity {
 
     private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
         if (data.size() > 20) {
-            while (data.size() > 20) Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
+            while (data.size() > 20) Parser.removeFirst(); //Keep the arraylist only 20 samples long
         }
         if (data.size() > 0 && chart!=null) {
             chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide

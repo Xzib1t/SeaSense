@@ -49,7 +49,7 @@ import java.util.Observer;
 public class TempCondActivity extends AppCompatActivity {
     private LineChart chartTemp = null;
     private LineChart chartCond = null;
-    private BluetoothSocket socket = Bluetooth.getSocket(); //We store the socket in the Bluetooth class
+    private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We store the socket in the Bluetooth class
     private static int btnPressCount = 0;
 
     @Override
@@ -63,11 +63,11 @@ public class TempCondActivity extends AppCompatActivity {
 
         chartTemp = (LineChart) findViewById(R.id.chart2); //get the first chart
         //TODO add time on the x axis
-        graphTest(chartTemp, convert2Entry(Bluetooth.getTemp()), "Temperature (Deg C)", Color.RED);
+        graphTest(chartTemp, convert2Entry(Parser.getTemp()), "Temperature (Deg C)", Color.RED);
         chartTemp.invalidate(); //Refresh graph
 
         chartCond = (LineChart) findViewById(R.id.chart3); //get the first chart
-        graphTest(chartCond, convert2Entry(Bluetooth.getCond()), "Conductivity (S/m)", Color.GREEN);
+        graphTest(chartCond, convert2Entry(Parser.getCond()), "Conductivity (S/m)", Color.GREEN);
         chartCond.invalidate(); //Refresh graph
 
         setupSwipeDetector(); //Setup swipe detector so we can swipe to change views
@@ -134,10 +134,10 @@ public class TempCondActivity extends AppCompatActivity {
     private class GraphObject implements Observer {
         @Override
         public void update(Observable observable, Object data) {
-            ArrayList<Float> dataTemp = Bluetooth.getTemp();
-            ArrayList<Float> dataCond = Bluetooth.getCond();
-            graphRtData(dataTemp, Bluetooth.getTemp(), chartTemp); //Graph temp
-            graphRtData(dataCond, Bluetooth.getCond(), chartCond); //Graph conductivity
+            ArrayList<Float> dataTemp = Parser.getTemp();
+            ArrayList<Float> dataCond = Parser.getCond();
+            graphRtData(dataTemp, Parser.getTemp(), chartTemp); //Graph temp
+            graphRtData(dataCond, Parser.getCond(), chartCond); //Graph conductivity
         }
     }
 
@@ -159,7 +159,7 @@ public class TempCondActivity extends AppCompatActivity {
         try{
             if(socket.getInputStream().available()>0) {
                 flushStream(); //Flush stream to restart estimate
-                Thread.sleep(200); //Give us time to see if we still get data after a flush
+                Thread.sleep(100); //Give us time to see if we still get data after a flush
             }
             if(socket.getInputStream().available()>0) //We check here again after the delay
                 return true;
@@ -227,10 +227,10 @@ public class TempCondActivity extends AppCompatActivity {
 
     private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
         if (data.size() > 20) {
-            while (data.size() > 20) Bluetooth.removeFirst(); //Keep the arraylist only 20 samples long
+            while (data.size() > 20) Parser.removeFirst(); //Keep the arraylist only 20 samples long
         }
         if (data.size() > 0 && chart!=null) {
-            ArrayList<Entry> dataE = convert2Entry(Bluetooth.getTemp());
+            ArrayList<Entry> dataE = convert2Entry(Parser.getTemp());
             chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
             chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
 
@@ -257,7 +257,7 @@ public class TempCondActivity extends AppCompatActivity {
         try {
             if (socket != null) {
                 InputStream inStream = socket.getInputStream();
-                Bluetooth.readRtData(inStream, "TempCondActivity");
+                Parser.readRtData(inStream, "TempCondActivity");
             }
         } catch (IOException e) {
             System.out.println("Exception thrown");
