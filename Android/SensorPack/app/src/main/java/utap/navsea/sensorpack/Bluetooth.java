@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,7 +31,7 @@ public class Bluetooth extends AppCompatActivity{
     //Below UUID is the standard SSP UUID:
     //Also seen at https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html
     private final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private BluetoothSocket socket = null; //We store the socket in the Bluetooth class
+    private static BluetoothSocket socket = null; //We store the socket in the Bluetooth class
 
     /**
      * This method gets paired devices and stores them
@@ -81,6 +82,24 @@ public class Bluetooth extends AppCompatActivity{
         } catch (IOException e) {
             socket = null; //reset socket if the connection fails
         }
+    }
+
+    public static boolean isStillConnected(){
+        try {
+            int testData = 13;
+            OutputStream oStream = socket.getOutputStream();
+            oStream.flush();
+            oStream.write(testData);
+        } catch (IOException | NullPointerException e) {
+            System.out.println("Exception thrown, not connected");
+            try {
+                socket.close();
+            } catch (IOException | NullPointerException e1) {
+                return false;
+            }
+            return false;
+        }
+        return true;
     }
 
     /**

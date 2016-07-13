@@ -78,6 +78,11 @@ public class TempCondActivity extends AppCompatActivity {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
                 btnPressCount++;
                 syncButton(rtButton, data);
+                if(!Bluetooth.isStillConnected()) {
+                    Snackbar.make(findViewById(R.id.full_screen_tempcond),
+                            "Not connected", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
             }
         });
 

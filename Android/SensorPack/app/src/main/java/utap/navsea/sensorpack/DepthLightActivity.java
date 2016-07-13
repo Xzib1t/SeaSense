@@ -79,6 +79,11 @@ public class DepthLightActivity extends AppCompatActivity {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
                 btnPressCount++;
                 syncButton(rtButton, data);
+                if(!Bluetooth.isStillConnected()) {
+                    Snackbar.make(findViewById(R.id.full_screen_depthlight),
+                            "Not connected", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
             }
         });
 

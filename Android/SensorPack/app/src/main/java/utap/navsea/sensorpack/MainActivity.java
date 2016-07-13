@@ -104,6 +104,11 @@ public class MainActivity  extends AppCompatActivity {
                 rtButton.setText(getResources().getString(R.string.start_dl_rt));
                 btnPressCount++;
                 syncButton(rtButton, data);
+                if(!Bluetooth.isStillConnected()) {
+                        Snackbar.make(findViewById(R.id.full_screen_main),
+                                "Not connected", Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
+                }
 			}
 		});
 
@@ -120,7 +125,7 @@ public class MainActivity  extends AppCompatActivity {
             @Override
             public void onDismiss(DialogInterface dialogInterface) {
                 if(socket!=null)
-                    if(isStillConnected()) {
+                    if(Bluetooth.isStillConnected()) {
                         rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
                     }
             }
@@ -153,7 +158,7 @@ public class MainActivity  extends AppCompatActivity {
         fabReset.setOnClickListener(new View.OnClickListener() { //Fab for changing view
             @Override
             public void onClick(View view) {
-                if (socket != null && isStillConnected()) {
+                if (socket != null && Bluetooth.isStillConnected()) {
                     try {
                         OutputStream outStream = socket.getOutputStream();
                         Commands.sendCommand(outStream, "reset", "");
@@ -177,7 +182,7 @@ public class MainActivity  extends AppCompatActivity {
         fabLogfile.setOnClickListener(new View.OnClickListener() { //Fab for changing view
             @Override
             public void onClick(View view) {
-                if (socket != null && isStillConnected()) {
+                if (socket != null && Bluetooth.isStillConnected()) {
                     try {
                         btnLogCount++;
                         OutputStream outStream = socket.getOutputStream();
@@ -318,34 +323,16 @@ public class MainActivity  extends AppCompatActivity {
         }
     }
 
-    private boolean isStillConnected(){
-            try {
-                int testData = 13;
-                OutputStream oStream = socket.getOutputStream();
-                oStream.flush();
-                oStream.write(testData);
-            } catch (IOException | NullPointerException e) {
-                System.out.println("Exception thrown, not connected");
-                try {
-                    socket.close();
-                } catch (IOException | NullPointerException e1) {
-                    return false;
-                }
-                return false;
-            }
-        return true;
-    }
-
     private void syncDisplay(Button rtButton){
         if(socket==null){
             showInstructions();
             rtButton.setVisibility(View.INVISIBLE);
         }
-        else if(!isStillConnected()){
+        else if(!Bluetooth.isStillConnected()){
             showInstructions();
             rtButton.setVisibility(View.VISIBLE);
         }
-        else if(isStillConnected()){
+        else if(Bluetooth.isStillConnected()){
             rtButton.setVisibility(View.VISIBLE);
         }
     }
@@ -523,7 +510,7 @@ public class MainActivity  extends AppCompatActivity {
 
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> arg, View view, int position, long id){
-                if(socket!=null && isStillConnected()) {
+                if(socket!=null && Bluetooth.isStillConnected()) {
                    //DownloadTask Download = new DownloadTask();
                     Download = new DownloadTask();
                     Download.fileName = mFileNameAdapter.getItem(position);
