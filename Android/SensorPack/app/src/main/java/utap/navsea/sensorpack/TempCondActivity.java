@@ -42,6 +42,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.concurrent.TimeUnit;
 
 public class TempCondActivity extends AppCompatActivity {
     private LineChart chartTemp = null;
@@ -150,18 +151,39 @@ public class TempCondActivity extends AppCompatActivity {
     /**
      * This is a workaround for detecting if we are
      * getting data or not, since reading from an InputStream is blocking
+     * The solution in this method for sidestepping the blocking aspect of the read method came from:
+     * http://stackoverflow.com/questions/14023374/making-a-thread-which-cancels-a-inputstream-read-call-if-x-time-has-passed
      * @return If data is being received, returns true, else false
      */
     private boolean isGettingData(){
-        try{
-            if(socket.getInputStream().available()>0) {
-                flushStream(); //Flush stream to restart estimate
-                Thread.sleep(100); //Give us time to see if we still get data after a flush
+        int available;
+        long startTime = System.nanoTime();
+        int timeout = 100;
+        InputStream inStream = null;
+        flushStream();
+        try {
+            if(socket!=null)
+                inStream = socket.getInputStream();
+            Thread.sleep(100); //The Arduino keeps sending data for 100ms after it is told to stop
+        }catch(IOException | InterruptedException e){}
+        try {
+            while (true) {
+                available = inStream.available();
+                if (available > 0) {
+                    return true;
+                }
+                Thread.sleep(1);
+                long estimatedTime = System.nanoTime() - startTime;
+                long estimatedMillis = TimeUnit.MILLISECONDS.convert(estimatedTime,
+                        TimeUnit.NANOSECONDS);
+                if (estimatedMillis > timeout){
+                    return false; //timeout, no data coming
+                }
             }
-            return (socket.getInputStream().available()>0); //We check here again after the delay
-        }catch(IOException | InterruptedException e){
-            return false; //Couldn't read stream because we aren't getting data
+        }catch(IOException | InterruptedException | NullPointerException e){
+            Log.d("Exception", "Exception");
         }
+        return false;
     }
 
     /**

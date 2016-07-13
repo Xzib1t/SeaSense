@@ -98,6 +98,7 @@ public class Graph {
         chart.setDrawBorders(true);
         chart.setBorderColor(Color.BLACK);
         chart.setMaxVisibleValueCount(0);
+        chart.setDescription("");
 
         Legend legend = chart.getLegend();
         legend.setEnabled(true);
