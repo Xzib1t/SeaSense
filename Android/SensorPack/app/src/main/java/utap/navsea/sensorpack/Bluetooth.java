@@ -1,6 +1,12 @@
 /*
  * Copyright 2016 Joseph Maestri
  *
+ * The following link was frequently consulted in the creation of this file:
+ * https://developer.android.com/guide/topics/connectivity/bluetooth.html
+ *
+ * https://github.com/prefanatic/BME-363-Lab was also consulted in the creation
+ * of this file
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
