@@ -116,8 +116,14 @@ public class MainActivity  extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-				getDevice();
-				displayList();
+                int REQUEST_ENABLE_BT = 1;
+                if (!BluetoothAdapter.getDefaultAdapter().isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                }else{
+                    getDevice();
+                    displayList();
+                }
 			}
 		});
 
