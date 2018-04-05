@@ -48,7 +48,7 @@ public class TempCondActivity extends AppCompatActivity {
     private LineChart chartTemp = null;
     private LineChart chartCond = null;
     private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We use the socket from the Bluetooth class
-    private static int btnPressCount = 0;
+    private static boolean streaming_rt = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +76,7 @@ public class TempCondActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.graph_rt));
-                btnPressCount++;
+                streaming_rt = !streaming_rt;
                 syncButton(rtButton, data);
                 if(!Bluetooth.isStillConnected()) {
                     Snackbar.make(findViewById(R.id.full_screen_tempcond),
@@ -91,7 +91,7 @@ public class TempCondActivity extends AppCompatActivity {
         fabLeft.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if((btnPressCount % 2) == 0) {
+                if(!streaming_rt) {
                     flushStream();
                     changeActivity(MainActivity.class);
                 }
@@ -106,7 +106,7 @@ public class TempCondActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if((btnPressCount % 2) == 0) {
+                if(!streaming_rt) {
                     flushStream();
                     changeActivity(DepthLightActivity.class);
                 }
@@ -197,27 +197,27 @@ public class TempCondActivity extends AppCompatActivity {
      */
     private void syncButton(Button rtButton, DataObject data){
         boolean gettingData = isGettingData(); //Check if we're getting data
-        if((btnPressCount % 2)!=0 && !gettingData) { //We want data and aren't getting it yet
+        if(streaming_rt && !gettingData) { //We want data and aren't getting it yet
             rtButton.setText(getResources().getString(R.string.stop_graph_rt));
             sendLogApp(); //Need to send logapp to start data transfer
             startRtDownload(data);
         }
-        if((btnPressCount % 2)!=0 && gettingData) { //We want data and are already getting it
+        if(streaming_rt && gettingData) { //We want data and are already getting it
             rtButton.setText(getResources().getString(R.string.stop_graph_rt));
             startRtDownload(data); //Don't need to send logapp, data already incoming
         }
-        if((btnPressCount % 2)==0 && gettingData) { //We want to stop getting data and are still getting it
+        if(!streaming_rt && gettingData) { //We want to stop getting data and are still getting it
             rtButton.setText(getResources().getString(R.string.graph_rt));
             sendLogApp(); //Need to send logapp to stop data transfer
         }
-        if((btnPressCount % 2)==0 && !gettingData) { //We want to stop getting data but we already aren't getting it
+        if(!streaming_rt && !gettingData) { //We want to stop getting data but we already aren't getting it
             rtButton.setText(getResources().getString(R.string.graph_rt));
             //Don't need to send logapp, data transfer already stopped
         }
     }
 
-    public static int getBtnState(){
-        return btnPressCount;
+    public static boolean isStreamingRT(){
+        return streaming_rt;
     }
 
     private void startRtDownload(final DataObject data){
@@ -226,7 +226,7 @@ public class TempCondActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while ((btnPressCount % 2) != 0) { //If it's an odd button press
+                while (streaming_rt) {
                     runOnUiThread(new Runnable() {
 
                         @Override

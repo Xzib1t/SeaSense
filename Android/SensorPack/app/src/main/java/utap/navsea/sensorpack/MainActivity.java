@@ -64,7 +64,7 @@ public class MainActivity  extends AppCompatActivity {
 	private Dialog fileDialog;
 	private SeekBar timeSlider = null;
     private boolean rtThreadRunning = false;
-	private static int btnPressCount = 0;
+	private static boolean streaming_rt = false;
     private static int btnLogCount = 0;
     public static  DownloadTask Download;
     private static Bluetooth BT = new Bluetooth();
@@ -102,7 +102,7 @@ public class MainActivity  extends AppCompatActivity {
 			@Override
 			public void onClick(View view) {
                 rtButton.setText(getResources().getString(R.string.start_dl_rt));
-                btnPressCount++;
+                streaming_rt = !streaming_rt;
                 syncButton(rtButton, data);
                 if(!Bluetooth.isStillConnected()) {
                         Snackbar.make(findViewById(R.id.full_screen_main),
@@ -150,7 +150,7 @@ public class MainActivity  extends AppCompatActivity {
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
 			public void onClick(View view) {
-                if((btnPressCount % 2) == 0) {
+                if(!streaming_rt) {
                     flushStream();
                     changeActivity(TempCondActivity.class); //Switches to TempCondActivity
                 }
@@ -317,20 +317,20 @@ public class MainActivity  extends AppCompatActivity {
      */
     private void syncButton(Button rtButton, DataObject data){
         boolean gettingData = isGettingData(); //Check if we're getting data
-        if((btnPressCount % 2)!=0 && !gettingData) { //We want data and aren't getting it yet
+        if(streaming_rt && !gettingData) { //We want data and aren't getting it yet
             rtButton.setText(getResources().getString(R.string.stop_dl_rt));
             sendLogApp(); //Need to send logapp to start data transfer
             startRtDownload(data);
         }
-        if((btnPressCount % 2)!=0 && gettingData) { //We want data and are already getting it
+        if(streaming_rt && gettingData) { //We want data and are already getting it
             rtButton.setText(getResources().getString(R.string.stop_dl_rt));
             startRtDownload(data); //Don't need to send logapp, data already incoming
         }
-        if((btnPressCount % 2)==0 && gettingData) { //We want to stop getting data and are still getting it
+        if(!streaming_rt && gettingData) { //We want to stop getting data and are still getting it
             rtButton.setText(getResources().getString(R.string.start_dl_rt));
             sendLogApp(); //Need to send logapp to stop data transfer
         }
-        if((btnPressCount % 2)==0 && !gettingData) { //We want to stop getting data but we already aren't getting it
+        if(!streaming_rt && !gettingData) { //We want to stop getting data but we already aren't getting it
             rtButton.setText(getResources().getString(R.string.start_dl_rt));
             //Don't need to send logapp, data transfer already stopped
         }
@@ -417,8 +417,8 @@ public class MainActivity  extends AppCompatActivity {
 
     public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}
 
-	public static int getBtnState(){
-		return btnPressCount;
+	public static boolean isStreamingRT(){
+		return streaming_rt;
 	}
 
     public static void addBtDevice(String name, String address){
@@ -451,7 +451,7 @@ public class MainActivity  extends AppCompatActivity {
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				while ((btnPressCount % 2) != 0) { //If it's an odd button press
+				while (streaming_rt) {
 					runOnUiThread(new Runnable() {
 
 						@Override

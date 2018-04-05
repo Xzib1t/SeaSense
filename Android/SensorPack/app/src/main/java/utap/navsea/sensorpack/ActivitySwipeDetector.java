@@ -43,12 +43,12 @@ public class ActivitySwipeDetector implements View.OnTouchListener {
     }
 
     public boolean onTouch(View v, MotionEvent event) {
-        int btnPressCount = 0; //Check the state of the button on whatever activity we're currently on
-        if(leftActivity==TempCondActivity.class) btnPressCount = DepthLightActivity.getBtnState();
-        if(leftActivity==MainActivity.class) btnPressCount = TempCondActivity.getBtnState();
-        if(leftActivity==DepthLightActivity.class) btnPressCount = MainActivity.getBtnState();
+        boolean streaming_rt = false; //Check the state of the button on whatever activity we're currently on
+        if(leftActivity==TempCondActivity.class) streaming_rt = DepthLightActivity.isStreamingRT();
+        if(leftActivity==MainActivity.class) streaming_rt = TempCondActivity.isStreamingRT();
+        if(leftActivity==DepthLightActivity.class) streaming_rt = MainActivity.isStreamingRT();
 
-        if((btnPressCount % 2) == 0) { //Make sure we aren't downloading data when we try to switch activities
+        if(!streaming_rt) { //Make sure we aren't downloading data when we try to switch activities
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN: {
                     downX = event.getX();
