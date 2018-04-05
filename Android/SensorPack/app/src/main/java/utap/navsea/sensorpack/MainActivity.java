@@ -65,7 +65,7 @@ public class MainActivity  extends AppCompatActivity {
 	private SeekBar timeSlider = null;
     private boolean rtThreadRunning = false;
 	private static boolean streaming_rt = false;
-    private static int btnLogCount = 0;
+    private static boolean arduino_logging = false;
     public static  DownloadTask Download;
     private static Bluetooth BT = new Bluetooth();
 
@@ -189,10 +189,10 @@ public class MainActivity  extends AppCompatActivity {
             public void onClick(View view) {
                 if (socket != null && Bluetooth.isStillConnected()) {
                     try {
-                        btnLogCount++;
+                        arduino_logging = !arduino_logging;
                         OutputStream outStream = socket.getOutputStream();
                         Commands.sendCommand(outStream, "logfile", "");
-                        if((btnLogCount % 2) != 0) //If it's odd we're logging
+                        if(arduino_logging)
                             Snackbar.make(view, "Logging sensor data, press again to stop logging",
                                     Snackbar.LENGTH_LONG)
                                     .setAction("Action", null).show();
@@ -397,7 +397,9 @@ public class MainActivity  extends AppCompatActivity {
                         "RESET button\n" + "-To read a file from the SD card, tap the SD card button " +
                         "and select a file\n" +
                         "-To start logging sensor data to a file on the SD card, tap the download " +
-                        "button above the SD card button")
+                        "button above the SD card button\n" +
+                        "-To set a new graph zero for depth, hold the 'Graph Real Time Data' button while " +
+                        "getting data")
                 .setCancelable(true)
                 .setPositiveButton("Close",new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog,int id) {
