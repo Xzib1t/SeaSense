@@ -50,6 +50,7 @@ public class DepthLightActivity extends AppCompatActivity {
     private LineChart chartLight = null;
     private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We use the socket from the Bluetooth class
     private static int btnPressCount = 0;
+    private static float zero_depth = 0; //The depth value that is set to the graph 0
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +87,31 @@ public class DepthLightActivity extends AppCompatActivity {
                 }
             }
         });
+        rtButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                if(!Bluetooth.isStillConnected()) {
+                    Snackbar.make(findViewById(R.id.full_screen_depthlight),
+                            "Not connected", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+                else if(!Parser.getDepth().isEmpty())
+                {
+                    zero_depth = Parser.getDepth().get(Parser.getDepth().size() - 1);
+                    Snackbar.make(findViewById(R.id.full_screen_depthlight),
+                            "Set new depth zero to " + Float.toString(zero_depth), Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+                else{
+                    Snackbar.make(findViewById(R.id.full_screen_depthlight),
+                            "Can't set new depth zero. No depth data in buffer.  Read some data and try again.", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+
+                return true;
+            }
+        });
+
 
         FloatingActionButton fabLeft = (FloatingActionButton) findViewById(R.id.fab_left2);
         assert fabLeft != null;
@@ -203,10 +229,8 @@ public class DepthLightActivity extends AppCompatActivity {
     private class GraphObject implements Observer {
         @Override
         public void update(Observable observable, Object data) {
-            ArrayList<Float> dataCond = Parser.getDepth();
-            ArrayList<Float> dataLight = Parser.getLight();
-            graphRtData(dataCond, Parser.getDepth(), chartDepth); //Graph temp
-            graphRtData(dataLight, Parser.getLight(), chartLight); //Graph conductivity
+            graphRtData(Parser.getDepth(), -zero_depth, chartDepth); //Graph depth
+            graphRtData(Parser.getLight(),0, chartLight); //Graph light
         }
     }
 
@@ -273,8 +297,8 @@ public class DepthLightActivity extends AppCompatActivity {
         }
     }
 
-    private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
-        if (data.size() > 0 && chart!=null) {
+    private void graphRtData(ArrayList<Float> sensorData, float adjustment, LineChart chart){
+        if (sensorData.size() > 0 && chart!=null) {
             chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
             chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
 
@@ -286,7 +310,7 @@ public class DepthLightActivity extends AppCompatActivity {
                 ILineDataSet set = graphData.getDataSetByIndex(0);
                 graphData.addXValue(graphData.getXValCount() + " "
                         + graphData.getXValCount());
-                graphData.addEntry(new Entry(sensorData.get(sensorData.size()-1), set.getEntryCount()), 0);
+                graphData.addEntry(new Entry(sensorData.get(sensorData.size()-1) + adjustment, set.getEntryCount()), 0);
                 chart.notifyDataSetChanged();
                 chart.invalidate(); //Refresh graph
             }

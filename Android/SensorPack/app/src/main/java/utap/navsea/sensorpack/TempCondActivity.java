@@ -137,10 +137,8 @@ public class TempCondActivity extends AppCompatActivity {
     private class GraphObject implements Observer {
         @Override
         public void update(Observable observable, Object data) {
-            ArrayList<Float> dataTemp = Parser.getTemp();
-            ArrayList<Float> dataCond = Parser.getCond();
-            graphRtData(dataTemp, Parser.getTemp(), chartTemp); //Graph temp
-            graphRtData(dataCond, Parser.getCond(), chartCond); //Graph conductivity
+            graphRtData(Parser.getTemp(), chartTemp); //Graph temp
+            graphRtData(Parser.getCond(), chartCond); //Graph conductivity
         }
     }
 
@@ -246,8 +244,8 @@ public class TempCondActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
-        if (data.size() > 0 && chart!=null) {
+    private void graphRtData(ArrayList<Float> sensorData, LineChart chart){
+        if (sensorData.size() > 0 && chart!=null) {
             chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
             chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
 
