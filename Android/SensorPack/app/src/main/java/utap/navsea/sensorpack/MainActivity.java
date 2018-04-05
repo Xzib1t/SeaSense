@@ -358,23 +358,21 @@ public class MainActivity  extends AppCompatActivity {
             float gyroY = 0;
             float gyroZ = 0;
 
-            if(!Parser.getHeading().isEmpty()) { //Check that we have data
-                resizeArrays(Parser.getHeading(), Parser.getGyroX(),
-                        Parser.getGyroY(), Parser.getGyroZ()); //Make sure arrays haven't grown too large
-            if(!Parser.getHeading().isEmpty() && !Parser.getGyroX().isEmpty()
-                    && !Parser.getGyroY().isEmpty() && !Parser.getGyroZ().isEmpty()) {
+            if (!Parser.getHeading().isEmpty() &&
+                    !Parser.getGyroX().isEmpty() &&
+                    !Parser.getGyroY().isEmpty() &&
+                    !Parser.getGyroZ().isEmpty()) {
                 heading = Parser.getHeading().get(Parser.getHeading().size() - 1);
-                gyroX = Parser.getGyroX().get(Parser.getGyroX().size() - 1);
-                gyroY = Parser.getGyroY().get(Parser.getGyroY().size() - 1);
-                gyroZ = Parser.getGyroZ().get(Parser.getGyroZ().size() - 1);
+                gyroX   = Parser.getGyroX().get(Parser.getGyroX().size() - 1);
+                gyroY   = Parser.getGyroY().get(Parser.getGyroY().size() - 1);
+                gyroZ   = Parser.getGyroZ().get(Parser.getGyroZ().size() - 1);
             }
-                gyroX = convert2deg(gyroX); //The values we get are in rads/sec
-                gyroY = convert2deg(gyroY);
-                gyroZ = convert2deg(gyroZ);
+            gyroX = convert2deg(gyroX); //The values we get are in rads/sec
+            gyroY = convert2deg(gyroY);
+            gyroZ = convert2deg(gyroZ);
 
-                spinCompass(compass, heading);
-                controlSeaperchRt(gyroX, gyroY, gyroZ);
-            }
+            spinCompass(compass, heading);
+            controlSeaperchRt(gyroX, gyroY, gyroZ);
         }
     }
 
@@ -425,14 +423,6 @@ public class MainActivity  extends AppCompatActivity {
 
     public static void addBtDevice(String name, String address){
         mArrayAdapter.add(name + "\n" + address);
-    }
-
-    private static void resizeArrays(ArrayList<Float> heading, ArrayList<Float> gyroX,
-                                     ArrayList<Float> gyroY, ArrayList<Float> gyroZ) {
-            while ((heading.size()>20) || (gyroX.size()>20) || (gyroY.size()>20)
-                    || (gyroZ.size()>20)) { //Shrink arrays down to 20
-                Parser.removeFirst(); //Keep the arraylist only 20 samples long
-        }
     }
 
     private class DataObject extends Observable {

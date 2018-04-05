@@ -43,6 +43,7 @@ public class Parser extends AppCompatActivity{
     private static ArrayList<Float> gyroY = new ArrayList<>();
     private static ArrayList<Float> gyroZ = new ArrayList<>();
     private static ArrayList<String> downloadedData = new ArrayList<>(); //change this back to private
+    private static int MAX_SAVED_SAMPLES = 20; //Maximum # of samples to store in the ArrayLists
     private static StringBuffer downloadedStrings = new StringBuffer();
     public static boolean dialogOpen = true;
     private static boolean readBlockTimedOut = false;
@@ -216,6 +217,12 @@ public class Parser extends AppCompatActivity{
             Float currentValue = Float.parseFloat(csv[position]);
             arrayList.add(currentValue);
 
+            while (arrayList.size() > MAX_SAVED_SAMPLES) {
+                if (!arrayList.isEmpty()){
+                    arrayList.remove(0);
+                }
+            }
+
             /*if (!arrayList.isEmpty()) {
                 Float lastValue = arrayList.get(arrayList.size() - 1);
                 if ((currentValue < lastValue + errorRange) &&
@@ -355,17 +362,6 @@ public class Parser extends AppCompatActivity{
     }
 
     public static void saveSocket(BluetoothSocket saveSocket){socket = saveSocket;}
-
-    public static void removeFirst(){
-        if(temperature.size()>20) temperature.remove(0);
-        if(conductivity.size()>20) conductivity.remove(0);
-        if(depth.size()>20) depth.remove(0);
-        if(light.size()>20) light.remove(0);
-        if(heading.size()>20) heading.remove(0);
-        if(gyroX.size()>20) gyroX.remove(0);
-        if(gyroY.size()>20) gyroY.remove(0);
-        if(gyroZ.size()>20) gyroZ.remove(0);
-    }
 
     public static ArrayList<String> getTime(){
         return time;

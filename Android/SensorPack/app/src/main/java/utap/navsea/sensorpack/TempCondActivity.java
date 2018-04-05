@@ -247,9 +247,6 @@ public class TempCondActivity extends AppCompatActivity {
     }
 
     private void graphRtData(ArrayList<Float> data, ArrayList<Float> sensorData, LineChart chart){
-        if (data.size() > 20) {
-            while (data.size() > 20) Parser.removeFirst(); //Keep the arraylist only 20 samples long
-        }
         if (data.size() > 0 && chart!=null) {
             chart.setVisibleXRangeMaximum(20); //Make the graph window only 20 samples wide
             chart.moveViewToX(chart.getData().getXValCount() - 21); //Follow the data with the graph
