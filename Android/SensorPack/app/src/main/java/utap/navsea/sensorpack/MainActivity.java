@@ -183,7 +183,6 @@ public class MainActivity  extends AppCompatActivity {
             }
         });
 
-
         assert fabLogfile != null;
         fabLogfile.setOnClickListener(new View.OnClickListener() { //Fab for changing view
             @Override
@@ -225,6 +224,14 @@ public class MainActivity  extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
 		});
+
+        //Bring all of the FABs to the front so we can actually click them
+        fabReset.bringToFront();
+        fabLogfile.bringToFront();
+        fabRight.bringToFront();
+        fab.bringToFront();
+        rtButton.bringToFront();
+        fabTC.bringToFront();
 
 		timeSlider = (SeekBar)findViewById(R.id.time_slider);
 		assert timeSlider != null;

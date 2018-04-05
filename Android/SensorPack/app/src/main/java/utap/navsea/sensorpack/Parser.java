@@ -139,9 +139,7 @@ public class Parser extends AppCompatActivity{
     public static void readRtData(InputStream inStream, String activity) {
         try {
             resetBuffers(false);
-            byte[] buffer;
-            if(activity.equals("MainActivity")) buffer = new byte[60]; //need a larger buffer to read gyro data
-            else buffer = new byte[30]; //need a smaller buffer for better speed
+            byte[] buffer = new byte[60];
             if(inStream.available()==0) return; //Make sure it's actually sending us data
             int bytes = inStream.read(buffer); //bytes returned from read()
 
@@ -151,19 +149,26 @@ public class Parser extends AppCompatActivity{
             for (String printStr : downloadedData) {
                 downloadedStrings.append(printStr);
             }
+
+            //Separate and check the data
+            String[] csvData = separateLines(downloadedStrings.toString(), 0).split(",");
+
+            if(!dataIsValid(csvData))
+                return;
+
             if(activity.equals("TempCondActivity")) {
-                parseRtData(downloadedStrings.toString(), temperature, 10, 1);
-                parseRtData(downloadedStrings.toString(), conductivity, 10, 3);
+                parseRtData(csvData, temperature, 10, 1);
+                parseRtData(csvData, conductivity, 10, 3);
             }
             if(activity.equals("DepthLightActivity")) {
-                parseRtData(downloadedStrings.toString(), depth, 50, 2);
-                parseRtData(downloadedStrings.toString(), light, 100, 4);
+                parseRtData(csvData, depth, 50, 2);
+                parseRtData(csvData, light, 100, 4);
             }
             if(activity.equals("MainActivity")) {
-                parseRtData(downloadedStrings.toString(), heading, 100, 5);
-                parseRtData(downloadedStrings.toString(), gyroX, 100, 9);
-                parseRtData(downloadedStrings.toString(), gyroY, 100, 10);
-                parseRtData(downloadedStrings.toString(), gyroZ, 100, 11);
+                parseRtData(csvData, heading, 100, 5);
+                parseRtData(csvData, gyroX, 100, 9);
+                parseRtData(csvData, gyroY, 100, 10);
+                parseRtData(csvData, gyroZ, 100, 11);
             }
 
         }catch(Exception e){
@@ -181,9 +186,22 @@ public class Parser extends AppCompatActivity{
         return line;
     }
 
+    private static boolean dataIsValid(String[] csv){
+        if (csv.length == 12) { //Make sure we have an entire chunk of data
+            //Throw it out if it's garbage
+            if (csv[0].split(":").length == 3)
+                return true;
+        }
+        return false;
+    }
+
     /**
      * Parses the real time CSV data, we drop some data with this method
      * but we pull so much in it doesn't matter
+     *
+     * THIS IS ONLY SAFE IF dataIsValid IS CALLED AND CHECKED
+     * BEFORE PASSING 'String[] csv' TO THIS METHOD
+     *
      * @param input The string of data we want to parse
      * @param arrayList The data ArrayList for whatever sensor data category we wish to populate
      * @param errorRange The amount by which we allow a value to jump between samples, if
@@ -191,20 +209,21 @@ public class Parser extends AppCompatActivity{
      * @param position The position in the csv file the data we want is (ex: Conductivity would
      *                 be position 1 in the following file: Time,Conductivity)
      */
-    private static void parseRtData(String input, ArrayList<Float> arrayList, int errorRange, int position){
-        if(!separateLines(input, 0).equals("")) { //If we have data
-            String[] csvData = separateLines(input, 0).split(",");
-            if(csvData.length > position) { //Make sure we have enough data
-                if (!arrayList.isEmpty()) {
-                    Float lastValue = arrayList.get(arrayList.size() - 1);
-                    if ((Float.parseFloat(csvData[position]) < lastValue + errorRange) &&
-                            (Float.parseFloat(csvData[position]) > lastValue - errorRange)) //shouldn't change by more than 10 deg between samples, or it's garbage data
-                        arrayList.add(Float.parseFloat(csvData[position]));
-                } else {
-                    arrayList.add(Float.parseFloat(csvData[position]));
-                }
-            }
-        }
+    private static void parseRtData(String[] csv, ArrayList<Float> arrayList, int errorRange, int position){
+            if(!isFloat(csv[position]))
+                return;
+
+            Float currentValue = Float.parseFloat(csv[position]);
+            arrayList.add(currentValue);
+
+            /*if (!arrayList.isEmpty()) {
+                Float lastValue = arrayList.get(arrayList.size() - 1);
+                if ((currentValue < lastValue + errorRange) &&
+                        (currentValue > lastValue - errorRange)) //shouldn't change by more than the errorRange between samples, or it's garbage data
+                    arrayList.add(currentValue);
+            } else {
+                arrayList.add(currentValue);
+            }*/
     }
 
     /**
