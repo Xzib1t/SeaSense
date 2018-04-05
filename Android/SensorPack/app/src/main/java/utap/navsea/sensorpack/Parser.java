@@ -65,9 +65,8 @@ public class Parser extends AppCompatActivity{
                                  int position) {
         String[] sdInfo = getSdInfo(inStream);
         if(sdInfo[0].equals("")) return;  //Stop if we timed out or have garbage data
-        int arrayPosition;
         int fileSize;
-        arrayPosition = (position * 2) + 2; //Calculate array index of file size from order of filenames
+        int arrayPosition = (position * 2) + 2; //Calculate array index of file size from order of filenames
 
         try {
             fileSize = Integer.parseInt(sdInfo[arrayPosition]);
@@ -158,18 +157,18 @@ public class Parser extends AppCompatActivity{
                 return;
 
             if(activity.equals("TempCondActivity")) {
-                parseRtData(csvData, temperature, 10, 1);
-                parseRtData(csvData, conductivity, 10, 3);
+                updateRTdata(csvData, temperature, 1);
+                updateRTdata(csvData, conductivity, 3);
             }
             if(activity.equals("DepthLightActivity")) {
-                parseRtData(csvData, depth, 50, 2);
-                parseRtData(csvData, light, 100, 4);
+                updateRTdata(csvData, depth, 2);
+                updateRTdata(csvData, light, 4);
             }
             if(activity.equals("MainActivity")) {
-                parseRtData(csvData, heading, 100, 5);
-                parseRtData(csvData, gyroX, 100, 9);
-                parseRtData(csvData, gyroY, 100, 10);
-                parseRtData(csvData, gyroZ, 100, 11);
+                updateRTdata(csvData, heading, 5);
+                updateRTdata(csvData, gyroX, 9);
+                updateRTdata(csvData, gyroY, 10);
+                updateRTdata(csvData, gyroZ, 11);
             }
 
         }catch(Exception e){
@@ -203,14 +202,12 @@ public class Parser extends AppCompatActivity{
      * THIS IS ONLY SAFE IF dataIsValid IS CALLED AND CHECKED
      * BEFORE PASSING 'String[] csv' TO THIS METHOD
      *
-     * @param input The string of data we want to parse
+     * @param csv The string of data we want to parse
      * @param arrayList The data ArrayList for whatever sensor data category we wish to populate
-     * @param errorRange The amount by which we allow a value to jump between samples, if
-     *                   the jump is too extreme it's probably bad data, so we ignore it
      * @param position The position in the csv file the data we want is (ex: Conductivity would
      *                 be position 1 in the following file: Time,Conductivity)
      */
-    private static void parseRtData(String[] csv, ArrayList<Float> arrayList, int errorRange, int position){
+    private static void updateRTdata(String[] csv, ArrayList<Float> arrayList, int position){
             if(!isFloat(csv[position]))
                 return;
 
@@ -222,15 +219,6 @@ public class Parser extends AppCompatActivity{
                     arrayList.remove(0);
                 }
             }
-
-            /*if (!arrayList.isEmpty()) {
-                Float lastValue = arrayList.get(arrayList.size() - 1);
-                if ((currentValue < lastValue + errorRange) &&
-                        (currentValue > lastValue - errorRange)) //shouldn't change by more than the errorRange between samples, or it's garbage data
-                    arrayList.add(currentValue);
-            } else {
-                arrayList.add(currentValue);
-            }*/
     }
 
     /**
