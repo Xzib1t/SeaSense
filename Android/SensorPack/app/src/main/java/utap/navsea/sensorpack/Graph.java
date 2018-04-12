@@ -83,7 +83,7 @@ public class Graph {
         xAxis.setEnabled(true);
         xAxis.setDrawAxisLine(true);
         xAxis.setDrawGridLines(true);
-        xAxis.setDrawLabels(true);
+        xAxis.setDrawLabels(false);
         xAxis.setGridColor(Color.BLACK);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setTextSize(10f);

@@ -25,7 +25,6 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
-import android.os.SystemClock;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.Gravity;
@@ -189,6 +188,7 @@ public class MainActivity  extends AppCompatActivity {
                         arduino_logging = !arduino_logging;
                         OutputStream outStream = socket.getOutputStream();
                         Commands.sendCommand(outStream, "logfile", "");
+
                         if(arduino_logging)
                             Snackbar.make(view, "Logging sensor data, press again to stop logging",
                                     Snackbar.LENGTH_LONG)
