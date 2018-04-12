@@ -149,7 +149,7 @@ public class Parser extends AppCompatActivity{
             for (String printStr : downloadedData) {
                 dlStrings.append(printStr);
             }
-            
+
             if(!dlStrings.toString().isEmpty()) {
                 if(!parseData(dlStrings.toString(), distinctDataPoints)){ //Something went wrong when parsing or we timed out
                     System.out.println("Missing time data: " + dlStrings.toString());

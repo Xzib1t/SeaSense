@@ -535,7 +535,12 @@ public class MainActivity  extends AppCompatActivity {
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> arg, View view, int position, long id){
                 if(socket!=null && Bluetooth.isStillConnected()) {
-                   //DownloadTask Download = new DownloadTask();
+                    //User is probably spamming clicks, so cancel the
+                    //last download
+                    if(Download != null){
+                        Download.cancel(true);
+                    }
+
                     Download = new DownloadTask();
                     Download.fileName = mFileNameAdapter.getItem(position);
                     Download.selection = position;
