@@ -77,6 +77,23 @@ public class Parser extends AppCompatActivity{
             System.out.println("Filesize: " + fileSize + " bytes");
         }catch(NumberFormatException | ArrayIndexOutOfBoundsException e){
             System.out.println("SD information was not received correctly");
+
+            //Try to flush the stream
+            try{
+                inStream.skip(inStream.available());
+            }
+            catch(java.io.IOException e1){
+                System.out.println("Exception thrown flushing input stream");
+            }
+
+            //Set the filesize to an invalid number and update the progress bar
+            totalFileSize = -1;
+            MainActivity.Download.update(-1); //Update download printout with bad value to indicate download can't be continued
+
+            return;
+        }
+        if (fileSize <= 0){
+            MainActivity.Download.update(-1); //Update download printout with bad value to indicate download can't be continued
             return;
         }
         fileSize += 64; //account for extra non-csv data
@@ -96,6 +113,7 @@ public class Parser extends AppCompatActivity{
             int count;
             int sum = 0;
             int readStop;
+
             if (fileSize > buffer.length) readStop = buffer.length;
             else
                 readStop = fileSize; //make sure that the data size isn't larger than our buffer
@@ -106,8 +124,15 @@ public class Parser extends AppCompatActivity{
                     return;
                 }
                 if(timedoutReadBlocking(inStream, 2000)) { //Set a 2 second timeout for our read blocking
-                    return; //Return if we timed out
-                }else{ //Data is waiting to be read, so we read it
+                    totalFileSize = -1; //Set the file size to a bad value
+                    MainActivity.Download.update(-1); //Update download printout with bad value to indicate download can't be continued
+                    //exit the loop if we timed out and try to salvage what we can from the data
+                    //we managed to download
+                    sum = fileSize + 1;
+                    continue;
+                    //return; //Return if we timed out
+                }
+                else{ //Data is waiting to be read, so we read it
                     count = inStream.read(buffer, 0, readStop);
                 }
                 sum += count;
@@ -120,15 +145,16 @@ public class Parser extends AppCompatActivity{
                 MainActivity.Download.update(bytesTemp);
                 downloadedData.add(new String(buffer, 0, count)); //Add new strings to arraylist
             }
-                dlStrings.setLength(0); //Reset buffer
-                for (String printStr : downloadedData) {
-                    dlStrings.append(printStr);
+            dlStrings.setLength(0); //Reset buffer
+            for (String printStr : downloadedData) {
+                dlStrings.append(printStr);
+            }
+            
+            if(!dlStrings.toString().isEmpty()) {
+                if(!parseData(dlStrings.toString(), distinctDataPoints)){ //Something went wrong when parsing or we timed out
+                    System.out.println("Missing time data: " + dlStrings.toString());
                 }
-                if(!dlStrings.toString().isEmpty()) {
-                    if(!parseData(dlStrings.toString(), distinctDataPoints)){ //Something went wrong when parsing or we timed out
-                        System.out.println("Missing time data: " + dlStrings.toString());
-                    }
-                }
+            }
         }catch(IOException | NullPointerException e){
             System.out.println("Read exception or null pointer exception");
         }
@@ -264,6 +290,7 @@ public class Parser extends AppCompatActivity{
                                 return separatedData;
                             }
                             String[] check = sdInfo.toString().split(",");
+
                             if(check.length!=0)
                             if(check[check.length-1].equals(">")) {
                                 String[] firstSplit = sdInfo.toString().split("\\n\\r");
@@ -288,9 +315,9 @@ public class Parser extends AppCompatActivity{
             if (socket != null && socket.isConnected()) {
                 String[] separatedData = getSdInfo(socket.getInputStream());
                 if(separatedData[0].equals("")) return fileNameList;  //Return an empty array if we timed out or have garbage data
-                if (separatedData.length != 0) {
-                    for (int i = 0; i < separatedData.length - 1; i++) {
-                        if ((i % 2) != 0 && isFileName(separatedData[i])) //There's a filename at every odd index, except for the end
+                if (separatedData.length >= 2) {
+                    for (int i = 1; i < separatedData.length - 1; i += 2) {
+                        if (isFileName(separatedData[i])) //There's a filename at every odd index, except for the end
                             fileNameList.add(separatedData[i]);
                     }
                 }
@@ -335,6 +362,8 @@ public class Parser extends AppCompatActivity{
                 if (estimatedMillis > timeout){
                     Log.i("Timeout", "Download timed out");
                     readBlockTimedOut = true;
+                    //Try to flush the stream so we aren't stuck reading the same garbage data
+                    inStream.skip(inStream.available());
                     return true; //timeout
                 }
             }

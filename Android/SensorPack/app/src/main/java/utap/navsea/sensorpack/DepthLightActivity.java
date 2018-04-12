@@ -46,6 +46,7 @@ import java.util.Observer;
 import java.util.concurrent.TimeUnit;
 
 public class DepthLightActivity extends AppCompatActivity {
+    private Button rtButton = null;
     private LineChart chartDepth = null;
     private LineChart chartLight = null;
     private BluetoothSocket socket = MainActivity.getBT().getSocket(); //We use the socket from the Bluetooth class
@@ -71,7 +72,7 @@ public class DepthLightActivity extends AppCompatActivity {
 
         setupSwipeDetector(); //Setup swipe detector so we can swipe to change views
 
-        final Button rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
+        rtButton = (Button) findViewById(R.id.rtbutton_depthlight);
         if(socket!=null) rtButton.setVisibility(View.VISIBLE); //Only show the button if we're connected
         else rtButton.setVisibility(View.INVISIBLE);
         rtButton.setOnClickListener(new View.OnClickListener() {
@@ -118,13 +119,8 @@ public class DepthLightActivity extends AppCompatActivity {
         fabLeft.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(!streaming_rt) {
-                    flushStream();
-                    changeActivity(TempCondActivity.class);
-                }
-                else Snackbar.make(view, "Stop real time display before changing screens",
-                        Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                enforceStreamSafety();
+                changeActivity(TempCondActivity.class);
             }
         });
 
@@ -133,15 +129,30 @@ public class DepthLightActivity extends AppCompatActivity {
         fabRight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(!streaming_rt) {
-                    flushStream();
-                    changeActivity(MainActivity.class);
-                }
-                else Snackbar.make(view, "Stop real time display before changing screens",
-                        Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                enforceStreamSafety();
+                changeActivity(MainActivity.class);
             }
         });
+    }
+
+    //Makes sure the real time display is killed in this activity
+    private void enforceStreamSafety(){
+        boolean gettingData = isGettingData(); //Check if we're getting data
+
+        if(gettingData) {
+            rtButton.setText(getResources().getString(R.string.start_dl_rt));
+            sendLogApp(); //Need to send logapp to stop data transfer
+
+            streaming_rt = !streaming_rt;
+            flushStream(); //Get rid of any real time data still hanging around
+
+            try {
+                Thread.sleep(200);
+            }
+            catch(java.lang.InterruptedException e){
+                System.out.println("Failed to sleep");
+            }
+        }
     }
 
     private void setupSwipeDetector(){

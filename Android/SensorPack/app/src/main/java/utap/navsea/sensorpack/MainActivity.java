@@ -25,6 +25,7 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.content.Intent;
+import android.os.SystemClock;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.Gravity;
@@ -55,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity  extends AppCompatActivity {
 	private TextView timeDisplay;
+    private Button rtButton = null;
 	private ImageView compass = null;
 	private ImageView seaperch = null;
 	private static ArrayAdapter<String> mArrayAdapter;
@@ -89,7 +91,7 @@ public class MainActivity  extends AppCompatActivity {
         FloatingActionButton fabLogfile = (FloatingActionButton) findViewById(R.id.fab_logfile);
 		FloatingActionButton fabRight = (FloatingActionButton) findViewById(R.id.fab_right); //Make navigational FAB
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab); //FAB for displaying BT devices
-        final Button rtButton = (Button) findViewById(R.id.rtbutton_main);
+        rtButton = (Button) findViewById(R.id.rtbutton_main);
 
         setupSwipeDetector(); //Setup swipe detector so we can swipe to change views
         syncDisplay(rtButton);
@@ -150,13 +152,8 @@ public class MainActivity  extends AppCompatActivity {
 		fabRight.setOnClickListener(new View.OnClickListener() { //Fab for changing view
 			@Override
 			public void onClick(View view) {
-                if(!streaming_rt) {
-                    flushStream();
-                    changeActivity(TempCondActivity.class); //Switches to TempCondActivity
-                }
-                else Snackbar.make(view, "Stop real time display before changing screens",
-                        Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                enforceStreamSafety();
+                changeActivity(TempCondActivity.class); //Switches to TempCondActivity
 			}
 		});
 
@@ -217,8 +214,10 @@ public class MainActivity  extends AppCompatActivity {
 		fabTC.setOnClickListener(new View.OnClickListener() { //FAB for displaying list of commands
 			@Override
 			public void onClick(View view) {
-                if (socket != null && socket.isConnected())
+                if (socket != null && socket.isConnected()) {
+                    enforceStreamSafety(); //Make sure we aren't streaming real time data right now
                     displayFiles();
+                }
                 else Snackbar.make(view, "Not connected",
                         Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
@@ -253,6 +252,26 @@ public class MainActivity  extends AppCompatActivity {
 			public void onStopTrackingTouch(SeekBar seekBar) {}
 		});
 	}
+
+    //Makes sure the real time display is killed in this activity
+    private void enforceStreamSafety(){
+        boolean gettingData = isGettingData(); //Check if we're getting data
+
+        if(gettingData) {
+            rtButton.setText(getResources().getString(R.string.start_dl_rt));
+            sendLogApp(); //Need to send logapp to stop data transfer
+
+            streaming_rt = !streaming_rt;
+            flushStream(); //Get rid of any real time data still hanging around
+
+            try {
+                Thread.sleep(200);
+            }
+            catch(java.lang.InterruptedException e){
+                System.out.println("Failed to sleep");
+            }
+        }
+    }
 
     private void setupSwipeDetector(){
         //Swipe detector code from http://stackoverflow.com/questions/937313/fling-gesture-detection-on-grid-layout
@@ -761,13 +780,17 @@ public class MainActivity  extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(Integer... progress) {
             TextView progressText = (TextView)fileDialog.findViewById(R.id.progress_text);
+            if(Parser.totalFileSize <= 0){
+                progressText.setText((Parser.totalFileSize < 0) ? "Error downloading whole file" : "No data in file");
+                spinner.setProgress(100); //End it
+                return;
+            }
+
             progressText.setText(getResources().getString(R.string.progress));
             progressText.append(progress[0] + "%" + "  ");
             progressText.append("Byes downloaded: " + Parser.getBytesDown()
                     + "/" + Parser.totalFileSize);
             spinner.setProgress(progress[0]);
-            //spinner.getProgressDrawable().setColorFilter(
-            //        Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
         }
 
 		@Override
@@ -782,6 +805,7 @@ public class MainActivity  extends AppCompatActivity {
 		}
 
         public void update(int iProgress){
+            iProgress = (iProgress >= 0 && iProgress <= 100) ? iProgress : 100;
             publishProgress(iProgress);
         }
 
