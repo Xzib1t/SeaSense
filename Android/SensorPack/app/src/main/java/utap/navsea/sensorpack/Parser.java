@@ -27,6 +27,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Parser extends AppCompatActivity{
     private static BluetoothSocket socket = null;
@@ -49,6 +51,7 @@ public class Parser extends AppCompatActivity{
     private static boolean readBlockTimedOut = false;
     private static int bytesDownloaded = 0;
     public static int totalFileSize = 0;
+    final static private Pattern csv_pattern = Pattern.compile("\\d{8}\\/\\d{8}\\.csv"); //Regex to check if csv filenames are valid
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -287,7 +290,7 @@ public class Parser extends AppCompatActivity{
                 if(separatedData[0].equals("")) return fileNameList;  //Return an empty array if we timed out or have garbage data
                 if (separatedData.length != 0) {
                     for (int i = 0; i < separatedData.length - 1; i++) {
-                        if ((i % 2) != 0) //There's a filename at every odd index, except for the end
+                        if ((i % 2) != 0 && isFileName(separatedData[i])) //There's a filename at every odd index, except for the end
                             fileNameList.add(separatedData[i]);
                     }
                 }
@@ -296,6 +299,17 @@ public class Parser extends AppCompatActivity{
             Log.d("Exception", "Exception extracting file names");
         }
         return fileNameList;
+    }
+
+    /**
+     * Checks if the string is a valid csv filename
+     * Valid format: YYYYMMDD/YYMMDD##.csv, where ## is the file number
+     * @param s String to test
+     */
+    private static boolean isFileName(String s){
+        Matcher m = csv_pattern.matcher(s);
+
+        return m.matches();
     }
 
     /**
